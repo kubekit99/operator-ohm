@@ -16,11 +16,11 @@ spec:
       containers:
         - name: mariadb-operator
           # Replace this with the built image name
-          image: REPLACE_IMAGE
+          image: mariadb-operator:poc
           ports:
           - containerPort: 60000
             name: metrics
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           env:
             - name: WATCH_NAMESPACE
               valueFrom:

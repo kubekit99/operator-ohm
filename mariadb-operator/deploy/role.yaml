@@ -4,6 +4,14 @@ metadata:
   creationTimestamp: null
   name: mariadb-operator
 rules:
+# JEB: helm chart is creating additional role and bindings
+- apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - '*'
 - apiGroups:
   - ""
   resources:
@@ -14,6 +22,7 @@ rules:
   - events
   - configmaps
   - secrets
+  - serviceaccounts
   verbs:
   - '*'
 - apiGroups:

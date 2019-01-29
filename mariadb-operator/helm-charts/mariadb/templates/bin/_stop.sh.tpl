@@ -1,3 +1,4 @@
+#!/bin/bash
 {{/*
 Copyright 2017 The Openstack-Helm Authors.
 
@@ -14,17 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{- if .Values.manifests.service }}
-{{- $envAll := . }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ tuple "oslo_db" "direct" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
-spec:
-  ports:
-    - name: mysql
-      port: {{ tuple "oslo_db" "direct" "mysql" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
-  selector:
-{{ tuple $envAll "mariadb" "server" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
-{{- end }}
+set -xe
+
+exec mysqladmin \
+    --defaults-file=/etc/mysql/admin_user.cnf \
+    --host=localhost \
+    --connect-timeout 2 \
+    shutdown
