@@ -1,0 +1,5 @@
+---
+- version: v1alpha1
+  group: openstackhelm.openstack.org
+  kind: Openstacklcm
+  chart: /opt/helm/helm-charts/openstacklcm
