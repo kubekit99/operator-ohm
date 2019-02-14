@@ -1,0 +1,7 @@
+apiVersion: openstackhelm.openstack.org/v1alpha1
+kind: OpenstackRollback
+metadata:
+  name: example-openstackrollback
+spec:
+  # Add fields here
+  size: 3

@@ -1,0 +1,7 @@
+apiVersion: openstackhelm.openstack.org/v1alpha1
+kind: OpenstackUpgrade
+metadata:
+  name: example-openstackupgrade
+spec:
+  # Add fields here
+  size: 3

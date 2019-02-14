@@ -1,0 +1,7 @@
+apiVersion: openstackhelm.openstack.org/v1alpha1
+kind: OpenstackBackup
+metadata:
+  name: example-openstackbackup
+spec:
+  # Add fields here
+  size: 3

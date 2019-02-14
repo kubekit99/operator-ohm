@@ -1,0 +1,15 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: openstackrollbacks.openstackhelm.openstack.org
+spec:
+  group: openstackhelm.openstack.org
+  names:
+    kind: OpenstackRollback
+    listKind: OpenstackRollbackList
+    plural: openstackrollbacks
+    singular: openstackrollback
+  scope: Namespaced
+  version: v1alpha1
+  subresources:
+    status: {}
