@@ -3,5 +3,5 @@ kind: OpenstackDeployment
 metadata:
   name: example-openstackdeployment
 spec:
-  # Add fields here
-  size: 3
+  openstackVersion: 1.2.3
+  openstackRevision: 3
