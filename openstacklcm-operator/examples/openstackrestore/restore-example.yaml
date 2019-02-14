@@ -3,5 +3,14 @@ kind: OpenstackRestore
 metadata:
   name: example-openstackrestore
 spec:
-  openstackVersion: 1.2.3
-  openstackRevision: 3
+  backupStorageType: offsite
+  # ceph:
+  #   cephSecret: thesecret
+  #   path: example
+  offsite:
+    endpoint: sftp://foo.bar
+    forcePathStyle: true
+    offsiteSecret: thesecret
+    path: xxx
+  openstackEndpoints:
+  - https://local.com

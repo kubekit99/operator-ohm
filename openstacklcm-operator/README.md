@@ -20,6 +20,7 @@ git add deploy/crds/
 git add pkg/apis/openstackhelm/
 git add pkg/apis/addtoscheme_openstackhelm_v1alpha1.go
 git add deploy/role.yaml
+```
 
 ```bash
 vi pkg/apis/openstackhelm/v1alpha1/*_types.go
