@@ -31,6 +31,16 @@ operator-sdk add controller --api-version=openstackhelm.openstack.org/v1alpha1 -
 operator-sdk add controller --api-version=openstackhelm.openstack.org/v1alpha1 --kind=OpenstackRollback
 operator-sdk add controller --api-version=openstackhelm.openstack.org/v1alpha1 --kind=OpenstackDeployment
 ```
+## Adjusting crds
+
+Don't understand yet how to build using operator-sdk operator with the same level of detailes than
+controller-gen. Big hack that have to be included in Makefile.
+
+```bash
+go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./deploy/crds/
+ls deploy/crds/*_crd.yaml > filelist
+for i in `cat filelist`; do NEWNAME=`echo $i | sed -e "s/_crd//g"`; mv $NEWNAME $i; done
+```
 
 ## Compiling the openstacklcm-operator
 
