@@ -18,11 +18,11 @@ operator-sdk add api --api-version=openstackhelm.openstack.org/v1alpha1 --kind=O
 operator-sdk add api --api-version=openstackhelm.openstack.org/v1alpha1 --kind=OpenstackDeployment
 git add deploy/crds/
 git add pkg/apis/openstackhelm/
-git add pkg/apis/addtoscheme_openstackhelm_v1alpha1.go 
-git add deploy/role.yaml 
+git add pkg/apis/addtoscheme_openstackhelm_v1alpha1.go
+git add deploy/role.yaml
 
 ```bash
-vi pkg/apis/openstackhelm/v1alpha1/*_types.go 
+vi pkg/apis/openstackhelm/v1alpha1/*_types.go
 operator-sdk generate k8s
 ```
 
@@ -54,17 +54,47 @@ dep ensure
 
 # Deploying
 
-## Deployment of operator manually
+## Deployment of operator using helm
 
 ```bash
 cd chart
 helm install --name openstacklcm .
 ```
 
-## Deployment of operator manually
+## Trigger a backup
 
 ```bash
-kubectl apply -f deploy/crds/arpscan_v1alpha1_kubedge_cr.yaml
+kubectl apply -f examples/openstackbackup/backup-example.yaml
+kubectl get openstackbackup
 ```
 
 
+## Trigger a restore
+
+```bash
+kubectl apply -f examples/openstackrestore/restore-example.yaml
+kubectl get openstackrestore
+```
+
+## Trigger a deployment
+
+```bash
+kubectl apply -f examples/openstackdeployment/deployment-example.yaml
+kubectl get openstackdeployment
+kubectl get openstackdeployment -o yaml
+kubectl describe openstackdeployment
+```
+
+## Trigger a rollback
+
+```bash
+kubectl apply -f examples/openstackrollback/rollback-example.yaml
+kubectl get openstackrollback
+```
+
+## Trigger an upgrade
+
+```bash
+kubectl apply -f examples/openstackupgrade/upgrade-example.yaml
+kubectl get openstackupgrade
+```
