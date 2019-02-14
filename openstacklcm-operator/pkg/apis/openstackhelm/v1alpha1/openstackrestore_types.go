@@ -93,5 +93,3 @@ type OpenstackRestoreList struct {
 func init() {
 	SchemeBuilder.Register(&OpenstackRestore{}, &OpenstackRestoreList{})
 }
-
-
