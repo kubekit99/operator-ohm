@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "openstacklcm.fullname" . }}
+  name: {{ include "openstackhelm.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "openstacklcm.name" . }}
-    helm.sh/chart: {{ include "openstacklcm.chart" . }}
+    app.kubernetes.io/name: {{ include "openstackhelm.name" . }}
+    helm.sh/chart: {{ include "openstackhelm.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
@@ -15,5 +15,5 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app.kubernetes.io/name: {{ include "openstacklcm.name" . }}
+    app.kubernetes.io/name: {{ include "openstackhelm.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}

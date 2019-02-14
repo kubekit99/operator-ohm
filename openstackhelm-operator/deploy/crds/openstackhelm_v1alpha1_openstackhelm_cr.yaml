@@ -1,7 +1,7 @@
 apiVersion: openstackhelm.openstack.org/v1alpha1
-kind: Openstacklcm
+kind: Openstackhelm
 metadata:
-  name: example-openstacklcm
+  name: example-openstackhelm
 spec:
   # Add fields here
   size: 3
