@@ -5,9 +5,8 @@ import (
 
 	lcmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstackhelm/v1alpha1"
 	lcmutils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
-	corev1 "k8s.io/api/core/v1"
+	//corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,12 +51,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
+	// Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner OpenstackRestore
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &lcmv1alpha1.OpenstackRestore{},
-	})
+	o := lcmutils.NewPodGroupVersionKind()
+	err = c.Watch(&source.Kind{Type: o},
+		&handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &lcmv1alpha1.OpenstackRestore{},
+		},
+		// predicate.GenerationChangedPredicate{}
+	)
 	if err != nil {
 		return err
 	}
@@ -101,19 +104,19 @@ func (r *ReconcileOpenstackRestore) Reconcile(request reconcile.Request) (reconc
 	}
 
 	// Define a new Pod object
-	pod := newPodForCR(instance)
+	wf := lcmutils.NewPodForCR(instance.Name, instance.Namespace)
 
 	// Set OpenstackRestore instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(instance, wf, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
+	found := lcmutils.NewPodGroupVersionKind()
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)
 	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
+		reqLogger.Info("Creating a new Pod", "Pod.Namespace", wf.GetNamespace(), "Pod.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
+		err = r.client.Create(context.TODO(), wf)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -125,16 +128,6 @@ func (r *ReconcileOpenstackRestore) Reconcile(request reconcile.Request) (reconc
 	}
 
 	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
+	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.GetNamespace(), "Pod.Name", found.GetName())
 	return reconcile.Result{}, nil
-}
-
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *lcmv1alpha1.OpenstackRestore) *corev1.Pod {
-	return lcmutils.NewPodForCR(cr.Name, cr.Namespace)
-}
-
-// newWorkflowForCR returns a workflow with the same name/namesapce as the cr
-func newWorkflowForCR(cr *lcmv1alpha1.OpenstackRestore) *unstructured.Unstructured {
-	return lcmutils.NewWorkflowForCR(cr.Name, cr.Namespace)
 }
