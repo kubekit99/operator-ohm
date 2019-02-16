@@ -3,10 +3,11 @@ package openstackrestore
 import (
 	"context"
 
-	openstackhelmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstackhelm/v1alpha1"
+	lcmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstackhelm/v1alpha1"
+	lcmutils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,7 +47,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource OpenstackRestore
-	err = c.Watch(&source.Kind{Type: &openstackhelmv1alpha1.OpenstackRestore{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &lcmv1alpha1.OpenstackRestore{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -55,7 +56,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to secondary resource Pods and requeue the owner OpenstackRestore
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &openstackhelmv1alpha1.OpenstackRestore{},
+		OwnerType:    &lcmv1alpha1.OpenstackRestore{},
 	})
 	if err != nil {
 		return err
@@ -86,7 +87,7 @@ func (r *ReconcileOpenstackRestore) Reconcile(request reconcile.Request) (reconc
 	reqLogger.Info("Reconciling OpenstackRestore")
 
 	// Fetch the OpenstackRestore instance
-	instance := &openstackhelmv1alpha1.OpenstackRestore{}
+	instance := &lcmv1alpha1.OpenstackRestore{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -129,24 +130,11 @@ func (r *ReconcileOpenstackRestore) Reconcile(request reconcile.Request) (reconc
 }
 
 // newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *openstackhelmv1alpha1.OpenstackRestore) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
-	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
-		},
-	}
+func newPodForCR(cr *lcmv1alpha1.OpenstackRestore) *corev1.Pod {
+	return lcmutils.NewPodForCR(cr.Name, cr.Namespace)
+}
+
+// newWorkflowForCR returns a workflow with the same name/namesapce as the cr
+func newWorkflowForCR(cr *lcmv1alpha1.OpenstackRestore) *unstructured.Unstructured {
+	return lcmutils.NewWorkflowForCR(cr.Name, cr.Namespace)
 }

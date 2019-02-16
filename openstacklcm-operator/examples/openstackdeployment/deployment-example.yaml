@@ -1,7 +1,7 @@
 apiVersion: openstackhelm.openstack.org/v1alpha1
 kind: OpenstackDeployment
 metadata:
-  name: example-openstackdeployment
+  name: openstackdeployment
 spec:
   openstackVersion: 1.2.3
   openstackRevision: 3

@@ -1,7 +1,7 @@
 apiVersion: openstackhelm.openstack.org/v1alpha1
 kind: OpenstackUpgrade
 metadata:
-  name: example-openstackupgrade
+  name: openstackupgrade
 spec:
   openstackVersion: 1.2.3
   openstackRevision: 3
