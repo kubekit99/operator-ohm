@@ -9,4 +9,4 @@ spec:
     container:
       image: docker/whalesay:latest
       command: [cowsay]
-      args: ["openstackdeployment"]
+      args: ["workflow 2: openstackdeployment"]

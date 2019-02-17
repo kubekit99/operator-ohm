@@ -9,4 +9,4 @@ spec:
     container:
       image: docker/whalesay:latest
       command: [cowsay]
-      args: ["openstackupgrade"]
+      args: ["workflow 5: openstackupgrade"]

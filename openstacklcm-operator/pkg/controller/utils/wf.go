@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"github.com/ghodss/yaml"
+	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -21,30 +23,43 @@ func NewWorkflowForCR(name string, namespace string) *unstructured.Unstructured 
 	}
 
 	// Using a unstructured object.
-	jsonfmt := []byte(`{
-	"apiVersion": "argoproj.io/v1alpha1",
-	"kind": "Workflow",
-	"metadata": {
-	   "name": "openstackbackup-wf"
-	},
-	"spec": {
-	   "entrypoint": "whalesay",
-	   "templates": [
-		  {
-			 "name": "whalesay",
-			 "container": {
-				"image": "docker/whalesay:latest",
-				"command": [
-				   "cowsay"
-				],
-				"args": [
-				   "openstackbackup"
-				]
-			 }
-		  }
-	   ]
+	// 	jsonfmtcst := []byte(`{
+	// 	"apiVersion": "argoproj.io/v1alpha1",
+	// 	"kind": "Workflow",
+	// 	"metadata": {
+	// 	   "name": "openstackbackup-wf"
+	// 	},
+	// 	"spec": {
+	// 	   "entrypoint": "whalesay",
+	// 	   "templates": [
+	// 		  {
+	// 			 "name": "whalesay",
+	// 			 "container": {
+	// 				"image": "docker/whalesay:latest",
+	// 				"command": [
+	// 				   "cowsay"
+	// 				],
+	// 				"args": [
+	// 				   "openstackbackup"
+	// 				]
+	// 			 }
+	// 		  }
+	// 	   ]
+	// 	}
+	//  }`)
+
+	filename := "/root/argo-workflows/wf-" + name + ".yaml"
+	yamlfmt, ferr := ioutil.ReadFile(filename)
+	if ferr != nil {
+		reqLogger.Error(ferr, "Can not read file", filename)
+		return nil
 	}
- }`)
+	jsonfmt, ferr2 := yaml.YAMLToJSON(yamlfmt)
+	if ferr2 != nil {
+		reqLogger.Error(ferr2, "Can not convert from yaml to json")
+		return nil
+	}
+
 	u := &unstructured.Unstructured{}
 	err := u.UnmarshalJSON(jsonfmt)
 	if err != nil {

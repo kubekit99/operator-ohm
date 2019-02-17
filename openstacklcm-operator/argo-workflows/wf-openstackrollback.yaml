@@ -9,4 +9,4 @@ spec:
     container:
       image: docker/whalesay:latest
       command: [cowsay]
-      args: ["openstackrollback"]
+      args: ["workflow 4: openstackrollback"]

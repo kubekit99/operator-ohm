@@ -52,8 +52,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner OpenstackDeployment
-	o := lcmutils.NewPodGroupVersionKind()
+	// Watch for changes to secondary resource Workflows and requeue the owner OpenstackDeployment
+	o := lcmutils.NewWorkflowGroupVersionKind()
 	err = c.Watch(&source.Kind{Type: o},
 		&handler.EnqueueRequestForOwner{
 			IsController: true,
@@ -81,7 +81,7 @@ type ReconcileOpenstackDeployment struct {
 // Reconcile reads that state of the cluster for a OpenstackDeployment object and makes changes based on the state read
 // and what is in the OpenstackDeployment.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
+// a Workflow as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
@@ -103,31 +103,31 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 		return reconcile.Result{}, err
 	}
 
-	// Define a new Pod object
-	wf := lcmutils.NewPodForCR(instance.Name, instance.Namespace)
+	// Define a new Workflow object
+	wf := lcmutils.NewWorkflowForCR(instance.Name, instance.Namespace)
 
 	// Set OpenstackDeployment instance as the owner and controller
 	if err := controllerutil.SetControllerReference(instance, wf, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// Check if this Pod already exists
-	found := lcmutils.NewPodGroupVersionKind()
+	// Check if this Workflow already exists
+	found := lcmutils.NewWorkflowGroupVersionKind()
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)
 	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", wf.GetNamespace(), "Pod.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
+		reqLogger.Info("Creating a new Workflow", "Workflow.Namespace", wf.GetNamespace(), "Workflow.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
 		err = r.client.Create(context.TODO(), wf)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 
-		// Pod created successfully - don't requeue
+		// Workflow created successfully - don't requeue
 		return reconcile.Result{}, nil
 	} else if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.GetNamespace(), "Pod.Name", found.GetName())
+	// Workflow already exists - don't requeue
+	reqLogger.Info("Skip reconcile: Workflow already exists", "Workflow.Namespace", found.GetNamespace(), "Workflow.Name", found.GetName())
 	return reconcile.Result{}, nil
 }
