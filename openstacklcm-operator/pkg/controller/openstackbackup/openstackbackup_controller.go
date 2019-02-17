@@ -2,6 +2,7 @@ package openstackbackup
 
 import (
 	"context"
+	"fmt"
 
 	lcmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstackhelm/v1alpha1"
 	lcmutils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
@@ -9,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -34,7 +36,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileOpenstackBackup{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileOpenstackBackup{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("openstackbackup-recorder")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -74,8 +76,9 @@ var _ reconcile.Reconciler = &ReconcileOpenstackBackup{}
 type ReconcileOpenstackBackup struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a OpenstackBackup object and makes changes based on the state read
@@ -116,6 +119,8 @@ func (r *ReconcileOpenstackBackup) Reconcile(request reconcile.Request) (reconci
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)
 	if err != nil && errors.IsNotFound(err) {
 		reqLogger.Info("Creating a new Workflow", "Workflow.Namespace", wf.GetNamespace(), "Workflow.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
+		r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Created worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
+
 		err = r.client.Create(context.TODO(), wf)
 		if err != nil {
 			return reconcile.Result{}, err
