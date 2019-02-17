@@ -56,6 +56,12 @@ rules:
   - get
   - create
 - apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - '*'
+- apiGroups:
   - openstackhelm.openstack.org
   resources:
   - '*'

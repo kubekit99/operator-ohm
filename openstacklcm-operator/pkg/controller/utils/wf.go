@@ -6,8 +6,8 @@ import (
 
 func NewWorkflowGroupVersionKind() *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
-	u.SetAPIVersion("v1")
-	u.SetKind("Pod")
+	u.SetAPIVersion("argoproj.io/v1alpha1")
+	u.SetKind("Workflow")
 	return u
 
 }
@@ -21,13 +21,36 @@ func NewWorkflowForCR(name string, namespace string) *unstructured.Unstructured 
 	}
 
 	// Using a unstructured object.
-	jsonfmt := []byte(`{ "apiVersion": "v1", "kind": "Pod", "spec": { "containers": [ { "command": [ "sleep", "3600" ], "image": "busybox", "name": "busybox" } ] } }`)
+	jsonfmt := []byte(`{
+	"apiVersion": "argoproj.io/v1alpha1",
+	"kind": "Workflow",
+	"metadata": {
+	   "name": "openstackbackup-wf"
+	},
+	"spec": {
+	   "entrypoint": "whalesay",
+	   "templates": [
+		  {
+			 "name": "whalesay",
+			 "container": {
+				"image": "docker/whalesay:latest",
+				"command": [
+				   "cowsay"
+				],
+				"args": [
+				   "openstackbackup"
+				]
+			 }
+		  }
+	   ]
+	}
+ }`)
 	u := &unstructured.Unstructured{}
 	err := u.UnmarshalJSON(jsonfmt)
 	if err != nil {
 		reqLogger.Error(err, "something is wrong during scanning of json object", jsonfmt)
 	}
-	u.SetName(name + "-pod")
+	u.SetName(name + "-wf")
 	u.SetNamespace(namespace)
 	u.SetLabels(labels)
 
