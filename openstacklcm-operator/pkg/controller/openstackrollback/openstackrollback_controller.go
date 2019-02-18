@@ -90,8 +90,7 @@ type ReconcileOpenstackRollback struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOpenstackRollback) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling OpenstackRollback")
+	reqLogger := log.WithValues("OpenstackRollback.Namespace", request.Namespace, "OpenstackRollback.Name", request.Name)
 
 	// Fetch the OpenstackRollback instance
 	instance := &lcmv1alpha1.OpenstackRollback{}
@@ -158,14 +157,18 @@ func (r *ReconcileOpenstackRollback) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, nil
 	}
 
-	// SetControllerReference sets owner as a Controller OwnerReference on owned. 
-	// This is used for garbage collection of the owned object and for reconciling the owner object on changes to owned 
-	// (with a Watch + EnqueueRequestForOwner). 
+	// SetControllerReference sets owner as a Controller OwnerReference on owned.
+	// This is used for garbage collection of the owned object and for reconciling the owner object on changes to owned
+	// (with a Watch + EnqueueRequestForOwner).
 	// JEB: Check the OwnerReferenec by running "kubectl describe workflows/openstackrollback-wf"
 	// JEB: The OpenstackRollback CR is owner of the workflow. This currently makes the Finalizer almost useless.
 	if err := controllerutil.SetControllerReference(instance, wf, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
+
+	// spec := instance.Spec
+	// status := instance.Status
+
 	// Check if this Workflow already exists
 	found := lcmutils.NewWorkflowGroupVersionKind()
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)
@@ -174,38 +177,75 @@ func (r *ReconcileOpenstackRollback) Reconcile(request reconcile.Request) (recon
 
 		err = r.client.Create(context.TODO(), wf)
 		if err != nil {
+			_ = r.updateStatus(instance, false, "failure")
 			r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 			return reconcile.Result{}, err
 		} else {
 			// JEB: If the workflow owned by OpenstackRollback has been deleted, the workflow will be recreated by this method.
 			// Still only one line will appear in the "kubectl describe" but with a comment (x2 over XXmn)
+			_ = r.updateStatus(instance, true, "")
 			r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		}
 
 		// Workflow created successfully - don't requeue
 		return reconcile.Result{}, nil
+
 	} else if err != nil {
+		_ = r.updateStatus(instance, false, "failure")
 		r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Retrieving worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		return reconcile.Result{}, err
+	} else {
+		_ = r.updateStatus(instance, true, "")
 	}
 
 	// Workflow already exists - don't requeue
 	return reconcile.Result{}, nil
 }
 
+// Update the status in the OpenstackRollback Custome Resource
+func (r *ReconcileOpenstackRollback) updateStatus(instance *lcmv1alpha1.OpenstackRollback, success bool, reason string) error {
+
+	reqLogger := log.WithValues("OpenstackRollback.Namespace", instance.Namespace, "OpenstackRollback.Name", instance.Name)
+
+	instanceCopy := instance.DeepCopy()
+	instanceCopy.Status.Succeeded = success
+	instanceCopy.Status.Reason = reason
+
+	// JEB: Can't figure out if I need to invoke UpdateStatus or Update
+	err := r.client.Update(context.TODO(), instanceCopy)
+	if err != nil {
+		reqLogger.Error(err, "Failure to update status")
+	}
+
+	//JEB err2 := r.client.Status().Update(context.TODO(), instanceCopy)
+	//JEB if err2 != nil {
+	//JEB 	reqLogger.Error(err2, "Failure to update status")
+	//JEB }
+
+	return err
+}
+
+// Delete the depending Argo Workflow
 func (r *ReconcileOpenstackRollback) deleteWorkflow(wf *unstructured.Unstructured) error {
+
+	reqLogger := log.WithValues("Worflow.Namespace", wf.GetNamespace(), "Worflow.Name", wf.GetName())
+
 	found := lcmutils.NewWorkflowGroupVersionKind()
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)
 	if err != nil && errors.IsNotFound(err) {
 		// Workflow was already deleted - don't requeue
 		return nil
 	} else if err != nil {
-		return err
+		reqLogger.Error(err, "Failure to fetch workflow . Ignoring")
+		// Something else wrong with workflow - don't requeue
+		return nil
 	}
 
 	err = r.client.Delete(context.TODO(), found)
 	if err != nil {
-		return err
+		reqLogger.Error(err, "Failure to delete workflow . Ignoring")
+		// Something wrong with workflow deletion - don't requeue
+		return nil
 	}
 
 	return nil
