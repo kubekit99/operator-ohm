@@ -16,8 +16,24 @@ limitations under the License.
 
 package utils
 
-import (
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-)
+//
+// Helper functions to check and remove string from a slice of strings.
+//
+func FinalizerContainsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
 
-var log = logf.Log.WithName("lcmutils")
+func FinalizerRemoveString(slice []string, s string) (result []string) {
+	for _, item := range slice {
+		if item == s {
+			continue
+		}
+		result = append(result, item)
+	}
+	return
+}

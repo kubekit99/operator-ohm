@@ -8,6 +8,7 @@ import (
 	lcmutils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
 	//corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -109,6 +110,54 @@ func (r *ReconcileOpenstackBackup) Reconcile(request reconcile.Request) (reconci
 	// Define a new Workflow object
 	wf := lcmutils.NewWorkflowForCR(instance.Name, instance.Namespace)
 
+	// name of your custom finalizer
+	myFinalizerName := "workflow.finalizer.openstackbackup.openstackhelm.openstack.org"
+
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+
+		// The object is not being deleted, so if it does not have our finalizer,
+		// then lets add the finalizer and update the object.
+		if !lcmutils.FinalizerContainsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
+			reqLogger.Info("Handling OpenstackBackup creation/update. Adding Finalizer")
+			r.recorder.Event(instance, "Normal", "Updated", fmt.Sprintf("Adding Finalizier"))
+			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
+			if err := r.client.Update(context.Background(), instance); err != nil {
+				return reconcile.Result{}, err
+			}
+		} else {
+			reqLogger.Info("Handling OpenstackBackup creation/update")
+
+		}
+	} else {
+
+		// The object is being deleted
+		if lcmutils.FinalizerContainsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
+			reqLogger.Info("Handling OpenstackBackup deletion step 1")
+			reqLogger.Info("Deleting Workflow", "Workflow.Namespace", wf.GetNamespace(), "Workflow.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
+
+			// our finalizer is present, so lets handle our external dependency
+			if err := r.deleteWorkflow(wf); err != nil {
+				// if fail to delete the external dependency here, return with error
+				// so that it can be retried
+				r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Deleting worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
+				return reconcile.Result{}, err
+			} else {
+				r.recorder.Event(instance, "Normal", "Deleted", fmt.Sprintf("Deleting worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
+			}
+
+			// remove our finalizer from the list and update it.
+			instance.ObjectMeta.Finalizers = lcmutils.FinalizerRemoveString(instance.ObjectMeta.Finalizers, myFinalizerName)
+			if err := r.client.Update(context.Background(), instance); err != nil {
+				return reconcile.Result{}, err
+			}
+		} else {
+			reqLogger.Info("Handling OpenstackBackup deletion step 2")
+		}
+
+		// Our finalizer has finished, so the reconciler can do nothing.
+		return reconcile.Result{}, nil
+	}
+
 	// Set OpenstackBackup instance as the owner and controller
 	if err := controllerutil.SetControllerReference(instance, wf, r.scheme); err != nil {
 		return reconcile.Result{}, err
@@ -119,20 +168,40 @@ func (r *ReconcileOpenstackBackup) Reconcile(request reconcile.Request) (reconci
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)
 	if err != nil && errors.IsNotFound(err) {
 		reqLogger.Info("Creating a new Workflow", "Workflow.Namespace", wf.GetNamespace(), "Workflow.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
-		r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Created worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 
 		err = r.client.Create(context.TODO(), wf)
 		if err != nil {
+			r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 			return reconcile.Result{}, err
+		} else {
+			r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		}
 
 		// Workflow created successfully - don't requeue
 		return reconcile.Result{}, nil
 	} else if err != nil {
+		r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Retrieving worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		return reconcile.Result{}, err
 	}
 
 	// Workflow already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Workflow already exists", "Workflow.Namespace", found.GetNamespace(), "Workflow.Name", found.GetName())
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileOpenstackBackup) deleteWorkflow(wf *unstructured.Unstructured) error {
+	found := lcmutils.NewWorkflowGroupVersionKind()
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)
+	if err != nil && errors.IsNotFound(err) {
+		// Workflow was already deleted - don't requeue
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	err = r.client.Delete(context.TODO(), found)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
