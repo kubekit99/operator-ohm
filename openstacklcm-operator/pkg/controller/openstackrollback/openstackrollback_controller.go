@@ -111,7 +111,7 @@ func (r *ReconcileOpenstackRollback) Reconcile(request reconcile.Request) (recon
 	wf := lcmutils.NewWorkflowForCR(instance.Name, instance.Namespace)
 
 	// name of your custom finalizer
-	myFinalizerName := "workflow.finalizer.openstackrollback.openstackhelm.openstack.org"
+	myFinalizerName := "finalizer.openstackrollback"
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 
@@ -139,10 +139,10 @@ func (r *ReconcileOpenstackRollback) Reconcile(request reconcile.Request) (recon
 			if err := r.deleteWorkflow(wf); err != nil {
 				// if fail to delete the external dependency here, return with error
 				// so that it can be retried
-				r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Deleting worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
+				// r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Deleting worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 				return reconcile.Result{}, err
 			} else {
-				r.recorder.Event(instance, "Normal", "Deleted", fmt.Sprintf("Deleting worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
+				// r.recorder.Event(instance, "Normal", "Deleted", fmt.Sprintf("Deleting worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 			}
 
 			// remove our finalizer from the list and update it.
@@ -171,10 +171,10 @@ func (r *ReconcileOpenstackRollback) Reconcile(request reconcile.Request) (recon
 
 		err = r.client.Create(context.TODO(), wf)
 		if err != nil {
-			r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
+			r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 			return reconcile.Result{}, err
 		} else {
-			r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
+			r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		}
 
 		// Workflow created successfully - don't requeue
