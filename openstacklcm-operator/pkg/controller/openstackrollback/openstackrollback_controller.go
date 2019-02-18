@@ -54,8 +54,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Workflows and requeue the owner OpenstackRollback
+	// JEB: When a Workflow owned by OpenstackRollback is deleted, the Reconcile method is invoked.
 	o := lcmutils.NewWorkflowGroupVersionKind()
 	err = c.Watch(&source.Kind{Type: o},
 		&handler.EnqueueRequestForOwner{
@@ -158,11 +158,14 @@ func (r *ReconcileOpenstackRollback) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, nil
 	}
 
-	// Set OpenstackRollback instance as the owner and controller
+	// SetControllerReference sets owner as a Controller OwnerReference on owned. 
+	// This is used for garbage collection of the owned object and for reconciling the owner object on changes to owned 
+	// (with a Watch + EnqueueRequestForOwner). 
+	// JEB: Check the OwnerReferenec by running "kubectl describe workflows/openstackrollback-wf"
+	// JEB: The OpenstackRollback CR is owner of the workflow. This currently makes the Finalizer almost useless.
 	if err := controllerutil.SetControllerReference(instance, wf, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
-
 	// Check if this Workflow already exists
 	found := lcmutils.NewWorkflowGroupVersionKind()
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)
@@ -174,6 +177,8 @@ func (r *ReconcileOpenstackRollback) Reconcile(request reconcile.Request) (recon
 			r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 			return reconcile.Result{}, err
 		} else {
+			// JEB: If the workflow owned by OpenstackRollback has been deleted, the workflow will be recreated by this method.
+			// Still only one line will appear in the "kubectl describe" but with a comment (x2 over XXmn)
 			r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		}
 
