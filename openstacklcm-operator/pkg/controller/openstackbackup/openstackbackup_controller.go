@@ -166,8 +166,9 @@ func (r *ReconcileOpenstackBackup) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// spec := instance.Spec
-	// status := instance.Status
+	offsite := instance.Spec.BackupSource.Offsite
+	ceph := instance.Spec.BackupSource.Ceph
+	targetedOpenstackVersion := "moc.version.backedup"
 
 	// Check if this Workflow already exists
 	found := lcmutils.NewWorkflowGroupVersionKind()
@@ -175,15 +176,28 @@ func (r *ReconcileOpenstackBackup) Reconcile(request reconcile.Request) (reconci
 	if err != nil && errors.IsNotFound(err) {
 		reqLogger.Info("Creating a new Workflow", "Workflow.Namespace", wf.GetNamespace(), "Workflow.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
 
-		err = r.client.Create(context.TODO(), wf)
+		if offsite != nil {
+			// Adapt the worfklow to rely on offsite
+			// TODO: This is the bulk of the work still has to be done
+			offsitewf := wf
+			err = r.client.Create(context.TODO(), offsitewf)
+		} else if ceph != nil {
+			// Adapt the worfklow to rely on ceph
+			// TODO: This is the bulk of the work still has to be done
+			cephwf := wf
+			err = r.client.Create(context.TODO(), cephwf)
+		} else {
+			err = r.client.Create(context.TODO(), wf)
+		}
+
 		if err != nil {
-			_ = r.updateStatus(instance, false, "failure")
+			_ = r.updateStatus(instance, false, "failure", "")
 			r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 			return reconcile.Result{}, err
 		} else {
 			// JEB: If the workflow owned by OpenstackBackup has been deleted, the workflow will be recreated by this method.
 			// Still only one line will appear in the "kubectl describe" but with a comment (x2 over XXmn)
-			_ = r.updateStatus(instance, true, "")
+			_ = r.updateStatus(instance, true, "", targetedOpenstackVersion)
 			r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		}
 
@@ -191,11 +205,17 @@ func (r *ReconcileOpenstackBackup) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 
 	} else if err != nil {
-		_ = r.updateStatus(instance, false, "failure")
+		_ = r.updateStatus(instance, false, "failure", "")
 		r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Retrieving worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		return reconcile.Result{}, err
 	} else {
-		_ = r.updateStatus(instance, true, "")
+		// The controller needs to check that CRD and workflow are still consistent
+		if offsite != nil {
+		} else if ceph != nil {
+		} else {
+		}
+
+		_ = r.updateStatus(instance, true, "", targetedOpenstackVersion)
 	}
 
 	// Workflow already exists - don't requeue
@@ -203,15 +223,17 @@ func (r *ReconcileOpenstackBackup) Reconcile(request reconcile.Request) (reconci
 }
 
 // Update the status in the OpenstackBackup Custome Resource
-func (r *ReconcileOpenstackBackup) updateStatus(instance *lcmv1alpha1.OpenstackBackup, success bool, reason string) error {
+func (r *ReconcileOpenstackBackup) updateStatus(instance *lcmv1alpha1.OpenstackBackup, success bool, reason string, openstackVersion string) error {
 
 	reqLogger := log.WithValues("OpenstackBackup.Namespace", instance.Namespace, "OpenstackBackup.Name", instance.Name)
 
 	instanceCopy := instance.DeepCopy()
 	instanceCopy.Status.Succeeded = success
 	instanceCopy.Status.Reason = reason
-	instanceCopy.Status.OpenstackVersion = "1.2.3"
-	instanceCopy.Status.OpenstackRevision = 1
+	if success {
+		instanceCopy.Status.OpenstackVersion = openstackVersion
+		instanceCopy.Status.OpenstackRevision = 1
+	}
 
 	// JEB: Can't figure out if I need to invoke UpdateStatus or Update
 	err := r.client.Update(context.TODO(), instanceCopy)

@@ -166,8 +166,7 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 		return reconcile.Result{}, err
 	}
 
-	// spec := instance.Spec
-	// status := instance.Status
+	targetedOpenstackVersion := instance.Spec.OpenstackVersion
 
 	// Check if this Workflow already exists
 	found := lcmutils.NewWorkflowGroupVersionKind()
@@ -175,15 +174,23 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 	if err != nil && errors.IsNotFound(err) {
 		reqLogger.Info("Creating a new Workflow", "Workflow.Namespace", wf.GetNamespace(), "Workflow.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
 
-		err = r.client.Create(context.TODO(), wf)
+		if targetedOpenstackVersion != "" {
+			// Adapt the worfklow to include the targeted Version
+			// TODO: This is the bulk of the work still has to be done
+			adaptedwf := wf
+			err = r.client.Create(context.TODO(), adaptedwf)
+		} else {
+			err = r.client.Create(context.TODO(), wf)
+		}
+
 		if err != nil {
-			_ = r.updateStatus(instance, false, "failure")
+			_ = r.updateStatus(instance, false, "failure", "")
 			r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 			return reconcile.Result{}, err
 		} else {
 			// JEB: If the workflow owned by OpenstackDeployment has been deleted, the workflow will be recreated by this method.
 			// Still only one line will appear in the "kubectl describe" but with a comment (x2 over XXmn)
-			_ = r.updateStatus(instance, true, "")
+			_ = r.updateStatus(instance, true, "", targetedOpenstackVersion)
 			r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		}
 
@@ -191,11 +198,15 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 		return reconcile.Result{}, nil
 
 	} else if err != nil {
-		_ = r.updateStatus(instance, false, "failure")
+		_ = r.updateStatus(instance, false, "failure", "")
 		r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Retrieving worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 		return reconcile.Result{}, err
 	} else {
-		_ = r.updateStatus(instance, true, "")
+		// The controller needs to check that CRD and workflow are still consistent
+		if targetedOpenstackVersion != "" {
+		}
+
+		_ = r.updateStatus(instance, true, "", targetedOpenstackVersion)
 	}
 
 	// Workflow already exists - don't requeue
@@ -203,13 +214,17 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 }
 
 // Update the status in the OpenstackDeployment Custome Resource
-func (r *ReconcileOpenstackDeployment) updateStatus(instance *lcmv1alpha1.OpenstackDeployment, success bool, reason string) error {
+func (r *ReconcileOpenstackDeployment) updateStatus(instance *lcmv1alpha1.OpenstackDeployment, success bool, reason string, openstackVersion string) error {
 
 	reqLogger := log.WithValues("OpenstackDeployment.Namespace", instance.Namespace, "OpenstackDeployment.Name", instance.Name)
 
 	instanceCopy := instance.DeepCopy()
 	instanceCopy.Status.Succeeded = success
 	instanceCopy.Status.Reason = reason
+	if success {
+		instanceCopy.Status.OpenstackVersion = openstackVersion
+		instanceCopy.Status.OpenstackRevision = 1
+	}
 
 	// JEB: Can't figure out if I need to invoke UpdateStatus or Update
 	err := r.client.Update(context.TODO(), instanceCopy)

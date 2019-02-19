@@ -20,6 +20,10 @@ type OpenstackRollbackStatus struct {
 	Succeeded bool `json:"succeeded"`
 	// Reason indicates the reason for any backup related failures.
 	Reason string `json:"reason,omitempty"`
+	// OpenstackVersion is the version of the backup openstack server.
+	OpenstackVersion string `json:"openstackVersion,omitempty"`
+	// OpenstackRevision is the revision of openstack's KV store where the backup is performed on.
+	OpenstackRevision int64 `json:"openstackRevision,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

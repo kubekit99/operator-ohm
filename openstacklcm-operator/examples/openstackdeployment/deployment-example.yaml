@@ -3,5 +3,5 @@ kind: OpenstackDeployment
 metadata:
   name: openstackdeployment
 spec:
-  openstackVersion: 1.2.3
+  openstackVersion: moc.version.to.deploy
   openstackRevision: 3

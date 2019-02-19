@@ -3,5 +3,5 @@ kind: OpenstackRollback
 metadata:
   name: openstackrollback
 spec:
-  openstackVersion: 1.2.3
+  openstackVersion: moc.version.to.rollback.to
   openstackRevision: 3

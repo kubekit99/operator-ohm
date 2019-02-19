@@ -3,5 +3,5 @@ kind: OpenstackUpgrade
 metadata:
   name: openstackupgrade
 spec:
-  openstackVersion: 1.2.3
+  openstackVersion: moc.version.to.upgrade.to
   openstackRevision: 3
