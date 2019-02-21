@@ -1,7 +1,7 @@
 apiVersion: openstackhelm.openstack.org/v1alpha1
-kind: Openstackhelm
+kind: OpenstackHelm
 metadata:
   name: example-openstackhelm
 spec:
-  # Add fields here
-  size: 3
+  releaseName: releaseName
+  tutu: foobar
