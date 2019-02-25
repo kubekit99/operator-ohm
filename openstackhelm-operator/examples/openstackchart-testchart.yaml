@@ -1,0 +1,7 @@
+apiVersion: openstackhelm.openstack.org/v1alpha1
+kind: OpenstackChart
+metadata:
+  name: testchart
+spec:
+  releaseName: testchart
+  chartDir: "/opt/helm/helm-charts/openstackhelm"

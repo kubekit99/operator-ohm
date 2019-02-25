@@ -1,7 +1,0 @@
-apiVersion: openstackhelm.openstack.org/v1alpha1
-kind: OpenstackHelm
-metadata:
-  name: example-openstackhelm
-spec:
-  releaseName: releaseName
-  tutu: foobar
