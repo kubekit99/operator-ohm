@@ -138,7 +138,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	manager := r.managerFactory.NewManager(instance)
-	status := helmv2.StatusFor(instance)
+	status := openstackhelmv1alpha1.StatusFor(instance)
 	log = log.WithValues("release", manager.ReleaseName())
 
 	deleted := instance.GetDeletionTimestamp() != nil
@@ -153,23 +153,23 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	status.SetCondition(helmv2.HelmAppCondition{
-		Type:   helmv2.ConditionInitialized,
-		Status: helmv2.StatusTrue,
+	status.SetCondition(openstackhelmv1alpha1.OpenstackHelmCondition{
+		Type:   openstackhelmv1alpha1.ConditionInitialized,
+		Status: openstackhelmv1alpha1.StatusTrue,
 	})
 
 	if err := manager.Sync(context.TODO()); err != nil {
 		log.Error(err, "Failed to sync release")
-		status.SetCondition(helmv2.HelmAppCondition{
-			Type:    helmv2.ConditionIrreconcilable,
-			Status:  helmv2.StatusTrue,
-			Reason:  helmv2.ReasonReconcileError,
+		status.SetCondition(openstackhelmv1alpha1.OpenstackHelmCondition{
+			Type:    openstackhelmv1alpha1.ConditionIrreconcilable,
+			Status:  openstackhelmv1alpha1.StatusTrue,
+			Reason:  openstackhelmv1alpha1.ReasonReconcileError,
 			Message: err.Error(),
 		})
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
-	status.RemoveCondition(helmv2.ConditionIrreconcilable)
+	status.RemoveCondition(openstackhelmv1alpha1.ConditionIrreconcilable)
 
 	if deleted {
 		if !contains(pendingFinalizers, finalizer) {
@@ -180,16 +180,16 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		uninstalledRelease, err := manager.UninstallRelease(context.TODO())
 		if err != nil && err != helmv2.ErrNotFound {
 			log.Error(err, "Failed to uninstall release")
-			status.SetCondition(helmv2.HelmAppCondition{
-				Type:    helmv2.ConditionReleaseFailed,
-				Status:  helmv2.StatusTrue,
-				Reason:  helmv2.ReasonUninstallError,
+			status.SetCondition(openstackhelmv1alpha1.OpenstackHelmCondition{
+				Type:    openstackhelmv1alpha1.ConditionReleaseFailed,
+				Status:  openstackhelmv1alpha1.StatusTrue,
+				Reason:  openstackhelmv1alpha1.ReasonUninstallError,
 				Message: err.Error(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(helmv2.ConditionReleaseFailed)
+		status.RemoveCondition(openstackhelmv1alpha1.ConditionReleaseFailed)
 
 		if err == helmv2.ErrNotFound {
 			log.Info("Release not found, removing finalizer")
@@ -198,10 +198,10 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			if log.Enabled() {
 				fmt.Println(Diff(uninstalledRelease.GetManifest(), ""))
 			}
-			status.SetCondition(helmv2.HelmAppCondition{
-				Type:   helmv2.ConditionDeployed,
-				Status: helmv2.StatusFalse,
-				Reason: helmv2.ReasonUninstallSuccessful,
+			status.SetCondition(openstackhelmv1alpha1.OpenstackHelmCondition{
+				Type:   openstackhelmv1alpha1.ConditionDeployed,
+				Status: openstackhelmv1alpha1.StatusFalse,
+				Reason: openstackhelmv1alpha1.ReasonUninstallSuccessful,
 			})
 		}
 		if err := r.updateResourceStatus(instance, status); err != nil {
@@ -225,17 +225,18 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		installedRelease, err := manager.InstallRelease(context.TODO())
 		if err != nil {
 			log.Error(err, "Failed to install release")
-			status.SetCondition(helmv2.HelmAppCondition{
-				Type:    helmv2.ConditionReleaseFailed,
-				Status:  helmv2.StatusTrue,
-				Reason:  helmv2.ReasonInstallError,
-				Message: err.Error(),
-				Release: installedRelease,
+			status.SetCondition(openstackhelmv1alpha1.OpenstackHelmCondition{
+				Type:           openstackhelmv1alpha1.ConditionReleaseFailed,
+				Status:         openstackhelmv1alpha1.StatusTrue,
+				Reason:         openstackhelmv1alpha1.ReasonInstallError,
+				Message:        err.Error(),
+				ReleaseName:    installedRelease.GetName(),
+				ReleaseVersion: installedRelease.GetVersion(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(helmv2.ConditionReleaseFailed)
+		status.RemoveCondition(openstackhelmv1alpha1.ConditionReleaseFailed)
 
 		// if r.releaseHook != nil {
 		// 	if err := r.releaseHook(installedRelease); err != nil {
@@ -249,12 +250,13 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			fmt.Println(Diff("", installedRelease.GetManifest()))
 		}
 		log.V(1).Info("Config values", "values", installedRelease.GetConfig())
-		status.SetCondition(helmv2.HelmAppCondition{
-			Type:    helmv2.ConditionDeployed,
-			Status:  helmv2.StatusTrue,
-			Reason:  helmv2.ReasonInstallSuccessful,
-			Message: installedRelease.GetInfo().GetStatus().GetNotes(),
-			Release: installedRelease,
+		status.SetCondition(openstackhelmv1alpha1.OpenstackHelmCondition{
+			Type:           openstackhelmv1alpha1.ConditionDeployed,
+			Status:         openstackhelmv1alpha1.StatusTrue,
+			Reason:         openstackhelmv1alpha1.ReasonInstallSuccessful,
+			Message:        installedRelease.GetInfo().GetStatus().GetNotes(),
+			ReleaseName:    installedRelease.GetName(),
+			ReleaseVersion: installedRelease.GetVersion(),
 		})
 		err = r.updateResourceStatus(instance, status)
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
@@ -264,17 +266,18 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		previousRelease, updatedRelease, err := manager.UpdateRelease(context.TODO())
 		if err != nil {
 			log.Error(err, "Failed to update release")
-			status.SetCondition(helmv2.HelmAppCondition{
-				Type:    helmv2.ConditionReleaseFailed,
-				Status:  helmv2.StatusTrue,
-				Reason:  helmv2.ReasonUpdateError,
-				Message: err.Error(),
-				Release: updatedRelease,
+			status.SetCondition(openstackhelmv1alpha1.OpenstackHelmCondition{
+				Type:           openstackhelmv1alpha1.ConditionReleaseFailed,
+				Status:         openstackhelmv1alpha1.StatusTrue,
+				Reason:         openstackhelmv1alpha1.ReasonUpdateError,
+				Message:        err.Error(),
+				ReleaseName:    updatedRelease.GetName(),
+				ReleaseVersion: updatedRelease.GetVersion(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(helmv2.ConditionReleaseFailed)
+		status.RemoveCondition(openstackhelmv1alpha1.ConditionReleaseFailed)
 
 		// if r.releaseHook != nil {
 		// 	if err := r.releaseHook(updatedRelease); err != nil {
@@ -288,12 +291,13 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			fmt.Println(Diff(previousRelease.GetManifest(), updatedRelease.GetManifest()))
 		}
 		log.V(1).Info("Config values", "values", updatedRelease.GetConfig())
-		status.SetCondition(helmv2.HelmAppCondition{
-			Type:    helmv2.ConditionDeployed,
-			Status:  helmv2.StatusTrue,
-			Reason:  helmv2.ReasonUpdateSuccessful,
-			Message: updatedRelease.GetInfo().GetStatus().GetNotes(),
-			Release: updatedRelease,
+		status.SetCondition(openstackhelmv1alpha1.OpenstackHelmCondition{
+			Type:           openstackhelmv1alpha1.ConditionDeployed,
+			Status:         openstackhelmv1alpha1.StatusTrue,
+			Reason:         openstackhelmv1alpha1.ReasonUpdateSuccessful,
+			Message:        updatedRelease.GetInfo().GetStatus().GetNotes(),
+			ReleaseName:    updatedRelease.GetName(),
+			ReleaseVersion: updatedRelease.GetVersion(),
 		})
 		err = r.updateResourceStatus(instance, status)
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
@@ -303,16 +307,16 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	_, err = manager.ReconcileRelease(context.TODO())
 	if err != nil {
 		log.Error(err, "Failed to reconcile release")
-		status.SetCondition(helmv2.HelmAppCondition{
-			Type:    helmv2.ConditionIrreconcilable,
-			Status:  helmv2.StatusTrue,
-			Reason:  helmv2.ReasonReconcileError,
+		status.SetCondition(openstackhelmv1alpha1.OpenstackHelmCondition{
+			Type:    openstackhelmv1alpha1.ConditionIrreconcilable,
+			Status:  openstackhelmv1alpha1.StatusTrue,
+			Reason:  openstackhelmv1alpha1.ReasonReconcileError,
 			Message: err.Error(),
 		})
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
-	status.RemoveCondition(helmv2.ConditionIrreconcilable)
+	status.RemoveCondition(openstackhelmv1alpha1.ConditionIrreconcilable)
 
 	// if r.releaseHook != nil {
 	// 	if err := r.releaseHook(expectedRelease); err != nil {
@@ -330,18 +334,14 @@ func (r HelmOperatorReconciler) updateResource(o *openstackhelmv1alpha1.Openstac
 	return r.client.Update(context.TODO(), o)
 }
 
-func (r HelmOperatorReconciler) updateResourceStatus(instance *openstackhelmv1alpha1.OpenstackHelm, status *helmv2.HelmAppStatus) error {
+func (r HelmOperatorReconciler) updateResourceStatus(instance *openstackhelmv1alpha1.OpenstackHelm, status *openstackhelmv1alpha1.OpenstackHelmStatus) error {
 	reqLogger := log.WithValues("OpenstackHelm.Namespace", instance.Namespace, "OpenstackHelm.Name", instance.Name)
 
-	// instance.Object["status"] = status
+	// JEB: This is already a reference to the object
+	// instance.Status = status
 
-	instanceCopy := instance.DeepCopy()
-	instanceCopy.Status.Succeeded = true
-	instanceCopy.Status.Reason = ""
-
-	// JEB: Can't figure out if I need to invoke UpdateStatus or Update
-	// err := r.client.Status().Update(context.TODO(), instance)
-	err := r.client.Update(context.TODO(), instanceCopy)
+	// JEB: Be sure to have update status subresources in the CRD.yaml
+	err := r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
 		reqLogger.Error(err, "Failure to update status")
 	}

@@ -79,7 +79,7 @@ func (f managerFactory) newManagerForCR(r *openstackhelmv1alpha1.OpenstackHelm) 
 		namespace:   r.GetNamespace(),
 
 		spec:   r.Spec,
-		status: StatusFor(r),
+		status: openstackhelmv1alpha1.StatusFor(r),
 	}
 }
 

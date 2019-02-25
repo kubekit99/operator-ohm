@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"strings"
 
+	openstackhelmv1alpha1 "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/apis/openstackhelm/v1alpha1"
+
 	yaml "gopkg.in/yaml.v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,7 +70,7 @@ type helmv2manager struct {
 	namespace   string
 
 	spec   interface{}
-	status *HelmAppStatus
+	status *openstackhelmv1alpha1.OpenstackHelmStatus
 
 	isInstalled      bool
 	isUpdateRequired bool
@@ -146,11 +148,11 @@ func (m *helmv2manager) Sync(ctx context.Context) error {
 	return nil
 }
 
-func (m helmv2manager) syncReleaseStatus(status HelmAppStatus) error {
+func (m helmv2manager) syncReleaseStatus(status openstackhelmv1alpha1.OpenstackHelmStatus) error {
 	var release *rpb.Release
 	for _, condition := range status.Conditions {
-		if condition.Type == ConditionDeployed && condition.Status == StatusTrue {
-			release = condition.Release
+		if condition.Type == openstackhelmv1alpha1.ConditionDeployed && condition.Status == openstackhelmv1alpha1.StatusTrue {
+			//JEB release = condition.Release
 			break
 		}
 	}

@@ -40,13 +40,41 @@ spec:
             Reason:
               description: Reason indicates the reason for any related failures.
               type: string
+            conditions:
+              items:
+                properties:
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  releaseName:
+                    type: string
+                  releaseVersion:
+                    format: int32
+                    type: integer
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
             succeeded:
               description: Succeeded indicates if the operattion has Succeeded.
               type: boolean
           required:
           - succeeded
+          - conditions
           type: object
   version: v1alpha1
+  subresources:
+    # status enables the status subresource.
+    status: {}
 status:
   acceptedNames:
     kind: ""

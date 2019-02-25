@@ -18,31 +18,31 @@ required = [
 
 [[override]]
   name = "k8s.io/kubernetes"
-  version = "=1.13.1"
+  version = "=1.13.3"
 
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.13.3"
 
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.13.3"
 
 [[override]]
   name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.13.3"
 
 [[override]]
   name = "k8s.io/apiserver"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.13.3"
 
 [[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.13.3"
 
 [[override]]
   name = "k8s.io/cli-runtime"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.13.3"
 
 [[override]]
   name = "k8s.io/kube-openapi"
@@ -60,9 +60,9 @@ required = [
   name = "github.com/coreos/prometheus-operator"
   version = "=v0.26.0"
 
-[[override]]
-  name = "sigs.k8s.io/controller-runtime"
-  version = "=v0.1.8"
+# [[override]]
+#   name = "sigs.k8s.io/controller-runtime"
+#   version = "=v0.1.8"
 
 [[constraint]]
   name = "github.com/operator-framework/operator-sdk"
