@@ -13,6 +13,12 @@ type OpenstackChartSpec struct {
 	ReleaseName string `json:"releaseName,omitempty"`
 	// Directory for the configuration
 	ChartDir string `json:"chartDir,omitempty"`
+
+	RestoreWorkflow    string `json:"restoreWorkflow,omitempty"`
+	BackupWorkflow     string `json:"backupWorkflow,omitempty"`
+	DeploymentWorkflow string `json:"deploymentWorkflow,omitempty"`
+	UpgradeWorkflow    string `json:"upgradeWorkflow,omitempty"`
+	RollbackWorkflow   string `json:"rollbackWorkflow,omitempty"`
 }
 
 type OpenstackChartConditionType string

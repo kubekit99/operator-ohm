@@ -4,4 +4,4 @@ metadata:
   name: testchart
 spec:
   releaseName: testchart
-  chartDir: "/opt/helm/helm-charts/openstackhelm"
+  chartDir: "/opt/osh/osh-charts/test-chart/helm"

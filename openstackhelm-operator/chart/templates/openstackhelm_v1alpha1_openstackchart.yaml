@@ -28,11 +28,21 @@ spec:
           type: object
         spec:
           properties:
+            backupWorkflow:
+              type: string
             chartDir:
               description: Directory for the configuration
               type: string
+            deploymentWorkflow:
+              type: string
             releaseName:
               description: ReleaseName indicates the name of the release
+              type: string
+            restoreWorkflow:
+              type: string
+            rollbackWorkflow:
+              type: string
+            upgradeWorkflow:
               type: string
           type: object
         status:

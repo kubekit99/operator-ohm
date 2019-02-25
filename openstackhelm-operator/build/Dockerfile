@@ -8,7 +8,7 @@ ENV OPERATOR=/usr/local/bin/openstackhelm-operator \
 COPY build/_output/bin/openstackhelm-operator ${OPERATOR}
 
 COPY build/bin /usr/local/bin
-COPY helm-charts/ /opt/helm/helm-charts/
+COPY osh-charts/ /opt/osh/osh-charts/
 RUN  /usr/local/bin/user_setup
 
 ENTRYPOINT ["/usr/local/bin/entrypoint"]
