@@ -41,6 +41,10 @@ const (
 	ConditionDeployed       OpenstackChartConditionType = "Deployed"
 	ConditionReleaseFailed  OpenstackChartConditionType = "ReleaseFailed"
 	ConditionIrreconcilable OpenstackChartConditionType = "Irreconcilable"
+	ConditionBackedUp       OpenstackChartConditionType = "BackedUp"
+	ConditionRestored       OpenstackChartConditionType = "Restored"
+	ConditionUpgraded       OpenstackChartConditionType = "Upgraded"
+	ConditionRolledBack     OpenstackChartConditionType = "RolledBack"
 
 	StatusTrue    ConditionStatus = "True"
 	StatusFalse   ConditionStatus = "False"
@@ -53,6 +57,10 @@ const (
 	ReasonUpdateError         OpenstackChartConditionReason = "UpdateError"
 	ReasonReconcileError      OpenstackChartConditionReason = "ReconcileError"
 	ReasonUninstallError      OpenstackChartConditionReason = "UninstallError"
+	ReasonBackupError         OpenstackChartConditionReason = "BackupError"
+	ReasonRestoreError        OpenstackChartConditionReason = "RestoreError"
+	ReasonUpgradeError        OpenstackChartConditionReason = "UpgradeError"
+	ReasonRollbackError       OpenstackChartConditionReason = "RollbackError"
 )
 
 // OpenstackChartStatus defines the observed state of OpenstackChart

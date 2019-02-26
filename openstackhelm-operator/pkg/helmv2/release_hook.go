@@ -33,10 +33,7 @@ import (
 	rpb "k8s.io/helm/pkg/proto/hapi/release"
 	crthandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
-
-var log = logf.Log.WithName("controller_openstackhelm")
 
 type ReleaseHookFunc func(*rpb.Release) error
 

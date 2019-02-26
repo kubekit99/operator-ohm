@@ -24,7 +24,8 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	osh "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/apis/openstackhelm/v1alpha1"
+	oshv1 "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/apis/openstackhelm/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/helmif"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -37,21 +38,13 @@ import (
 	"k8s.io/helm/pkg/tiller/environment"
 )
 
-// ManagerFactory creates Managers that are specific to custom resources. It is
-// used by the HelmOperatorReconciler during resource reconciliation, and it
-// improves decoupling between reconciliation logic and the Helm backend
-// components used to manage releases.
-type ManagerFactory interface {
-	NewManager(r *osh.OpenstackChart) Manager
-}
-
 type managerFactory struct {
 	storageBackend   *storage.Storage
 	tillerKubeClient *kube.Client
 }
 
 // NewManagerFactory returns a new Helm manager factory capable of installing and uninstalling releases.
-func NewManagerFactory(mgr manager.Manager) ManagerFactory {
+func NewManagerFactory(mgr manager.Manager) helmif.ManagerFactory {
 	// Create Tiller's storage backend and kubernetes client
 	storageBackend := storage.Init(driver.NewMemory())
 	tillerKubeClient, err := NewFromManager(mgr)
@@ -63,11 +56,11 @@ func NewManagerFactory(mgr manager.Manager) ManagerFactory {
 	return &managerFactory{storageBackend, tillerKubeClient}
 }
 
-func (f managerFactory) NewManager(r *osh.OpenstackChart) Manager {
+func (f managerFactory) NewManager(r *oshv1.OpenstackChart) helmif.Manager {
 	return f.newManagerForCR(r)
 }
 
-func (f managerFactory) newManagerForCR(r *osh.OpenstackChart) Manager {
+func (f managerFactory) newManagerForCR(r *oshv1.OpenstackChart) helmif.Manager {
 	return &helmv2manager{
 		storageBackend:   f.storageBackend,
 		tillerKubeClient: f.tillerKubeClient,
@@ -78,13 +71,13 @@ func (f managerFactory) newManagerForCR(r *osh.OpenstackChart) Manager {
 		namespace:   r.GetNamespace(),
 
 		spec:   r.Spec,
-		status: osh.StatusFor(r),
+		status: oshv1.StatusFor(r),
 	}
 }
 
 // tillerRendererForCR creates a ReleaseServer configured with a rendering engine that adds ownerrefs to rendered assets
 // based on the CR.
-func (f managerFactory) tillerRendererForCR(r *osh.OpenstackChart) *tiller.ReleaseServer {
+func (f managerFactory) tillerRendererForCR(r *oshv1.OpenstackChart) *tiller.ReleaseServer {
 	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
@@ -105,7 +98,7 @@ func (f managerFactory) tillerRendererForCR(r *osh.OpenstackChart) *tiller.Relea
 	return tiller.NewReleaseServer(env, cs, false)
 }
 
-func getChartDir(r *osh.OpenstackChart) string {
+func getChartDir(r *oshv1.OpenstackChart) string {
 	if r.Spec.ChartDir != "" {
 		// JEB: We should check for duplicates here as well as syntax of ReleaseName
 		return r.Spec.ChartDir
@@ -114,7 +107,7 @@ func getChartDir(r *osh.OpenstackChart) string {
 	}
 }
 
-func getReleaseName(r *osh.OpenstackChart) string {
+func getReleaseName(r *oshv1.OpenstackChart) string {
 	if r.Spec.ReleaseName != "" {
 		// JEB: We should check for duplicates here as well as syntax of ReleaseName
 		return r.Spec.ReleaseName

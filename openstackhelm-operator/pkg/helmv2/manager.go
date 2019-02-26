@@ -18,11 +18,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
-	osh "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/apis/openstackhelm/v1alpha1"
+	oshv1 "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/apis/openstackhelm/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/helmif"
 
 	yaml "gopkg.in/yaml.v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,24 +42,6 @@ import (
 	"github.com/mattbaird/jsonpatch"
 )
 
-var (
-	// ErrNotFound indicates the release was not found.
-	ErrNotFound = errors.New("release not found")
-)
-
-// Manager manages a Helm release. It can install, update, reconcile,
-// and uninstall a release.
-type Manager interface {
-	ReleaseName() string
-	IsInstalled() bool
-	IsUpdateRequired() bool
-	Sync(context.Context) error
-	InstallRelease(context.Context) (*rpb.Release, error)
-	UpdateRelease(context.Context) (*rpb.Release, *rpb.Release, error)
-	ReconcileRelease(context.Context) (*rpb.Release, error)
-	UninstallRelease(context.Context) (*rpb.Release, error)
-}
-
 type helmv2manager struct {
 	storageBackend   *storage.Storage
 	tillerKubeClient *kube.Client
@@ -70,7 +52,7 @@ type helmv2manager struct {
 	namespace   string
 
 	spec   interface{}
-	status *osh.OpenstackChartStatus
+	status *oshv1.OpenstackChartStatus
 
 	isInstalled      bool
 	isUpdateRequired bool
@@ -127,7 +109,7 @@ func (m *helmv2manager) Sync(ctx context.Context) error {
 
 	// Load the most recently deployed release from the storage backend.
 	deployedRelease, err := m.getDeployedRelease()
-	if err == ErrNotFound {
+	if err == helmif.ErrNotFound {
 		return nil
 	}
 	if err != nil {
@@ -148,10 +130,10 @@ func (m *helmv2manager) Sync(ctx context.Context) error {
 	return nil
 }
 
-func (m helmv2manager) syncReleaseStatus(status osh.OpenstackChartStatus) error {
+func (m helmv2manager) syncReleaseStatus(status oshv1.OpenstackChartStatus) error {
 	var release *rpb.Release
 	for _, condition := range status.Conditions {
-		if condition.Type == osh.ConditionDeployed && condition.Status == osh.StatusTrue {
+		if condition.Type == oshv1.ConditionDeployed && condition.Status == oshv1.StatusTrue {
 			//JEB release = condition.Release
 			break
 		}
@@ -217,7 +199,7 @@ func (m helmv2manager) getDeployedRelease() (*rpb.Release, error) {
 	deployedRelease, err := m.storageBackend.Deployed(m.releaseName)
 	if err != nil {
 		if strings.Contains(err.Error(), "has no deployed releases") {
-			return nil, ErrNotFound
+			return nil, helmif.ErrNotFound
 		}
 		return nil, err
 	}
@@ -400,7 +382,7 @@ func uninstallRelease(ctx context.Context, storageBackend *storage.Storage, till
 	// If there is no history, the release has already been uninstalled,
 	// so return ErrNotFound.
 	if len(h) == 0 {
-		return nil, ErrNotFound
+		return nil, helmif.ErrNotFound
 	}
 
 	uninstallResponse, err := tiller.UninstallRelease(ctx, &services.UninstallReleaseRequest{

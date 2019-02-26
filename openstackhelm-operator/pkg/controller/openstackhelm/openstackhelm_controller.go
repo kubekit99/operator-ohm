@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	helmif "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/helmif"
 	"github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/helmv2"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	osh "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/apis/openstackhelm/v1alpha1"
+	oshv1 "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/apis/openstackhelm/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -69,7 +70,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource OpenstackChart
-	err = c.Watch(&source.Kind{Type: &osh.OpenstackChart{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &oshv1.OpenstackChart{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -77,7 +78,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to secondary resource Pods and requeue the owner OpenstackChart
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &osh.OpenstackChart{},
+		OwnerType:    &oshv1.OpenstackChart{},
 	})
 	if err != nil {
 		return err
@@ -98,7 +99,7 @@ type HelmOperatorReconciler struct {
 	scheme          *runtime.Scheme
 	recorder        record.EventRecorder
 	gvk             schema.GroupVersionKind
-	managerFactory  helmv2.ManagerFactory
+	managerFactory  helmif.ManagerFactory
 	reconcilePeriod time.Duration
 	//JEB releaseHook             ReleaseHookFunc
 	watchDependentResources bool
@@ -113,7 +114,7 @@ const (
 // release changes are necessary, Reconcile will create or patch the underlying
 // resources to match the expected release manifest.
 func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	instance := &osh.OpenstackChart{}
+	instance := &oshv1.OpenstackChart{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
 	log := log.WithValues(
@@ -132,7 +133,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	manager := r.managerFactory.NewManager(instance)
-	status := osh.StatusFor(instance)
+	status := oshv1.StatusFor(instance)
 	log = log.WithValues("release", manager.ReleaseName())
 
 	deleted := instance.GetDeletionTimestamp() != nil
@@ -147,23 +148,23 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	status.SetCondition(osh.OpenstackChartCondition{
-		Type:   osh.ConditionInitialized,
-		Status: osh.StatusTrue,
+	status.SetCondition(oshv1.OpenstackChartCondition{
+		Type:   oshv1.ConditionInitialized,
+		Status: oshv1.StatusTrue,
 	})
 
 	if err := manager.Sync(context.TODO()); err != nil {
 		log.Error(err, "Failed to sync release")
-		status.SetCondition(osh.OpenstackChartCondition{
-			Type:    osh.ConditionIrreconcilable,
-			Status:  osh.StatusTrue,
-			Reason:  osh.ReasonReconcileError,
+		status.SetCondition(oshv1.OpenstackChartCondition{
+			Type:    oshv1.ConditionIrreconcilable,
+			Status:  oshv1.StatusTrue,
+			Reason:  oshv1.ReasonReconcileError,
 			Message: err.Error(),
 		})
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
-	status.RemoveCondition(osh.ConditionIrreconcilable)
+	status.RemoveCondition(oshv1.ConditionIrreconcilable)
 
 	if deleted {
 		if !contains(pendingFinalizers, finalizer) {
@@ -172,30 +173,30 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 
 		uninstalledRelease, err := manager.UninstallRelease(context.TODO())
-		if err != nil && err != helmv2.ErrNotFound {
+		if err != nil && err != helmif.ErrNotFound {
 			log.Error(err, "Failed to uninstall release")
-			status.SetCondition(osh.OpenstackChartCondition{
-				Type:    osh.ConditionReleaseFailed,
-				Status:  osh.StatusTrue,
-				Reason:  osh.ReasonUninstallError,
+			status.SetCondition(oshv1.OpenstackChartCondition{
+				Type:    oshv1.ConditionReleaseFailed,
+				Status:  oshv1.StatusTrue,
+				Reason:  oshv1.ReasonUninstallError,
 				Message: err.Error(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(osh.ConditionReleaseFailed)
+		status.RemoveCondition(oshv1.ConditionReleaseFailed)
 
-		if err == helmv2.ErrNotFound {
+		if err == helmif.ErrNotFound {
 			log.Info("Release not found, removing finalizer")
 		} else {
 			log.Info("Uninstalled release")
 			if log.Enabled() {
 				fmt.Println(Diff(uninstalledRelease.GetManifest(), ""))
 			}
-			status.SetCondition(osh.OpenstackChartCondition{
-				Type:   osh.ConditionDeployed,
-				Status: osh.StatusFalse,
-				Reason: osh.ReasonUninstallSuccessful,
+			status.SetCondition(oshv1.OpenstackChartCondition{
+				Type:   oshv1.ConditionDeployed,
+				Status: oshv1.StatusFalse,
+				Reason: oshv1.ReasonUninstallSuccessful,
 			})
 		}
 		if err := r.updateResourceStatus(instance, status); err != nil {
@@ -219,10 +220,10 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		installedRelease, err := manager.InstallRelease(context.TODO())
 		if err != nil {
 			log.Error(err, "Failed to install release")
-			status.SetCondition(osh.OpenstackChartCondition{
-				Type:           osh.ConditionReleaseFailed,
-				Status:         osh.StatusTrue,
-				Reason:         osh.ReasonInstallError,
+			status.SetCondition(oshv1.OpenstackChartCondition{
+				Type:           oshv1.ConditionReleaseFailed,
+				Status:         oshv1.StatusTrue,
+				Reason:         oshv1.ReasonInstallError,
 				Message:        err.Error(),
 				ReleaseName:    installedRelease.GetName(),
 				ReleaseVersion: installedRelease.GetVersion(),
@@ -230,7 +231,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(osh.ConditionReleaseFailed)
+		status.RemoveCondition(oshv1.ConditionReleaseFailed)
 
 		// if r.releaseHook != nil {
 		// 	if err := r.releaseHook(installedRelease); err != nil {
@@ -244,10 +245,10 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			fmt.Println(Diff("", installedRelease.GetManifest()))
 		}
 		log.V(1).Info("Config values", "values", installedRelease.GetConfig())
-		status.SetCondition(osh.OpenstackChartCondition{
-			Type:           osh.ConditionDeployed,
-			Status:         osh.StatusTrue,
-			Reason:         osh.ReasonInstallSuccessful,
+		status.SetCondition(oshv1.OpenstackChartCondition{
+			Type:           oshv1.ConditionDeployed,
+			Status:         oshv1.StatusTrue,
+			Reason:         oshv1.ReasonInstallSuccessful,
 			Message:        installedRelease.GetInfo().GetStatus().GetNotes(),
 			ReleaseName:    installedRelease.GetName(),
 			ReleaseVersion: installedRelease.GetVersion(),
@@ -260,10 +261,10 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		previousRelease, updatedRelease, err := manager.UpdateRelease(context.TODO())
 		if err != nil {
 			log.Error(err, "Failed to update release")
-			status.SetCondition(osh.OpenstackChartCondition{
-				Type:           osh.ConditionReleaseFailed,
-				Status:         osh.StatusTrue,
-				Reason:         osh.ReasonUpdateError,
+			status.SetCondition(oshv1.OpenstackChartCondition{
+				Type:           oshv1.ConditionReleaseFailed,
+				Status:         oshv1.StatusTrue,
+				Reason:         oshv1.ReasonUpdateError,
 				Message:        err.Error(),
 				ReleaseName:    updatedRelease.GetName(),
 				ReleaseVersion: updatedRelease.GetVersion(),
@@ -271,7 +272,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(osh.ConditionReleaseFailed)
+		status.RemoveCondition(oshv1.ConditionReleaseFailed)
 
 		// if r.releaseHook != nil {
 		// 	if err := r.releaseHook(updatedRelease); err != nil {
@@ -285,10 +286,10 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			fmt.Println(Diff(previousRelease.GetManifest(), updatedRelease.GetManifest()))
 		}
 		log.V(1).Info("Config values", "values", updatedRelease.GetConfig())
-		status.SetCondition(osh.OpenstackChartCondition{
-			Type:           osh.ConditionDeployed,
-			Status:         osh.StatusTrue,
-			Reason:         osh.ReasonUpdateSuccessful,
+		status.SetCondition(oshv1.OpenstackChartCondition{
+			Type:           oshv1.ConditionDeployed,
+			Status:         oshv1.StatusTrue,
+			Reason:         oshv1.ReasonUpdateSuccessful,
 			Message:        updatedRelease.GetInfo().GetStatus().GetNotes(),
 			ReleaseName:    updatedRelease.GetName(),
 			ReleaseVersion: updatedRelease.GetVersion(),
@@ -301,16 +302,16 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	_, err = manager.ReconcileRelease(context.TODO())
 	if err != nil {
 		log.Error(err, "Failed to reconcile release")
-		status.SetCondition(osh.OpenstackChartCondition{
-			Type:    osh.ConditionIrreconcilable,
-			Status:  osh.StatusTrue,
-			Reason:  osh.ReasonReconcileError,
+		status.SetCondition(oshv1.OpenstackChartCondition{
+			Type:    oshv1.ConditionIrreconcilable,
+			Status:  oshv1.StatusTrue,
+			Reason:  oshv1.ReasonReconcileError,
 			Message: err.Error(),
 		})
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
-	status.RemoveCondition(osh.ConditionIrreconcilable)
+	status.RemoveCondition(oshv1.ConditionIrreconcilable)
 
 	// if r.releaseHook != nil {
 	// 	if err := r.releaseHook(expectedRelease); err != nil {
@@ -324,11 +325,11 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }
 
-func (r HelmOperatorReconciler) updateResource(o *osh.OpenstackChart) error {
+func (r HelmOperatorReconciler) updateResource(o *oshv1.OpenstackChart) error {
 	return r.client.Update(context.TODO(), o)
 }
 
-func (r HelmOperatorReconciler) updateResourceStatus(instance *osh.OpenstackChart, status *osh.OpenstackChartStatus) error {
+func (r HelmOperatorReconciler) updateResourceStatus(instance *oshv1.OpenstackChart, status *oshv1.OpenstackChartStatus) error {
 	reqLogger := log.WithValues("OpenstackChart.Namespace", instance.Namespace, "OpenstackChart.Name", instance.Name)
 
 	// JEB: This is already a reference to the object
