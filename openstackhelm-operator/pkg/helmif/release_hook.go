@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helmv2
+package helmif
 
 import (
 	"bytes"
@@ -35,13 +35,10 @@ import (
 	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-type ReleaseHookFunc func(*rpb.Release) error
+type ReleaseWatchUpdater func(*rpb.Release) error
 
-// watchDependentResources adds a release hook function to the HelmOperatorReconciler
-// that adds watches for resources in released Helm charts.
-func watchDependentResources(mgr manager.Manager, GVK schema.GroupVersionKind, c controller.Controller) ReleaseHookFunc {
-	owner := &unstructured.Unstructured{}
-	owner.SetGroupVersionKind(GVK)
+// BuildReleaseDependantResourcesWatchUpdater builds a function that adds watches for resources in released Helm charts.
+func BuildReleaseDependantResourcesWatchUpdater(mgr manager.Manager, owner *unstructured.Unstructured, c controller.Controller) ReleaseWatchUpdater {
 
 	dependentPredicate := crtpredicate.Funcs{
 		// We don't need to reconcile dependent resource creation events
@@ -107,10 +104,12 @@ func watchDependentResources(mgr manager.Manager, GVK schema.GroupVersionKind, c
 			restMapper := mgr.GetRESTMapper()
 			depMapping, err := restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 			if err != nil {
+				log.Error(err, "Step 1")
 				return err
 			}
 			ownerMapping, err := restMapper.RESTMapping(owner.GroupVersionKind().GroupKind(), owner.GroupVersionKind().Version)
 			if err != nil {
+				log.Error(err, "Step 2")
 				return err
 			}
 
@@ -122,19 +121,20 @@ func watchDependentResources(mgr manager.Manager, GVK schema.GroupVersionKind, c
 				watches[gvk] = struct{}{}
 				m.Unlock()
 				log.Info("Cannot watch cluster-scoped dependent resource for namespace-scoped owner. Changes to this dependent resource type will not be reconciled",
-					"ownerApiVersion", GVK.GroupVersion(), "ownerKind", GVK.Kind, "apiVersion", gvk.GroupVersion(), "kind", gvk.Kind)
+					"ownerApiVersion", gvk.GroupVersion(), "kind", gvk.Kind)
 				continue
 			}
 
 			err = c.Watch(&source.Kind{Type: &u}, &crthandler.EnqueueRequestForOwner{OwnerType: owner}, dependentPredicate)
 			if err != nil {
+				log.Error(err, "Step 3")
 				return err
 			}
 
 			m.Lock()
 			watches[gvk] = struct{}{}
 			m.Unlock()
-			log.Info("Watching dependent resource", "ownerApiVersion", GVK.GroupVersion(), "ownerKind", GVK.Kind, "apiVersion", gvk.GroupVersion(), "kind", gvk.Kind)
+			log.Info("Watching dependent resource", "ownerApiVersion", gvk.GroupVersion(), "kind", gvk.Kind)
 		}
 	}
 

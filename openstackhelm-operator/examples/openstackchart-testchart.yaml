@@ -5,3 +5,24 @@ metadata:
 spec:
   releaseName: testchart
   chartDir: "/opt/osh/osh-charts/test-chart/helm"
+  watchHelmDependentResources: true
+
+  backupWorkflowEnabled: false
+  preBackupWorkflow: ""
+  postBackupWorkflow: ""
+
+  deploymentWorflowEnabled: false
+  preDeploymentWorkflow: ""
+  postDeploymentWorkflow: ""
+
+  restoreWorkflowEnabled: false
+  preRestoreWorkflow: ""
+  postRestoreWorkflow: ""
+
+  rollbackWorkflowEnabled: false
+  preRollbackWorkflow: ""
+  postRollbackWorkflow: ""
+
+  upgradeWorflowEnabled: false
+  preUpgradeWorkflow: ""
+  postUpgradeWorkflow: ""

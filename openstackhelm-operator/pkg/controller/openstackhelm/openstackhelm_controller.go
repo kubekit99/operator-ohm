@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	argoif "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/argoif"
 	helmif "github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/helmif"
 	"github.com/kubekit99/operator-ohm/openstackhelm-operator/pkg/helmv2"
 
@@ -45,13 +46,12 @@ var log = logf.Log.WithName("controller_openstackhelm")
 // Add creates a new OpenstackChart Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+	return add(mgr)
 }
 
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-
-	return &HelmOperatorReconciler{
+// add adds a new Controller to mgr with r as the reconcile.Reconciler
+func add(mgr manager.Manager) error {
+	r := &HelmOperatorReconciler{
 		client:         mgr.GetClient(),
 		scheme:         mgr.GetScheme(),
 		recorder:       mgr.GetRecorder("openstackbackup-recorder"),
@@ -59,10 +59,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		// reconcilePeriod: flags.ReconcilePeriod,
 		watchDependentResources: true,
 	}
-}
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("openstackhelm-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -76,17 +73,30 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to secondary resource Pods and requeue the owner OpenstackChart
+	owner := oshv1.NewOpenstackChartVersionKind()
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &oshv1.OpenstackChart{},
+		OwnerType:    owner,
 	})
 	if err != nil {
 		return err
 	}
 
-	// if options.WatchDependentResources {
-	//	watchDependentResources(mgr, r, c)
-	// }
+	r.releaseWatchUpdater = helmif.BuildReleaseDependantResourcesWatchUpdater(mgr, owner, c)
+
+	// Watch for changes to secondary resource Workflows and requeue the owner OpenstackDeployment
+	// JEB: When a Workflow owned by OpenstackChart is deleted, the Reconcile method is invoked.
+	o := argoif.NewWorkflowGroupVersionKind()
+	err = c.Watch(&source.Kind{Type: o},
+		&handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    owner,
+		},
+		// predicate.GenerationChangedPredicate{}
+	)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -95,13 +105,13 @@ var _ reconcile.Reconciler = &HelmOperatorReconciler{}
 
 // HelmOperatorReconciler reconciles custom resources as Helm releases.
 type HelmOperatorReconciler struct {
-	client          client.Client
-	scheme          *runtime.Scheme
-	recorder        record.EventRecorder
-	gvk             schema.GroupVersionKind
-	managerFactory  helmif.ManagerFactory
-	reconcilePeriod time.Duration
-	//JEB releaseHook             ReleaseHookFunc
+	client                  client.Client
+	scheme                  *runtime.Scheme
+	recorder                record.EventRecorder
+	gvk                     schema.GroupVersionKind
+	managerFactory          helmif.ManagerFactory
+	reconcilePeriod         time.Duration
+	releaseWatchUpdater     helmif.ReleaseWatchUpdater
 	watchDependentResources bool
 }
 
@@ -133,6 +143,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	manager := r.managerFactory.NewManager(instance)
+	spec := instance.Spec
 	status := oshv1.StatusFor(instance)
 	log = log.WithValues("release", manager.ReleaseName())
 
@@ -233,12 +244,12 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 		status.RemoveCondition(oshv1.ConditionReleaseFailed)
 
-		// if r.releaseHook != nil {
-		// 	if err := r.releaseHook(installedRelease); err != nil {
-		// 		log.Error(err, "Failed to run release hook")
-		// 		return reconcile.Result{}, err
-		// 	}
-		// }
+		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
+			if err := r.releaseWatchUpdater(installedRelease); err != nil {
+				log.Error(err, "Failed to run update release dependant resources")
+				return reconcile.Result{}, err
+			}
+		}
 
 		log.Info("Installed release")
 		if log.Enabled() {
@@ -274,12 +285,12 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 		status.RemoveCondition(oshv1.ConditionReleaseFailed)
 
-		// if r.releaseHook != nil {
-		// 	if err := r.releaseHook(updatedRelease); err != nil {
-		// 		log.Error(err, "Failed to run release hook")
-		// 		return reconcile.Result{}, err
-		// 	}
-		// }
+		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
+			if err := r.releaseWatchUpdater(updatedRelease); err != nil {
+				log.Error(err, "Failed to run update release dependant resources")
+				return reconcile.Result{}, err
+			}
+		}
 
 		log.Info("Updated release")
 		if log.Enabled() {
@@ -298,7 +309,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 	}
 
-	// expectedRelease, err := manager.ReconcileRelease(context.TODO())
+	expectedRelease, err := manager.ReconcileRelease(context.TODO())
 	_, err = manager.ReconcileRelease(context.TODO())
 	if err != nil {
 		log.Error(err, "Failed to reconcile release")
@@ -313,12 +324,12 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 	status.RemoveCondition(oshv1.ConditionIrreconcilable)
 
-	// if r.releaseHook != nil {
-	// 	if err := r.releaseHook(expectedRelease); err != nil {
-	// 		log.Error(err, "Failed to run release hook")
-	// 		return reconcile.Result{}, err
-	// 	}
-	// }
+	if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
+		if err := r.releaseWatchUpdater(expectedRelease); err != nil {
+			log.Error(err, "Failed to run update release dependant resources")
+			return reconcile.Result{}, err
+		}
+	}
 
 	log.Info("Reconciled release")
 	err = r.updateResourceStatus(instance, status)

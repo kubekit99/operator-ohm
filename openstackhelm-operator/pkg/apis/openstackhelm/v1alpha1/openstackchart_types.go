@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -9,16 +10,35 @@ import (
 
 // OpenstackChartSpec defines the desired state of OpenstackChart
 type OpenstackChartSpec struct {
-	// ReleaseName indicates the name of the release
-	ReleaseName string `json:"releaseName,omitempty"`
-	// Directory for the configuration
-	ChartDir string `json:"chartDir,omitempty"`
+	// Helm Chart releate information
+	ReleaseName                 string `json:"releaseName,omitempty"`
+	ChartDir                    string `json:"chartDir,omitempty"`
+	WatchHelmDependentResources bool   `json:"watchHelmDependentResources"`
 
-	RestoreWorkflow    string `json:"restoreWorkflow,omitempty"`
-	BackupWorkflow     string `json:"backupWorkflow,omitempty"`
-	DeploymentWorkflow string `json:"deploymentWorkflow,omitempty"`
-	UpgradeWorkflow    string `json:"upgradeWorkflow,omitempty"`
-	RollbackWorkflow   string `json:"rollbackWorkflow,omitempty"`
+	// DB Restore related workflows
+	PreRestoreWorkflow    string `json:"preRestoreWorkflow,omitempty"`
+	PostRestoreWorkflow   string `json:"postRestoreWorkflow,omitempty"`
+	RestoreWorflowEnabled bool   `json:"restoreWorkflowEnabled"`
+
+	// DB Backup related workflows
+	PreBackupWorkflow     string `json:"preBackupWorkflow,omitempty"`
+	PostBackupWorkflow    string `json:"postBackupWorkflow,omitempty"`
+	BackupWorkflowEnabled bool   `json:"backupWorkflowEnabled"`
+
+	// helm install related workflows
+	PreDeploymentWorkflow  string `json:"preDeploymentWorkflow,omitempty"`
+	PostDeploymentWorkflow string `json:"postDeploymentWorkflow,omitempty"`
+	DeploymentEnabled      bool   `json:"deploymentWorflowEnabled"`
+
+	// helm upgrade related workflows
+	PreUpgradeWorkflow    string `json:"preUpgradeWorkflow,omitempty"`
+	PostUpgradeWorkflow   string `json:"postUpgradeWorkflow,omitempty"`
+	UpgradeWorflowEnabled bool   `json:"upgradeWorflowEnabled"`
+
+	// helm rollback related workflows
+	PreRollbackWorkflow    string `json:"preRollbackWorkflow,omitempty"`
+	PostRollbackWorkflow   string `json:"postRollbackWorkflow,omitempty"`
+	RollbackWorflowEnabled bool   `json:"rollbackWorkflowEnabled"`
 }
 
 type OpenstackChartConditionType string
@@ -130,6 +150,14 @@ func (s *OpenstackChartStatus) RemoveCondition(conditionType OpenstackChartCondi
 		}
 	}
 	return s
+}
+
+// Returns a GKV for OpenstackChart
+func NewOpenstackChartVersionKind() *unstructured.Unstructured {
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion("openstackhelm.openstack.org/v1alpha1")
+	u.SetKind("OpenstackChart")
+	return u
 }
 
 // StatusFor safely returns a typed status block from a custom resource.
