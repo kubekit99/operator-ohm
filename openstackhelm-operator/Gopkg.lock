@@ -77,6 +77,17 @@
   version = "1.0.0"
 
 [[projects]]
+  digest = "1:d73a4040f413a4757af4772d6bb238e0ad635e0c7aba614fc61edd9d6aa632f5"
+  name = "github.com/argoproj/argo"
+  packages = [
+    "pkg/apis/workflow",
+    "pkg/apis/workflow/v1alpha1",
+  ]
+  pruneopts = "NT"
+  revision = "0a928e93dac6d8522682931a0a68c52add310cdb"
+  version = "v2.2.1"
+
+[[projects]]
   branch = "master"
   digest = "1:c819830f4f5ef85874a90ac3cbcc96cd322c715f5c96fbe4722eacd3dafbaa07"
   name = "github.com/beorn7/perks"
@@ -1430,6 +1441,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1",
     "github.com/ghodss/yaml",
     "github.com/martinlindhe/base36",
     "github.com/mattbaird/jsonpatch",

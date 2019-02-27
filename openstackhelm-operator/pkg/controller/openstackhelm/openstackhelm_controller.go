@@ -83,6 +83,7 @@ func add(mgr manager.Manager) error {
 	}
 
 	r.releaseWatchUpdater = helmif.BuildReleaseDependantResourcesWatchUpdater(mgr, owner, c)
+	r.workflowWatchUpdater = argoif.BuildWorkflowWatchUpdater(mgr, owner, c)
 
 	// Watch for changes to secondary resource Workflows and requeue the owner OpenstackDeployment
 	// JEB: When a Workflow owned by OpenstackChart is deleted, the Reconcile method is invoked.
@@ -112,6 +113,7 @@ type HelmOperatorReconciler struct {
 	managerFactory          helmif.ManagerFactory
 	reconcilePeriod         time.Duration
 	releaseWatchUpdater     helmif.ReleaseWatchUpdater
+	workflowWatchUpdater    argoif.WorkflowWatchUpdater
 	watchDependentResources bool
 }
 
