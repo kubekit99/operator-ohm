@@ -1,0 +1,126 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: openstackcharts.armada.airshipit.org
+spec:
+  group: armada.airshipit.org
+  names:
+    kind: OpenstackChart
+    plural: openstackcharts
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            backupWorkflowEnabled:
+              type: boolean
+            chartDir:
+              type: string
+            deploymentWorflowEnabled:
+              type: boolean
+            postBackupWorkflow:
+              type: string
+            postDeploymentWorkflow:
+              type: string
+            postRestoreWorkflow:
+              type: string
+            postRollbackWorkflow:
+              type: string
+            postUpgradeWorkflow:
+              type: string
+            preBackupWorkflow:
+              description: DB Backup related workflows
+              type: string
+            preDeploymentWorkflow:
+              description: helm install related workflows
+              type: string
+            preRestoreWorkflow:
+              description: DB Restore related workflows
+              type: string
+            preRollbackWorkflow:
+              description: helm rollback related workflows
+              type: string
+            preUpgradeWorkflow:
+              description: helm upgrade related workflows
+              type: string
+            releaseName:
+              description: Helm Chart releate information
+              type: string
+            restoreWorkflowEnabled:
+              type: boolean
+            rollbackWorkflowEnabled:
+              type: boolean
+            upgradeWorflowEnabled:
+              type: boolean
+            watchHelmDependentResources:
+              type: boolean
+          required:
+          - watchHelmDependentResources
+          - restoreWorkflowEnabled
+          - backupWorkflowEnabled
+          - deploymentWorflowEnabled
+          - upgradeWorflowEnabled
+          - rollbackWorkflowEnabled
+          type: object
+        status:
+          properties:
+            Reason:
+              description: Reason indicates the reason for any related failures.
+              type: string
+            conditions:
+              items:
+                properties:
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  releaseName:
+                    type: string
+                  releaseVersion:
+                    format: int32
+                    type: integer
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+            succeeded:
+              description: Succeeded indicates if the operattion has Succeeded.
+              type: boolean
+          required:
+          - succeeded
+          - conditions
+          type: object
+  version: v1alpha1
+  subresources:
+    # status enables the status subresource.
+    status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

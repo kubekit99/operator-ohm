@@ -1,0 +1,28 @@
+apiVersion: armada.airshipit.org/v1alpha1
+kind: OpenstackChart
+metadata:
+  name: testchart
+spec:
+  releaseName: testchart
+  chartDir: "/opt/armada/armada-charts/test-chart/helm"
+  watchHelmDependentResources: true
+
+  backupWorkflowEnabled: false
+  preBackupWorkflow: ""
+  postBackupWorkflow: ""
+
+  deploymentWorflowEnabled: false
+  preDeploymentWorkflow: ""
+  postDeploymentWorkflow: ""
+
+  restoreWorkflowEnabled: false
+  preRestoreWorkflow: ""
+  postRestoreWorkflow: ""
+
+  rollbackWorkflowEnabled: false
+  preRollbackWorkflow: ""
+  postRollbackWorkflow: ""
+
+  upgradeWorflowEnabled: false
+  preUpgradeWorkflow: ""
+  postUpgradeWorkflow: ""
