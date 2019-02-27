@@ -1,4 +1,4 @@
-#operator-framework usage for openstack
+# Kubernetes Operator for Openstack LCM
 
 # Creation of openstacklcm-operator
 
@@ -40,17 +40,20 @@ Don't understand yet how to build using operator-sdk operator with the same leve
 controller-gen. Big hack that have to be included in Makefile.
 
 ```bash
-go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./deploy/crds/
-ls chart/templates/*_crd.yaml > filelist
-for i in `cat filelist`; do NEWNAME=`echo $i | sed -e "s/_crd//g"`; mv $NEWNAME $i; done
-rm filelist
+go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/
+operator-sdk generate k8s
+```
+
+or
+
+```bash
+make generate
 ```
 
 ## Compiling the openstacklcm-operator
 
 ```
-dep ensure
-./manualbuild.sh
+make docker-build
 ```
 
 # Deploying
@@ -58,8 +61,7 @@ dep ensure
 ## Deployment of operator using helm
 
 ```bash
-cd chart
-helm install --name openstacklcm .
+helm install --name lcm-operator chart 
 ```
 
 ## Openstack Databases Backup CRD and Controller
