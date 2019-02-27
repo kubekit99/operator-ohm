@@ -200,6 +200,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if err == helmif.ErrNotFound {
 			log.Info("Release not found, removing finalizer")
 		} else {
+			r.recorder.Event(instance, "Failure", "Deleted", fmt.Sprintf("Uninstalled Release %s", uninstalledRelease.GetName()))
 			log.Info("Uninstalled release", "releaseName", uninstalledRelease.GetName(), "releaseVersion", uninstalledRelease.GetVersion())
 			status.SetCondition(oshv1.OpenstackChartCondition{
 				Type:   oshv1.ConditionDeployed,
@@ -228,11 +229,12 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		installedRelease, err := manager.InstallRelease(context.TODO())
 		if err != nil {
 			log.Error(err, "Failed to install release")
+			r.recorder.Event(instance, "Error", "Installed", fmt.Sprintf("Installed Release %s", installedRelease.GetName()))
 			status.SetCondition(oshv1.OpenstackChartCondition{
-				Type:           oshv1.ConditionReleaseFailed,
-				Status:         oshv1.StatusTrue,
-				Reason:         oshv1.ReasonInstallError,
-				Message:        err.Error(),
+				Type:    oshv1.ConditionReleaseFailed,
+				Status:  oshv1.StatusTrue,
+				Reason:  oshv1.ReasonInstallError,
+				Message: err.Error(),
 				//JEB Release:        installedRelease,
 				ReleaseName:    installedRelease.GetName(),
 				ReleaseVersion: installedRelease.GetVersion(),
@@ -250,12 +252,13 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 
 		log.Info("Installed release", "releaseName", installedRelease.GetName(), "releaseVersion", installedRelease.GetVersion())
-		log.V(1).Info("Config values", "values", installedRelease.GetConfig())
+		r.recorder.Event(instance, "Normal", "Installed", fmt.Sprintf("Installed Release %s", installedRelease.GetName()))
+		//JEB log.V(1).Info("Config values", "values", installedRelease.GetConfig())
 		status.SetCondition(oshv1.OpenstackChartCondition{
-			Type:           oshv1.ConditionDeployed,
-			Status:         oshv1.StatusTrue,
-			Reason:         oshv1.ReasonInstallSuccessful,
-			Message:        installedRelease.GetInfo().GetStatus().GetNotes(),
+			Type:    oshv1.ConditionDeployed,
+			Status:  oshv1.StatusTrue,
+			Reason:  oshv1.ReasonInstallSuccessful,
+			Message: installedRelease.GetInfo().GetStatus().GetNotes(),
 			//JEB Release:        installedRelease,
 			ReleaseName:    installedRelease.GetName(),
 			ReleaseVersion: installedRelease.GetVersion(),
@@ -268,11 +271,12 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		previousRelease, updatedRelease, err := manager.UpdateRelease(context.TODO())
 		if err != nil {
 			log.Error(err, "Failed to update release")
+			r.recorder.Event(instance, "Error", "Updated", fmt.Sprintf("Updated Release %s", updatedRelease.GetName()))
 			status.SetCondition(oshv1.OpenstackChartCondition{
-				Type:           oshv1.ConditionReleaseFailed,
-				Status:         oshv1.StatusTrue,
-				Reason:         oshv1.ReasonUpdateError,
-				Message:        err.Error(),
+				Type:    oshv1.ConditionReleaseFailed,
+				Status:  oshv1.StatusTrue,
+				Reason:  oshv1.ReasonUpdateError,
+				Message: err.Error(),
 				//JEB Release:        updatedRelease,
 				ReleaseName:    updatedRelease.GetName(),
 				ReleaseVersion: updatedRelease.GetVersion(),
@@ -290,15 +294,16 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 
 		log.Info("Updated release", "releaseName", updatedRelease.GetName(), "releaseVersion", updatedRelease.GetVersion())
+		r.recorder.Event(instance, "Normal", "Updated", fmt.Sprintf("Updated Release %s", updatedRelease.GetName()))
 		if log.Enabled() {
 			fmt.Println(Diff(previousRelease.GetManifest(), updatedRelease.GetManifest()))
 		}
-		log.V(1).Info("Config values", "values", updatedRelease.GetConfig())
+		//JEB log.V(1).Info("Config values", "values", updatedRelease.GetConfig())
 		status.SetCondition(oshv1.OpenstackChartCondition{
-			Type:           oshv1.ConditionDeployed,
-			Status:         oshv1.StatusTrue,
-			Reason:         oshv1.ReasonUpdateSuccessful,
-			Message:        updatedRelease.GetInfo().GetStatus().GetNotes(),
+			Type:    oshv1.ConditionDeployed,
+			Status:  oshv1.StatusTrue,
+			Reason:  oshv1.ReasonUpdateSuccessful,
+			Message: updatedRelease.GetInfo().GetStatus().GetNotes(),
 			//JEB Release:        updatedRelease,
 			ReleaseName:    updatedRelease.GetName(),
 			ReleaseVersion: updatedRelease.GetVersion(),

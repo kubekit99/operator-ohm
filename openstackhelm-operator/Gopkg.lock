@@ -1430,6 +1430,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/ghodss/yaml",
     "github.com/martinlindhe/base36",
     "github.com/mattbaird/jsonpatch",
     "github.com/operator-framework/operator-sdk/pkg/k8sutil",
