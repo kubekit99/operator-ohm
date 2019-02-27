@@ -200,10 +200,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if err == helmif.ErrNotFound {
 			log.Info("Release not found, removing finalizer")
 		} else {
-			log.Info("Uninstalled release")
-			if log.Enabled() {
-				fmt.Println(Diff(uninstalledRelease.GetManifest(), ""))
-			}
+			log.Info("Uninstalled release", "releaseName", uninstalledRelease.GetName(), "releaseVersion", uninstalledRelease.GetVersion())
 			status.SetCondition(oshv1.OpenstackChartCondition{
 				Type:   oshv1.ConditionDeployed,
 				Status: oshv1.StatusFalse,
@@ -236,6 +233,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 				Status:         oshv1.StatusTrue,
 				Reason:         oshv1.ReasonInstallError,
 				Message:        err.Error(),
+				//JEB Release:        installedRelease,
 				ReleaseName:    installedRelease.GetName(),
 				ReleaseVersion: installedRelease.GetVersion(),
 			})
@@ -251,16 +249,14 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			}
 		}
 
-		log.Info("Installed release")
-		if log.Enabled() {
-			fmt.Println(Diff("", installedRelease.GetManifest()))
-		}
+		log.Info("Installed release", "releaseName", installedRelease.GetName(), "releaseVersion", installedRelease.GetVersion())
 		log.V(1).Info("Config values", "values", installedRelease.GetConfig())
 		status.SetCondition(oshv1.OpenstackChartCondition{
 			Type:           oshv1.ConditionDeployed,
 			Status:         oshv1.StatusTrue,
 			Reason:         oshv1.ReasonInstallSuccessful,
 			Message:        installedRelease.GetInfo().GetStatus().GetNotes(),
+			//JEB Release:        installedRelease,
 			ReleaseName:    installedRelease.GetName(),
 			ReleaseVersion: installedRelease.GetVersion(),
 		})
@@ -277,6 +273,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 				Status:         oshv1.StatusTrue,
 				Reason:         oshv1.ReasonUpdateError,
 				Message:        err.Error(),
+				//JEB Release:        updatedRelease,
 				ReleaseName:    updatedRelease.GetName(),
 				ReleaseVersion: updatedRelease.GetVersion(),
 			})
@@ -292,7 +289,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			}
 		}
 
-		log.Info("Updated release")
+		log.Info("Updated release", "releaseName", updatedRelease.GetName(), "releaseVersion", updatedRelease.GetVersion())
 		if log.Enabled() {
 			fmt.Println(Diff(previousRelease.GetManifest(), updatedRelease.GetManifest()))
 		}
@@ -302,6 +299,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			Status:         oshv1.StatusTrue,
 			Reason:         oshv1.ReasonUpdateSuccessful,
 			Message:        updatedRelease.GetInfo().GetStatus().GetNotes(),
+			//JEB Release:        updatedRelease,
 			ReleaseName:    updatedRelease.GetName(),
 			ReleaseVersion: updatedRelease.GetVersion(),
 		})

@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	rpb "k8s.io/helm/pkg/proto/hapi/release"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -50,6 +51,7 @@ type OpenstackChartCondition struct {
 	Status         ConditionStatus               `json:"status"`
 	Reason         OpenstackChartConditionReason `json:"reason,omitempty"`
 	Message        string                        `json:"message,omitempty"`
+	Release        *rpb.Release                  `json:"release,omitempty"`
 	ReleaseName    string                        `json:"releaseName,omitempty"`
 	ReleaseVersion int32                         `json:"releaseVersion,omitempty"`
 

@@ -134,7 +134,7 @@ func (m helmv2manager) syncReleaseStatus(status oshv1.OpenstackChartStatus) erro
 	var release *rpb.Release
 	for _, condition := range status.Conditions {
 		if condition.Type == oshv1.ConditionDeployed && condition.Status == oshv1.StatusTrue {
-			//JEB release = condition.Release
+			release = condition.Release
 			break
 		}
 	}

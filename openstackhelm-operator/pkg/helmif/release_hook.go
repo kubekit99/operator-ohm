@@ -46,7 +46,7 @@ func BuildReleaseDependantResourcesWatchUpdater(mgr manager.Manager, owner *unst
 		// reconciliation. Another reconcile would be redundant.
 		CreateFunc: func(e event.CreateEvent) bool {
 			o := e.Object.(*unstructured.Unstructured)
-			log.V(1).Info("Skipping reconciliation for dependent resource creation", "name", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			log.Info("Skipping reconciliation for dependent resource creation", "name", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
 			return false
 		},
 
@@ -54,7 +54,7 @@ func BuildReleaseDependantResourcesWatchUpdater(mgr manager.Manager, owner *unst
 		// recreated.
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			o := e.Object.(*unstructured.Unstructured)
-			log.V(1).Info("Reconciling due to dependent resource deletion", "name", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			log.Info("Reconciling due to dependent resource deletion", "name", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
 			return true
 		},
 
@@ -74,7 +74,7 @@ func BuildReleaseDependantResourcesWatchUpdater(mgr manager.Manager, owner *unst
 			if reflect.DeepEqual(old.Object, new.Object) {
 				return false
 			}
-			log.V(1).Info("Reconciling due to dependent resource update", "name", new.GetName(), "namespace", new.GetNamespace(), "apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
+			log.Info("Reconciling due to dependent resource update", "name", new.GetName(), "namespace", new.GetNamespace(), "apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
 			return true
 		},
 	}
