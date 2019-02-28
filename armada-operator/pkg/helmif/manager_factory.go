@@ -23,5 +23,5 @@ import (
 // improves decoupling between reconciliation logic and the Helm backend
 // components used to manage releases.
 type ManagerFactory interface {
-	NewManager(r *osh.OpenstackChart) Manager
+	NewManager(r *osh.HelmRelease) Manager
 }

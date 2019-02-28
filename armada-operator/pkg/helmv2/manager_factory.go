@@ -56,11 +56,11 @@ func NewManagerFactory(mgr manager.Manager) helmif.ManagerFactory {
 	return &managerFactory{storageBackend, tillerKubeClient}
 }
 
-func (f managerFactory) NewManager(r *oshv1.OpenstackChart) helmif.Manager {
+func (f managerFactory) NewManager(r *oshv1.HelmRelease) helmif.Manager {
 	return f.newManagerForCR(r)
 }
 
-func (f managerFactory) newManagerForCR(r *oshv1.OpenstackChart) helmif.Manager {
+func (f managerFactory) newManagerForCR(r *oshv1.HelmRelease) helmif.Manager {
 	return &helmv2manager{
 		storageBackend:   f.storageBackend,
 		tillerKubeClient: f.tillerKubeClient,
@@ -77,7 +77,7 @@ func (f managerFactory) newManagerForCR(r *oshv1.OpenstackChart) helmif.Manager 
 
 // tillerRendererForCR creates a ReleaseServer configured with a rendering engine that adds ownerrefs to rendered assets
 // based on the CR.
-func (f managerFactory) tillerRendererForCR(r *oshv1.OpenstackChart) *tiller.ReleaseServer {
+func (f managerFactory) tillerRendererForCR(r *oshv1.HelmRelease) *tiller.ReleaseServer {
 	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
@@ -98,7 +98,7 @@ func (f managerFactory) tillerRendererForCR(r *oshv1.OpenstackChart) *tiller.Rel
 	return tiller.NewReleaseServer(env, cs, false)
 }
 
-func getChartDir(r *oshv1.OpenstackChart) string {
+func getChartDir(r *oshv1.HelmRelease) string {
 	if r.Spec.ChartDir != "" {
 		// JEB: We should check for duplicates here as well as syntax of ReleaseName
 		return r.Spec.ChartDir
@@ -107,7 +107,7 @@ func getChartDir(r *oshv1.OpenstackChart) string {
 	}
 }
 
-func getReleaseName(r *oshv1.OpenstackChart) string {
+func getReleaseName(r *oshv1.HelmRelease) string {
 	if r.Spec.ReleaseName != "" {
 		// JEB: We should check for duplicates here as well as syntax of ReleaseName
 		return r.Spec.ReleaseName

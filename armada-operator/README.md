@@ -11,7 +11,7 @@ operator-sdk new armada-operator --skip-git-init
 ## Coding the armada-operator
 
 ```bash
-operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=OpenstackChart
+operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=HelmRelease
 git add deploy/crds/
 git add pkg/apis/armada/
 git add pkg/apis/addtoscheme_armada_v1alpha1.go
@@ -24,7 +24,7 @@ operator-sdk generate k8s
 ```
 
 ```bash
-operator-sdk add controller --api-version=armada.airshipit.org/v1alpha1 --kind=OpenstackChart
+operator-sdk add controller --api-version=armada.airshipit.org/v1alpha1 --kind=HelmRelease
 ```
 ## Adjusting crds
 
@@ -67,7 +67,7 @@ Upon creation of the custom resource, the controller will
 
 
 ```bash
-kubectl create -f examples/openstackchart-testchart.yaml
+kubectl create -f examples/helmrelease-testchart.yaml
 ```
 
 ### Test controller reconcilation logic (for depending workflows)
@@ -84,5 +84,5 @@ When deleting the CRD, the corresponding workflow should be deleted.
 Argo in turn, will delete the corresponding pods.
 
 ```bash
-kubectl delete -f examples/openstackchart-testchart.yaml
+kubectl delete -f examples/helmrelease-testchart.yaml
 ```

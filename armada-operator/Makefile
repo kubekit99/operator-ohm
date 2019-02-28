@@ -15,7 +15,7 @@ endif
 	# dep ensure
 
 # Run tests
-unittest: setup generate fmt vet
+unittest: setup fmt vet
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 # Run go fmt against code
@@ -29,8 +29,8 @@ vet: setup
 # Generate code
 generate: setup
 	go generate ./pkg/... ./cmd/...
-	# go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/
-	# operator-sdk generate k8s
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/
+	operator-sdk generate k8s
 
 # Build the docker image
 docker-build: unittest

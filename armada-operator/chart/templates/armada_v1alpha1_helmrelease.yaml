@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: openstackcharts.armada.airshipit.org
+  name: helmreleases.armada.airshipit.org
 spec:
   group: armada.airshipit.org
   names:
-    kind: OpenstackChart
-    plural: openstackcharts
+    kind: HelmRelease
+    plural: helmreleases
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -28,55 +28,15 @@ spec:
           type: object
         spec:
           properties:
-            backupWorkflowEnabled:
-              type: boolean
             chartDir:
-              type: string
-            deploymentWorflowEnabled:
-              type: boolean
-            postBackupWorkflow:
-              type: string
-            postDeploymentWorkflow:
-              type: string
-            postRestoreWorkflow:
-              type: string
-            postRollbackWorkflow:
-              type: string
-            postUpgradeWorkflow:
-              type: string
-            preBackupWorkflow:
-              description: DB Backup related workflows
-              type: string
-            preDeploymentWorkflow:
-              description: helm install related workflows
-              type: string
-            preRestoreWorkflow:
-              description: DB Restore related workflows
-              type: string
-            preRollbackWorkflow:
-              description: helm rollback related workflows
-              type: string
-            preUpgradeWorkflow:
-              description: helm upgrade related workflows
               type: string
             releaseName:
               description: Helm Chart releate information
               type: string
-            restoreWorkflowEnabled:
-              type: boolean
-            rollbackWorkflowEnabled:
-              type: boolean
-            upgradeWorflowEnabled:
-              type: boolean
             watchHelmDependentResources:
               type: boolean
           required:
           - watchHelmDependentResources
-          - restoreWorkflowEnabled
-          - backupWorkflowEnabled
-          - deploymentWorflowEnabled
-          - upgradeWorflowEnabled
-          - rollbackWorkflowEnabled
           type: object
         status:
           properties:
@@ -94,6 +54,7 @@ spec:
                   reason:
                     type: string
                   releaseName:
+                    description: Release     *rpb.Release                  `json:"release,omitempty"`
                     type: string
                   releaseVersion:
                     format: int32

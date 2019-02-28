@@ -64,7 +64,7 @@ rules:
 - apiGroups:
   - armada.airshipit.org
   resources:
-  - openstackcharts
-  - openstackcharts/status
+  - helmreleases
+  - helmreleases/status
   verbs:
   - '*'

@@ -52,7 +52,7 @@ type helmv2manager struct {
 	namespace   string
 
 	spec   interface{}
-	status *oshv1.OpenstackChartStatus
+	status *oshv1.HelmReleaseStatus
 
 	isInstalled      bool
 	isUpdateRequired bool
@@ -130,11 +130,11 @@ func (m *helmv2manager) Sync(ctx context.Context) error {
 	return nil
 }
 
-func (m helmv2manager) syncReleaseStatus(status oshv1.OpenstackChartStatus) error {
+func (m helmv2manager) syncReleaseStatus(status oshv1.HelmReleaseStatus) error {
 	var release *rpb.Release
 	for _, condition := range status.Conditions {
 		if condition.Type == oshv1.ConditionDeployed && condition.Status == oshv1.StatusTrue {
-			release = condition.Release
+			//JEB: Issue with deepClone release = condition.Release
 			break
 		}
 	}
