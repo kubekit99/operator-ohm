@@ -12,8 +12,18 @@ operator-sdk new armada-operator --skip-git-init
 
 ```bash
 operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=HelmRelease
-git add deploy/crds/
+operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=ArmadaManifest
+operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=ArmadaChart
+operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=ArmadaChartGroup
+operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=HelmRequest
+operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=ArmadaRequest
+operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=Release
+operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=Values
+operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=Manifest
+operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=Lifecycle
+operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=LifecycleEvent
 git add pkg/apis/armada/
+git add pkg/apis/helm3crd/
 git add pkg/apis/addtoscheme_armada_v1alpha1.go
 git add deploy/role.yaml
 ```
@@ -24,7 +34,9 @@ operator-sdk generate k8s
 ```
 
 ```bash
-operator-sdk add controller --api-version=armada.airshipit.org/v1alpha1 --kind=HelmRelease
+operator-sdk add controller --api-version=armada.airshipit.org/v1alpha1 --kind=Tiller
+operator-sdk add controller --api-version=armada.airshipit.org/v1alpha1 --kind=Armada
+operator-sdk add controller --api-version=helm3crd.airshipit.org/v1beta1 --kind=Helm3CRD
 ```
 ## Adjusting crds
 
@@ -53,38 +65,98 @@ make docker-build
 ## Deployment of operator using helm
 
 ```bash
-helm install --name osh-operator chart 
+helm install --name armada-operator chart 
 ```
 
-## Openstack Databases Backup CRD and Controller
+# Simple Helm Chart CRD and Controller
 
-### Trigger a backup
+## Trigger helm chart deployment
 
 Upon creation of the custom resource, the controller will
-- Create a new workflow owned by the customer resource.
+- Deploy the Helm Chart described in the CRD
+- Update status of the custom resources.
 - Add events to the custom resources.
-- The workflow creation will get argo to react and run the workflow, and create news pods.
-
 
 ```bash
-kubectl create -f examples/helmrelease-testchart.yaml
+kubectl create -f examples/tiller/helm-testchart.yaml
+kubectl describe hrel/testchart
 ```
 
-### Test controller reconcilation logic (for depending workflows)
+## Test controller reconcilation logic (for depending resources)
 
-Upon deletion of its workflow, the controller will recreate it,
-which will get argo to rerun the workflow.
+Upon deletion of its depending resources, the controller will recreate it,
 
 ```bash
+kubectl describe hrel/testchart
 ```
 
-### Test controller reconcilation logic (for CRD)
+## Test controller reconcilation logic (for CRD)
 
-When deleting the CRD, the corresponding workflow should be deleted.
-Argo in turn, will delete the corresponding pods.
+When deleting the CRD, the corresponding helm chart should be uninstalled.
 
 ```bash
-kubectl delete -f examples/helmrelease-testchart.yaml
+kubectl delete -f examples/tiller/helm-testchart.yaml
+```
+
+# Simple ArmadaManifest and Controller
+
+## Trigger ArmadaManifest deployment
+
+Upon creation of the custom resource, the controller will
+- Deploy the Armada Manifest described in the CRD
+- Update status of the custom resources.
+- Add events to the custom resources.
+
+```bash
+kubectl create -f examples/armada/manifest.yaml
+kubectl describe amf/simple-armada
+```
+
+## Test controller reconcilation logic (for depending resources)
+
+Upon deletion of its depending resources, the controller will recreate it,
+
+```bash
+kubectl describe amf/simple-armada
+```
+
+## Test controller reconcilation logic (for CRD)
+
+When deleting the CRD, the corresponding Armada Manifest should be uninstalled.
+
+```bash
+kubectl delete -f examples/armada/manifest.yaml
+```
+
+
+# Simple Helm3CRD Release and Controller
+
+## Trigger helm chart deployment
+
+Upon creation of the custom resource, the controller will
+- Deploy the Helm Chart described in the CRD
+- Update status of the custom resources.
+- Add events to the custom resources.
+
+```bash
+kubectl create -f examples/helm3crd/release.yaml
+kubectl describe rel/my-release
+```
+
+## Test controller reconcilation logic (for depending resources)
+
+Upon deletion of its depending resources, the controller will recreate it,
+
+```bash
+kubectl describe rel/my-release
+```
+
+## Test controller reconcilation logic (for CRD)
+
+When deleting the CRD, the corresponding helm chart should be uninstalled.
+
+```bash
+kubectl delete -f examples/helm3crd/release.yaml
 ```
 
 # Appendix
