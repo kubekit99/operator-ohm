@@ -1,0 +1,8 @@
+apiVersion: armada.airshipit.org/v1alpha1
+kind: HelmRelease
+metadata:
+  name: testchart
+spec:
+  releaseName: testchart
+  chartDir: "/opt/armada/armada-charts/tiller-testchart/helm"
+  watchHelmDependentResources: true

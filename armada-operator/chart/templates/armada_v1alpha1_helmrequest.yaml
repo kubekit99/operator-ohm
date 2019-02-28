@@ -41,30 +41,113 @@ spec:
             apply:
               description: Install the HelmManifest specified int the request
               properties:
-                manifest:
-                  description: HelmRelease CRD Name
+                chart:
+                  description: Chart is the protobuf representation of a chart.
+                  type: object
+                name:
+                  description: Name is the candidate release name. This must be unique
+                    to the namespace, otherwise the server will return an error. If
+                    it is not supplied, the server will autogenerate one.
                   type: string
+                namespace:
+                  description: Namepace is the kubernetes namespace of the release.
+                  type: string
+                timeout:
+                  description: timeout specifies the max amount of time any kubernetes
+                    client command can run.
+                  format: int64
+                  type: integer
+                values:
+                  description: Values is a string containing (unparsed) YAML values.
+                  type: object
+                wait:
+                  description: wait, if true, will wait until all Pods, PVCs, and
+                    Services are in a ready state before marking the release as successful.
+                    It will wait for as long as timeout
+                  type: boolean
               type: object
             delete:
               description: Delete the HelmRelease specified in the request
               properties:
-                release:
-                  description: HelmRelease CRD Name
+                force:
+                  description: Force resource update through delete/recreate if needed.
+                  type: boolean
+                name:
+                  description: The name of the release
                   type: string
+                recreate:
+                  description: Performs pods restart for resources if applicable
+                  type: boolean
+                timeout:
+                  description: timeout specifies the max amount of time any kubernetes
+                    client command can run.
+                  format: int64
+                  type: integer
+                version:
+                  description: Version is the version of the release to deploy.
+                  format: int64
+                  type: integer
+                wait:
+                  description: wait, if true, will wait until all Pods, PVCs, and
+                    Services are in a ready state before marking the release as successful.
+                    It will wait for as long as timeout
+                  type: boolean
               type: object
             rollback:
               description: Rollback the HelmRelease specified in the request
               properties:
-                release:
-                  description: HelmRelease CRD Name
+                force:
+                  description: Force resource update through delete/recreate if needed.
+                  type: boolean
+                name:
+                  description: The name of the release
                   type: string
+                recreate:
+                  description: Performs pods restart for resources if applicable
+                  type: boolean
+                timeout:
+                  description: timeout specifies the max amount of time any kubernetes
+                    client command can run.
+                  format: int64
+                  type: integer
+                version:
+                  description: Version is the version of the release to deploy.
+                  format: int64
+                  type: integer
+                wait:
+                  description: wait, if true, will wait until all Pods, PVCs, and
+                    Services are in a ready state before marking the release as successful.
+                    It will wait for as long as timeout
+                  type: boolean
               type: object
             upgrade:
               description: Upgrade the HelmRelease specified in the request
               properties:
-                release:
-                  description: HelmRelease CRD Name
+                chart:
+                  description: Chart is the protobuf representation of a chart.
+                  type: object
+                force:
+                  description: Force resource update through delete/recreate if needed.
+                  type: boolean
+                name:
+                  description: The name of the release
                   type: string
+                recreate:
+                  description: Performs pods restart for resources if applicable
+                  type: boolean
+                timeout:
+                  description: timeout specifies the max amount of time any kubernetes
+                    client command can run.
+                  format: int64
+                  type: integer
+                values:
+                  description: Values is a string containing (unparsed) YAML values.
+                  type: object
+                wait:
+                  description: wait, if true, will wait until all Pods, PVCs, and
+                    Services are in a ready state before marking the release as successful.
+                    It will wait for as long as timeout
+                  type: boolean
               type: object
           type: object
         status:

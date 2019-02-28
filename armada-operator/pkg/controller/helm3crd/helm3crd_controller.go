@@ -1,9 +1,9 @@
-package armada
+package helm3crd
 
 import (
 	"context"
 
-	armadav1alpha1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmv1beta1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/helm3crd/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,14 +20,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("armada")
+var log = logf.Log.WithName("helm3crd")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new ArmadaManifest Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new Release Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -35,10 +35,10 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	r := &ArmadaManifestReconciler{
+	r := &ReleaseReconciler{
 		client:   mgr.GetClient(),
 		scheme:   mgr.GetScheme(),
-		recorder: mgr.GetRecorder("armada-recorder"),
+		recorder: mgr.GetRecorder("helm3crd-recorder"),
 	}
 	return r
 }
@@ -46,22 +46,22 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("armada-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("helm3crd-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource ArmadaManifest
-	err = c.Watch(&source.Kind{Type: &armadav1alpha1.ArmadaManifest{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource Release
+	err = c.Watch(&source.Kind{Type: &helmv1beta1.Release{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner ArmadaManifest
+	// Watch for changes to secondary resource Pods and requeue the owner Release
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &armadav1alpha1.ArmadaManifest{},
+		OwnerType:    &helmv1beta1.Release{},
 	})
 	if err != nil {
 		return err
@@ -70,10 +70,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ArmadaManifestReconciler{}
+var _ reconcile.Reconciler = &ReleaseReconciler{}
 
-// ArmadaManifestReconciler reconciles a ArmadaManifest object
-type ArmadaManifestReconciler struct {
+// ReleaseReconciler reconciles a Release object
+type ReleaseReconciler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client   client.Client
@@ -81,19 +81,19 @@ type ArmadaManifestReconciler struct {
 	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a ArmadaManifest object and makes changes based on the state read
-// and what is in the ArmadaManifest.Spec
+// Reconcile reads that state of the cluster for a Release object and makes changes based on the state read
+// and what is in the Release.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
 // a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReleaseReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling ArmadaManifest")
+	reqLogger.Info("Reconciling Release")
 
-	// Fetch the ArmadaManifest instance
-	instance := &armadav1alpha1.ArmadaManifest{}
+	// Fetch the Release instance
+	instance := &helmv1beta1.Release{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
@@ -111,7 +111,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 	// Define a new Pod object
 	pod := newPodForCR(instance)
 
-	// Set ArmadaManifest instance as the owner and controller
+	// Set Release instance as the owner and controller
 	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -137,12 +137,12 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 	return reconcile.Result{}, nil
 }
 
-func (r ArmadaManifestReconciler) updateResource(o *armadav1alpha1.ArmadaManifest) error {
+func (r ReleaseReconciler) updateResource(o *helmv1beta1.Release) error {
 	return r.client.Update(context.TODO(), o)
 }
 
-func (r ArmadaManifestReconciler) updateResourceStatus(instance *armadav1alpha1.ArmadaManifest, status *armadav1alpha1.ArmadaManifestStatus) error {
-	reqLogger := log.WithValues("ArmadaManifest.Namespace", instance.Namespace, "ArmadaManifest.Name", instance.Name)
+func (r ReleaseReconciler) updateResourceStatus(instance *helmv1beta1.Release, status *helmv1beta1.ReleaseStatus) error {
+	reqLogger := log.WithValues("Release.Namespace", instance.Namespace, "Release.Name", instance.Name)
 
 	// JEB: This is already a reference to the object
 	// instance.Status = status
@@ -157,7 +157,7 @@ func (r ArmadaManifestReconciler) updateResourceStatus(instance *armadav1alpha1.
 }
 
 // newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *armadav1alpha1.ArmadaManifest) *corev1.Pod {
+func newPodForCR(cr *helmv1beta1.Release) *corev1.Pod {
 	labels := map[string]string{
 		"app": cr.Name,
 	}

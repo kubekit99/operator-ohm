@@ -40,6 +40,80 @@ spec:
           properties:
             chartDir:
               type: string
+            releaseDesc:
+              description: ReleaseDesc is the chart that was released.
+              properties:
+                chart:
+                  description: Chart is the chart that was released.
+                  type: object
+                config:
+                  description: Config is the set of extra Values added to the chart.
+                    These values override the default values inside of the chart.
+                  type: object
+                hooks:
+                  description: Hooks are all of the hooks declared for this release.
+                  items:
+                    properties:
+                      events:
+                        description: Events are the events that this hook fires on.
+                        items:
+                          type: string
+                        type: array
+                      kind:
+                        description: Kind is the Kubernetes kind.
+                        type: string
+                      manifest:
+                        description: Manifest is the manifest contents.
+                        type: string
+                      name:
+                        type: string
+                      path:
+                        description: Path is the chart-relative path to the template.
+                        type: string
+                      weight:
+                        description: Weight indicates the sort order for execution
+                          among similar Hook type
+                        format: int64
+                        type: integer
+                    type: object
+                  type: array
+                info:
+                  description: Info provides information about a release
+                  properties:
+                    Description:
+                      description: Description is human-friendly "log entry" about
+                        this release.
+                      type: string
+                    deleted:
+                      description: Deleted tracks when this object was deleted.
+                      format: date-time
+                      type: string
+                    notes:
+                      description: Contains the rendered templates/NOTES.txt if available
+                      type: string
+                    resources:
+                      description: Cluster resources as kubectl would print them.
+                      type: string
+                    status:
+                      description: Status is the current state of the release
+                      type: string
+                  type: object
+                manifest:
+                  description: Manifest is the string representation of the rendered
+                    template.
+                  type: string
+                name:
+                  description: Name is the name of the release
+                  type: string
+                namespace:
+                  description: Namespace is the kubernetes namespace of the release.
+                  type: string
+                version:
+                  description: Version is an int which represents the version of the
+                    release.
+                  format: int64
+                  type: integer
+              type: object
             releaseName:
               description: Helm Chart releate information
               type: string

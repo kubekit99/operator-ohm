@@ -1,0 +1,8 @@
+apiVersion: helm3crd.airshipit.org/v1beta1
+kind: Values
+metadata:
+  name: my-values
+data:
+  foo: bar
+  baz:
+    qux: 2

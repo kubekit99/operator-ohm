@@ -66,5 +66,14 @@ rules:
   resources:
   - helmreleases
   - helmreleases/status
+  - armadamanifests
+  - armadamanifests/status
+  verbs:
+  - '*'
+- apiGroups:
+  - helm3crd.airshipit.org
+  resources:
+  - releases
+  - releases/status
   verbs:
   - '*'

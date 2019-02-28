@@ -14,24 +14,19 @@
 
 // NOTE: Boilerplate only.  Ignore this file.
 
-// Package v1alpha1 contains API Schema definitions for the armada v1alpha1 API group
+// Package v1beta1 contains API Schema definitions for the helm3crd v1beta1 API group
 // +k8s:deepcopy-gen=package,register
-// +groupName=armada.airshipit.org
-package v1alpha1
+// +groupName=helm3crd.airshipit.org
+package v1beta1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
 
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=armada.airshipit.org
-// +k8s:deepcopy-gen=package,register
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "armada.airshipit.org", Version: "v1alpha1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "helm3crd.airshipit.org", Version: "v1beta1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}

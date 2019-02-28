@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package v1alpha1 contains API Schema definitions for the armada v1alpha1 API group
-// +k8s:openapi-gen=true
+// Package v1beta1 contains API Schema definitions for the helm v1beta1 API group
 // +k8s:deepcopy-gen=package,register
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=armada.airshipit.org
-package v1alpha1
+// +groupName=helm3crd.airshipit.org
+package v1beta1

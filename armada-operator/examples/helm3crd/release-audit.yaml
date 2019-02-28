@@ -1,0 +1,13 @@
+apiVersion: helm3crd.airshipit.org/v1beta1
+kind: ReleaseAudit
+metadata:
+  name: my-release.v1
+status:
+  createdTimestamp: "2016-12-19T16:39:57-08:00"
+  ​supersededTimestamp: null
+  # The last known status of the release at this version
+  lastStatus:
+    phase: Deployed
+    message: "my-release deployed successfully"
+  # TBD: What information is a must have in here? We don't want to store the whole
+  # release object like in Helm 2

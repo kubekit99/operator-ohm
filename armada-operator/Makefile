@@ -14,6 +14,11 @@ ifndef GOPATH
 endif
 	# dep ensure
 
+clean:
+	rm -fr vendor
+	rm -fr cover.out
+	rm -fr build/_output
+
 # Run tests
 unittest: setup fmt vet
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
@@ -29,7 +34,7 @@ vet: setup
 # Generate code
 generate: setup
 	go generate ./pkg/... ./cmd/...
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/ --domain airshipit.org
 	operator-sdk generate k8s
 
 # Build the docker image
@@ -48,8 +53,17 @@ install: docker-build
 purge: setup
 	helm delete --purge armada-operator
 
-installchart:
-	kubectl create -f examples/armada-testchart.yaml
+installhelmchart:
+	kubectl create -f examples/tiller/helm-testchart.yaml
 
-deletechart:
-	kubectl delete -f examples/armada-testchart.yaml
+deletehelmchart:
+	kubectl delete -f examples/tiller/helm-testchart.yaml
+
+installhelm3crdrelease:
+	kubectl create -f examples/helm3crd/release.yaml
+
+deletehelm3crdrelease:
+	kubectl delete -f examples/helm3crd/release.yaml
+
+
+
