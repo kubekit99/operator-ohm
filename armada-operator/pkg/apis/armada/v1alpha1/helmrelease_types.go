@@ -58,11 +58,11 @@ const (
 
 // HelmReleaseStatus defines the observed state of HelmRelease
 type HelmReleaseStatus struct {
-	// Succeeded indicates if the operattion has Succeeded.
+	// Succeeded indicates if the release is in the expected state
 	Succeeded bool `json:"succeeded"`
 	// Reason indicates the reason for any related failures.
 	Reason string `json:"Reason,omitempty"`
-
+	// List of conditions and states related to the release
 	Conditions []HelmReleaseCondition `json:"conditions"`
 }
 
@@ -70,6 +70,9 @@ type HelmReleaseStatus struct {
 
 // HelmRelease is the Schema for the armadas API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=helmreleases,shortName=hrel
+// +kubebuilder:printcolumn:name="succeeded",type="boolean",JSONPath=".status.succeeded",description="success",priority=1
 type HelmRelease struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

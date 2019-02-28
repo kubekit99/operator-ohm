@@ -6,11 +6,21 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: helmreleases.armada.airshipit.org
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.succeeded
+    description: success
+    name: succeeded
+    priority: 1
+    type: boolean
   group: armada.airshipit.org
   names:
     kind: HelmRelease
     plural: helmreleases
+    shortNames:
+    - hrel
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -44,6 +54,7 @@ spec:
               description: Reason indicates the reason for any related failures.
               type: string
             conditions:
+              description: List of conditions and states related to the release
               items:
                 properties:
                   lastTransitionTime:
@@ -69,16 +80,13 @@ spec:
                 type: object
               type: array
             succeeded:
-              description: Succeeded indicates if the operattion has Succeeded.
+              description: Succeeded indicates if the release is in the expected state
               type: boolean
           required:
           - succeeded
           - conditions
           type: object
   version: v1alpha1
-  subresources:
-    # status enables the status subresource.
-    status: {}
 status:
   acceptedNames:
     kind: ""

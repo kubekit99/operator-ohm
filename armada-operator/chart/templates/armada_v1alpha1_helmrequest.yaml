@@ -6,11 +6,21 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: helmrequests.armada.airshipit.org
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.succeeded
+    description: success
+    name: succeeded
+    priority: 1
+    type: boolean
   group: armada.airshipit.org
   names:
     kind: HelmRequest
     plural: helmrequests
+    shortNames:
+    - hreq
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -27,8 +37,46 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            apply:
+              description: Install the HelmManifest specified int the request
+              properties:
+                manifest:
+                  description: HelmRelease CRD Name
+                  type: string
+              type: object
+            delete:
+              description: Delete the HelmRelease specified in the request
+              properties:
+                release:
+                  description: HelmRelease CRD Name
+                  type: string
+              type: object
+            rollback:
+              description: Rollback the HelmRelease specified in the request
+              properties:
+                release:
+                  description: HelmRelease CRD Name
+                  type: string
+              type: object
+            upgrade:
+              description: Upgrade the HelmRelease specified in the request
+              properties:
+                release:
+                  description: HelmRelease CRD Name
+                  type: string
+              type: object
           type: object
         status:
+          properties:
+            Reason:
+              description: Reason indicates the reason for any related failures.
+              type: string
+            succeeded:
+              description: Succeeded indicates if the release is in the expected state
+              type: boolean
+          required:
+          - succeeded
           type: object
   version: v1alpha1
 status:

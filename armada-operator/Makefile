@@ -51,5 +51,5 @@ purge: setup
 installchart:
 	kubectl create -f examples/armada-testchart.yaml
 
-removechart:
+deletechart:
 	kubectl delete -f examples/armada-testchart.yaml

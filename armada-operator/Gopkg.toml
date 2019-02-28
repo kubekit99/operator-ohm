@@ -13,6 +13,7 @@ required = [
 
 [[override]]
   name = "k8s.io/code-generator"
+  # version = "=v0.1.9"
   # revision for tag "kubernetes-1.12.3"
   revision = "3dcf91f64f638563e5106f21f50c31fa361c918d"
 
@@ -60,10 +61,6 @@ required = [
   name = "github.com/coreos/prometheus-operator"
   version = "=v0.26.0"
 
-# [[override]]
-#   name = "sigs.k8s.io/controller-runtime"
-#   version = "=v0.1.8"
-
 [[constraint]]
   name = "github.com/operator-framework/operator-sdk"
   # The version rule is used for a specific release and the master branch for in between releases.
@@ -72,7 +69,7 @@ required = [
 
 [[constraint]]
   name = "k8s.io/helm"
-  version = "=v2.12.0"
+  version = "=v2.13.0"
 
 # We need overrides for the following imports because dep can't resolve them
 # correctly. The easiest way to get this right is to use the versions that

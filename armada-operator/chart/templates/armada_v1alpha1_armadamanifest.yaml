@@ -4,7 +4,7 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: armadarequests.armada.airshipit.org
+  name: armadamanifests.armada.airshipit.org
 spec:
   additionalPrinterColumns:
   - JSONPath: .status.succeeded
@@ -14,10 +14,10 @@ spec:
     type: boolean
   group: armada.airshipit.org
   names:
-    kind: ArmadaRequest
-    plural: armadarequests
+    kind: ArmadaManifest
+    plural: armadamanifests
     shortNames:
-    - areq
+    - amf
   scope: Namespaced
   subresources:
     status: {}
@@ -37,35 +37,6 @@ spec:
         metadata:
           type: object
         spec:
-          properties:
-            apply:
-              description: Apply the ArmadaManifest specified int the request
-              properties:
-                manifest:
-                  description: ArmadaManifest CRD Name
-                  type: string
-              type: object
-            rollback:
-              description: Rollback the ArmadaRelease specified in the request
-              properties:
-                release:
-                  description: ArmadaRelease CRD Name
-                  type: string
-              type: object
-            test:
-              description: Test the ArmadaRelease specified in the request
-              properties:
-                release:
-                  description: ArmadaRelease CRD Name
-                  type: string
-              type: object
-            validate:
-              description: Validate the ArmadaManifest specified int the request
-              properties:
-                manifest:
-                  description: ArmadaManifest CRD Name
-                  type: string
-              type: object
           type: object
         status:
           properties:

@@ -111,6 +111,14 @@
   version = "v0.26.0"
 
 [[projects]]
+  digest = "1:8449bb0c1da0fd7ec4706afb5ae46ad0ad658fd87f17a7eb067c5a307ffe3818"
+  name = "github.com/cyphar/filepath-securejoin"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "a261ee33d7a517f054effbf451841abaafe3e0fd"
+  version = "v0.2.2"
+
+[[projects]]
   digest = "1:4b8b5811da6970495e04d1f4e98bb89518cc3cfc3b3f456bdb876ed7b6c74049"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -732,6 +740,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:dddcecff308c7862d83399d61f6c1f64ed6d734ff56c7e3f7435811b9f5bc014"
+  name = "golang.org/x/sync"
+  packages = ["semaphore"]
+  pruneopts = "NT"
+  revision = "e225da77a7e68af35c70ccbf71af2b83e6acac3c"
+
+[[projects]]
+  branch = "master"
   digest = "1:36717455774d17c3d90682cbabd3c85a562bc29ba15c65c562568c5348472318"
   name = "golang.org/x/sys"
   packages = [
@@ -1176,7 +1192,7 @@
   revision = "0689ccc1d7d65d9dd1bedcc3b0b1ed7df91ba266"
 
 [[projects]]
-  digest = "1:0c99d649552f4a6da222ce2fe47d345f903f8f8bd4f52efc15afe63a3303f489"
+  digest = "1:051b8d6d2aba59a6a52d920d4c901ec6d785a3e3fa777072c447819abc706206"
   name = "k8s.io/helm"
   packages = [
     "pkg/chartutil",
@@ -1203,8 +1219,8 @@
     "pkg/version",
   ]
   pruneopts = "NT"
-  revision = "d325d2a9c179b33af1a024cdb5a4472b6288016a"
-  version = "v2.12.0"
+  revision = "79d07943b03aea2b76c12644b4b54733bc5958d6"
+  version = "v2.13.0"
 
 [[projects]]
   digest = "1:29f93bb84d907a2c035e729e19d66fe52165d8c905cb3ef1920140d76ae6afaf"
