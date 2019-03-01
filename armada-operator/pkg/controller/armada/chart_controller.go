@@ -16,47 +16,36 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("armada")
-
-// Add creates a new ArmadaManifest Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new ArmadaChart Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
+func AddArmadaChartController(mgr manager.Manager) error {
 
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	r := &ArmadaManifestReconciler{
+	r := &ArmadaChartReconciler{
 		client:   mgr.GetClient(),
 		scheme:   mgr.GetScheme(),
-		recorder: mgr.GetRecorder("armada-recorder"),
+		recorder: mgr.GetRecorder("act-recorder"),
 	}
-	return r
-}
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("armada-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("act-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource ArmadaManifest
-	err = c.Watch(&source.Kind{Type: &armadav1alpha1.ArmadaManifest{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource ArmadaChart
+	err = c.Watch(&source.Kind{Type: &armadav1alpha1.ArmadaChart{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner ArmadaManifest
+	// Watch for changes to secondary resource Pods and requeue the owner ArmadaChart
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &armadav1alpha1.ArmadaManifest{},
+		OwnerType:    &armadav1alpha1.ArmadaChart{},
 	})
 	if err != nil {
 		return err
@@ -65,10 +54,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ArmadaManifestReconciler{}
+var _ reconcile.Reconciler = &ArmadaChartReconciler{}
 
-// ArmadaManifestReconciler reconciles a ArmadaManifest object
-type ArmadaManifestReconciler struct {
+// ArmadaChartReconciler reconciles a ArmadaChart object
+type ArmadaChartReconciler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client   client.Client
@@ -76,19 +65,19 @@ type ArmadaManifestReconciler struct {
 	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a ArmadaManifest object and makes changes based on the state read
-// and what is in the ArmadaManifest.Spec
+// Reconcile reads that state of the cluster for a ArmadaChart object and makes changes based on the state read
+// and what is in the ArmadaChart.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
 // a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling ArmadaManifest")
+	reqLogger.Info("Reconciling ArmadaChart")
 
-	// Fetch the ArmadaManifest instance
-	instance := &armadav1alpha1.ArmadaManifest{}
+	// Fetch the ArmadaChart instance
+	instance := &armadav1alpha1.ArmadaChart{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
@@ -104,9 +93,9 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 	}
 
 	// Define a new Pod object
-	pod := newPodForCR(instance)
+	pod := newPodForCRToDelete3(instance)
 
-	// Set ArmadaManifest instance as the owner and controller
+	// Set ArmadaChart instance as the owner and controller
 	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -132,12 +121,12 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 	return reconcile.Result{}, nil
 }
 
-func (r ArmadaManifestReconciler) updateResource(o *armadav1alpha1.ArmadaManifest) error {
+func (r ArmadaChartReconciler) updateResource(o *armadav1alpha1.ArmadaChart) error {
 	return r.client.Update(context.TODO(), o)
 }
 
-func (r ArmadaManifestReconciler) updateResourceStatus(instance *armadav1alpha1.ArmadaManifest, status *armadav1alpha1.ArmadaManifestStatus) error {
-	reqLogger := log.WithValues("ArmadaManifest.Namespace", instance.Namespace, "ArmadaManifest.Name", instance.Name)
+func (r ArmadaChartReconciler) updateResourceStatus(instance *armadav1alpha1.ArmadaChart, status *armadav1alpha1.ArmadaChartStatus) error {
+	reqLogger := log.WithValues("ArmadaChart.Namespace", instance.Namespace, "ArmadaChart.Name", instance.Name)
 
 	// JEB: This is already a reference to the object
 	// instance.Status = status
@@ -152,7 +141,7 @@ func (r ArmadaManifestReconciler) updateResourceStatus(instance *armadav1alpha1.
 }
 
 // newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *armadav1alpha1.ArmadaManifest) *corev1.Pod {
+func newPodForCRToDelete3(cr *armadav1alpha1.ArmadaChart) *corev1.Pod {
 	labels := map[string]string{
 		"app": cr.Name,
 	}

@@ -910,7 +910,7 @@
   version = "v2.2.2"
 
 [[projects]]
-  digest = "1:6fa82ea248029bbbdddade20c06ab177ff6e485e5e45e48b045707415b7efd34"
+  digest = "1:18b9b70bdf29da610c0df032cf60ee7526a48756fa44012cc639dcb557335cbc"
   name = "k8s.io/api"
   packages = [
     "admission/v1beta1",
@@ -949,8 +949,8 @@
     "storage/v1beta1",
   ]
   pruneopts = "NT"
-  revision = "74b699b93c15473932b89e3d1818ba8282f3b5ab"
-  version = "kubernetes-1.13.3"
+  revision = "5cb15d34447165a97c76ed5a60e4e99c8a01ecfe"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
   digest = "1:c6f23048e162e65d586c809fd02e263e180ad157f110df17437c22517bb59a4b"
@@ -961,11 +961,11 @@
     "pkg/features",
   ]
   pruneopts = "NT"
-  revision = "d4288ab6494571219e781fa423db363247635942"
-  version = "kubernetes-1.13.3"
+  revision = "d002e88f6236312f0289d9d1deab106751718ff0"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
-  digest = "1:344360823b1ea10db8cdd35fb5b7bf4a61bd9123c950d28596ead2621d703c17"
+  digest = "1:f44b5a32a31245ea062cd397cc343bda06d75c731596589996c1f77634e653af"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/equality",
@@ -1023,11 +1023,11 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "NT"
-  revision = "572dfc7bdfcb4531361a17d27b92851f59acf0dc"
-  version = "kubernetes-1.13.3"
+  revision = "86fb29eff6288413d76bd8506874fddd9fccdff0"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
-  digest = "1:daf00306ba9d3486951da6fb1f55bd02c92be16f1b96cb0c4a0d57758a047f7c"
+  digest = "1:6308e0f3247afc7a4daa252ce011e75e9500e6c8f1dbb7343bef21d4ed8894b2"
   name = "k8s.io/apiserver"
   packages = [
     "pkg/authentication/authenticator",
@@ -1037,8 +1037,8 @@
     "pkg/util/feature",
   ]
   pruneopts = "NT"
-  revision = "26bc712632e1faf9efc6b63f712325c760ad1ebe"
-  version = "kubernetes-1.13.3"
+  revision = "79427f02047f9189a75b8cdaadccaf65a126853e"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
   digest = "1:63793246976569a95e534c731e79cc555dabee6f8efa29a0b28ca33f23b7e28b"
@@ -1049,8 +1049,8 @@
     "pkg/genericclioptions/resource",
   ]
   pruneopts = "NT"
-  revision = "491c94071cfae3b539753adf65705d8a333fb92b"
-  version = "kubernetes-1.13.3"
+  revision = "a9e421a7932607ce4623ff45add8274499cca193"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
   digest = "1:7f28bbfb5889618ab038d4d250d7adb6762aa43b2fc120a95a1cd47c68af6dd4"
@@ -1139,8 +1139,8 @@
     "util/workqueue",
   ]
   pruneopts = "NT"
-  revision = "6e4752048fde21176ab35eb54ec1117359830d8a"
-  version = "kubernetes-1.13.3"
+  revision = "b40b2a5939e43f7ffe0028ad67586b7ce50bb675"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
   digest = "1:4e2addcdbe0330f43800c1fcb905fc7a21b86415dfcca619e5c606c87257af1b"
@@ -1246,7 +1246,7 @@
   revision = "0cf8f7e6ed1d2e3d47d02e3b6e559369af24d803"
 
 [[projects]]
-  digest = "1:7ba08926bb3200bcac7122822f34c78f653243c4d9c04569d71bf5d27dfb943b"
+  digest = "1:dfd693c0d1bcc4f1b0384963cb812e7f3466894856ed4433927ff44ee65302c9"
   name = "k8s.io/kubernetes"
   packages = [
     "pkg/api/legacyscheme",
@@ -1351,8 +1351,8 @@
     "pkg/version",
   ]
   pruneopts = "NT"
-  revision = "721bfa751924da8d1680787490c54b9179b1fed0"
-  version = "v1.13.3"
+  revision = "c27b913fddd1a6c480c229191a087698aa92f0b1"
+  version = "v1.13.4"
 
 [[projects]]
   branch = "master"

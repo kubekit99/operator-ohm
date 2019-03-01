@@ -1,4 +1,66 @@
-# Kubernetes Operator for Openstack HELM
+# Kubernetes Operator for Armada and Helm
+
+# Introduction
+
+This README is mainly used a log / wiki of results and challenges encounted during the POC
+
+## operator-sdk vs kubebuilder.
+
+Things to clean up:
+Did not had time to sort how to completly migrate from operator-sdh to kubebuilder.
+Most of the scaffolding is done using the operator-sdk but once the default files are created,
+the build process mainly relies on kubebuilder
+
+## Tiller/Helm directories
+
+###  helm v2 vs helm v3
+
+To get the process doing, some of the code for HelmRelease handling is coming from the 
+operator-sdk helm-operator. That code relies on tiller component which is gone for Helm3.
+Hence the three directory helmif (Interface and Common code), helmv2 (tiller) and helmv3.
+
+### HelmRelease CRDs.
+
+The HelmRelease represent temporalily used until the HelmV3 Release CRD is available.
+
+### HelmRequest CRD
+
+The helm-v3 proposal appendix describes in Appendix the creation of the HelmRequest CRD to
+work with a controller and the Helm code provided as a standalone library.
+- Note sure the interest of the "Get"....operations since the same result can be achieve
+using "kubectl get releases"
+
+### Notes
+
+- JEB: For testing purpose the current Docker file includes a dummy chart deliverd under armada-charts.
+This removes the needs to access external chart repository which is also an aspect of helm changing from 2 to 3.
+
+## Armada directories
+
+### Manifest, ChartGroup and Chart CRDs.
+
+Armada CRD are currently inspired from from the structure used by airship-armada.
+
+### ArmadaRequest CRDs.
+
+As for Helm/Tiller, the ArmadaRequest CRD are supposed to represent the "command" oriented operations.
+Not sure of the 
+
+### Notes
+
+- JEB: Since we have multiple CRDs (Manifest, CharGroup...Chart), still have to figure out if
+we need multiple controller/reconciler each listening only on one CRD or one controller watching multiple CRDs.
+
+## Helm3CRD directories
+
+### Release, Values, Chart... CRDs.
+
+Those CRD and Controller have been build using the helm-3-crd discussion and repository.
+
+### Notes
+
+- JEB: Can't figure out the impact of having thousands of individual LifecycleEvent CR on the performance
+and usability of the kubectl.
 
 # Creation of armada-operator
 
@@ -110,7 +172,12 @@ Upon creation of the custom resource, the controller will
 ```bash
 kubectl create -f examples/armada/simple.yaml
 kubectl describe amf/simple-armada
+kubectl get amf
+kubectl get acg
+kubectl get act
 ```
+
+
 
 ## Test controller reconcilation logic (for depending resources)
 
@@ -125,6 +192,9 @@ kubectl describe amf/simple-armada
 When deleting the CRD, the corresponding Armada Manifest should be uninstalled.
 
 ```bash
+kubectl delete act/blog-1
+kubectl delete acg/blog-group
+kubectl delete amf/simple-armada
 kubectl delete -f examples/armada/simple.yaml
 ```
 
