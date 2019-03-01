@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// JEB: This file has been at first generated using the operator-sdk
+// JEB: This file has been at first generated using the kubebuilder
 // and following the proposal described in:
 // https://github.com/thomastaylor312/helm-3-crd/
 // This file will be deleted once we figure out what we really want
@@ -38,7 +38,7 @@ type LifecycleSpec struct {
 // LifecycleStatus defines the observed state of Lifecycle
 type LifecycleStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+	// Important: Run "make generate" to regenerate code after modifying this file
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

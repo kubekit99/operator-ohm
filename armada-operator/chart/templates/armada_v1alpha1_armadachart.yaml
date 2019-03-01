@@ -1,0 +1,194 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: armadacharts.armada.airshipit.org
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.succeeded
+    description: success
+    name: succeeded
+    priority: 1
+    type: boolean
+  group: armada.airshipit.org
+  names:
+    kind: ArmadaChart
+    plural: armadacharts
+    shortNames:
+    - act
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            delete:
+              properties:
+                timeout:
+                  format: int64
+                  type: integer
+              type: object
+            dependencies:
+              items:
+                type: string
+              type: array
+            install:
+              type: object
+            namespace:
+              type: string
+            protected:
+              type: object
+            release:
+              type: string
+            source:
+              properties:
+                location:
+                  type: string
+                reference:
+                  type: string
+                subpath:
+                  type: string
+                type:
+                  type: string
+              required:
+              - location
+              - subpath
+              - type
+              type: object
+            test:
+              type: object
+            timeout:
+              format: int64
+              type: integer
+            upgrade:
+              properties:
+                options:
+                  properties:
+                    force:
+                      type: boolean
+                  type: object
+                post:
+                  properties:
+                    create:
+                      items:
+                        properties:
+                          labels:
+                            type: object
+                          name:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - type
+                        type: object
+                      type: array
+                  type: object
+                pre:
+                  properties:
+                    create:
+                      items:
+                        properties:
+                          labels:
+                            type: object
+                          name:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - type
+                        type: object
+                      type: array
+                    delete:
+                      items:
+                        properties:
+                          labels:
+                            type: object
+                          name:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - type
+                        type: object
+                      type: array
+                    update:
+                      items:
+                        properties:
+                          labels:
+                            type: object
+                          name:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - type
+                        type: object
+                      type: array
+                  type: object
+              type: object
+            values:
+              type: object
+            wait:
+              properties:
+                labels:
+                  type: object
+                native:
+                  properties:
+                    enabled:
+                      type: boolean
+                  type: object
+                resources:
+                  items:
+                    properties:
+                      labels:
+                        type: object
+                      type:
+                        type: string
+                    required:
+                    - type
+                    type: object
+                  type: array
+                timeout:
+                  format: int64
+                  type: integer
+              type: object
+          required:
+          - namespace
+          - release
+          - source
+          - dependencies
+          type: object
+        status:
+          properties:
+            Reason:
+              description: Reason indicates the reason for any related failures.
+              type: string
+            succeeded:
+              description: Succeeded indicates if the release is in the expected state
+              type: boolean
+          required:
+          - succeeded
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

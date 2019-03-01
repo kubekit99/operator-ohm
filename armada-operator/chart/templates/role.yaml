@@ -68,6 +68,14 @@ rules:
   - helmreleases/status
   - armadamanifests
   - armadamanifests/status
+  - armadacharts
+  - armadacharts/status
+  - armadachartgroups
+  - armadachartgroups/status
+  - helmrequests
+  - helmrequests/status
+  - armadarequests
+  - armadarequests/status
   verbs:
   - '*'
 - apiGroups:
@@ -75,5 +83,15 @@ rules:
   resources:
   - releases
   - releases/status
+  - manifests
+  - manifests/status
+  - lifecycles
+  - lifecycles/status
+  - lifecycleevents
+  - lifecycleevents/status
+  - values
+  - values/status
+  - releaseaudits
+  - releaseaudits/status
   verbs:
   - '*'

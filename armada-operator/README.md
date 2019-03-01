@@ -108,7 +108,7 @@ Upon creation of the custom resource, the controller will
 - Add events to the custom resources.
 
 ```bash
-kubectl create -f examples/armada/manifest.yaml
+kubectl create -f examples/armada/simple.yaml
 kubectl describe amf/simple-armada
 ```
 
@@ -125,7 +125,7 @@ kubectl describe amf/simple-armada
 When deleting the CRD, the corresponding Armada Manifest should be uninstalled.
 
 ```bash
-kubectl delete -f examples/armada/manifest.yaml
+kubectl delete -f examples/armada/simple.yaml
 ```
 
 

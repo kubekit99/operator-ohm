@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// JEB: This file has been at first generated using the operator-sdk
+// JEB: This file has been at first generated using the kubebuilder
 // and following the proposal described in:
 // https://github.com/thomastaylor312/helm-3-crd/
 
@@ -28,13 +28,13 @@ import (
 // ReleaseSpec defines the desired state of Release
 type ReleaseSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+	// Important: Run "make generate" to regenerate code after modifying this file
 }
 
 // ReleaseStatus defines the observed state of Release
 type ReleaseStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+	// Important: Run "make generate" to regenerate code after modifying this file
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

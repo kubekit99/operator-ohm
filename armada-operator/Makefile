@@ -33,9 +33,9 @@ vet: setup
 
 # Generate code
 generate: setup
-	go generate ./pkg/... ./cmd/...
+	# JEB: go generate ./pkg/... ./cmd/...
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/ --domain airshipit.org
-	operator-sdk generate k8s
+	# operator-sdk generate k8s
 
 # Build the docker image
 docker-build: unittest

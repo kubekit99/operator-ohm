@@ -109,30 +109,3 @@ type ArmadaSource struct {
 	Subpath     string `json:"subpath"`
 	Type        string `json:"type"`
 }
-
-// Root
-type ArmadaChart struct {
-	ChartName    string        `json:"chart_name"`
-	Namespace    string        `json:"namespace"`
-	Release      string        `json:"release"`
-	Source       *ArmadaSource `json:"source"`
-	Dependencies []string      `json:"dependencies"`
-
-	Install *ArmadaInstall `json:"install,omitempty"`
-	Delete  *ArmadaDelete  `json:"delete,omitempty"`
-	Upgrade *ArmadaUpgrade `json:"upgrade,omitempty"`
-	Values  *ArmadaValues  `json:"values,omitempty"`
-
-	Protected *ArmadaProtected          `json:"protected,omitempty"`
-	Test      unstructured.Unstructured `json:"test,omitempty"`
-	Timeout   int                       `json:"timeout,omitempty"`
-	Wait      *ArmadaWait               `json:"wait,omitempty"`
-}
-
-type ArmadaChartGroup struct {
-	ChartGroup  []string `json:"chart_group"`
-	Description string   `json:"description,omitempty"`
-	Name        string   `json:"name,omitempty"`
-	Sequenced   bool     `json:"sequenced,omitempty"`
-	TestCharts  bool     `json:"test_charts,omitempty"`
-}

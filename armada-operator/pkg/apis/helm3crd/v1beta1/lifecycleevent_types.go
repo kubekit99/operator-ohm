@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// JEB: This file has been at first generated using the operator-sdk
+// JEB: This file has been at first generated using the kubebuilder
 // and following the proposal described in:
 // https://github.com/thomastaylor312/helm-3-crd/
 // This file will be deleted once we figure out what we really want
