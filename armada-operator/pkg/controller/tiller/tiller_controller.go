@@ -129,7 +129,8 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 
 	manager := r.managerFactory.NewManager(instance)
 	spec := instance.Spec
-	status := oshv1.StatusFor(instance)
+	status := &instance.Status
+
 	log = log.WithValues("release", manager.ReleaseName())
 
 	deleted := instance.GetDeletionTimestamp() != nil
@@ -331,8 +332,12 @@ func (r HelmOperatorReconciler) updateResource(o *oshv1.HelmRelease) error {
 func (r HelmOperatorReconciler) updateResourceStatus(instance *oshv1.HelmRelease, status *oshv1.HelmReleaseStatus) error {
 	reqLogger := log.WithValues("HelmRelease.Namespace", instance.Namespace, "HelmRelease.Name", instance.Name)
 
-	// JEB: This is already a reference to the object
-	// instance.ConditionStatus = status
+	helper := oshv1.HelmResourceConditionListHelper{Items: status.Conditions}
+	status.Conditions = helper.InitIfEmpty()
+
+	if log.Enabled() {
+		fmt.Println(helper.PrettyPrint())
+	}
 
 	// JEB: Be sure to have update status subresources in the CRD.yaml
 	err := r.client.Status().Update(context.TODO(), instance)

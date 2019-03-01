@@ -132,11 +132,13 @@ func (m *helmv2manager) Sync(ctx context.Context) error {
 
 func (m helmv2manager) syncReleaseStatus(status oshv1.HelmReleaseStatus) error {
 	var release *rpb.Release
-	for _, condition := range status.Conditions {
-		if condition.Type == oshv1.ConditionDeployed && condition.Status == oshv1.ConditionStatusTrue {
-			//JEB: Issue with deepClone release = condition.Release
-			break
-		}
+	helper := oshv1.HelmResourceConditionListHelper{Items: status.Conditions}
+	condition := helper.FindCondition(oshv1.ConditionDeployed, oshv1.ConditionStatusTrue)
+	if condition == nil {
+		return nil
+	} else {
+		// JEB: Big issue here. Original code was saving the release in the Condition
+		// release = condition.release
 	}
 	if release == nil {
 		return nil

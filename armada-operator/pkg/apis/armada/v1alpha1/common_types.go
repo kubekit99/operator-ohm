@@ -22,6 +22,8 @@
 package v1alpha1
 
 import (
+	// "encoding/json"
+	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -47,6 +49,8 @@ func (x HelmResourceConditionReason) String() string { return string(x) }
 const (
 	// StateUnknown indicates that a release/chart/chartgroup/manifest is in an uncertain state.
 	StateUnknown HelmResourceState = "unknown"
+	// StateInitialized indicates that a release/chart/chartgroup/manifest is in an Kubernetes
+	StateIntialized HelmResourceState = "initialized"
 	// StateDeployed indicates that the release/chart/chartgroup/manifest has been downloaded from artifact repository
 	StateDownloaded HelmResourceState = "downloaded"
 	// StateDeployed indicates that the release/chart/chartgroup/manifest has been pushed to Kubernetes.
@@ -123,4 +127,86 @@ type HelmResourceCondition struct {
 	ResourceName       string                      `json:"resourceName,omitempty"`
 	ResourceVersion    int32                       `json:"resourceVersion,omitempty"`
 	LastTransitionTime metav1.Time                 `json:"lastTransitionTime,omitempty"`
+}
+
+type HelmResourceConditionListHelper struct {
+	Items []HelmResourceCondition `json:"items"`
+}
+
+// SetCondition sets a condition on the status object. If the condition already
+// exists, it will be replaced. SetCondition does not update the resource in
+// the cluster.
+func (s *HelmResourceConditionListHelper) SetCondition(condition HelmResourceCondition) []HelmResourceCondition {
+
+	// Initialize the Items array if needed
+	if s.Items == nil {
+		s.Items = make([]HelmResourceCondition, 0)
+	}
+
+	now := metav1.Now()
+	for i := range s.Items {
+		if s.Items[i].Type == condition.Type {
+			if s.Items[i].Status != condition.Status {
+				condition.LastTransitionTime = now
+			} else {
+				condition.LastTransitionTime = s.Items[i].LastTransitionTime
+			}
+			s.Items[i] = condition
+			return s.Items
+		}
+	}
+
+	// If the condition does not exist,
+	// initialize the lastTransitionTime
+	condition.LastTransitionTime = now
+	s.Items = append(s.Items, condition)
+	return s.Items
+}
+
+// RemoveCondition removes the condition with the passed condition type from
+// the status object. If the condition is not already present, the returned
+// status object is returned unchanged. RemoveCondition does not update the
+// resource in the cluster.
+func (s *HelmResourceConditionListHelper) RemoveCondition(conditionType HelmResourceConditionType) []HelmResourceCondition {
+
+	// Initialize the Items array if needed
+	if s.Items == nil {
+		s.Items = make([]HelmResourceCondition, 0)
+	}
+
+	for i := range s.Items {
+		if s.Items[i].Type == conditionType {
+			s.Items = append(s.Items[:i], s.Items[i+1:]...)
+			return s.Items
+		}
+	}
+	return s.Items
+}
+
+// Initialize the HelmResourceCondition list
+func (s *HelmResourceConditionListHelper) InitIfEmpty() []HelmResourceCondition {
+
+	// Initialize the Items array if needed
+	if s.Items == nil {
+		s.Items = make([]HelmResourceCondition, 0)
+	}
+
+	return s.Items
+}
+
+func (s *HelmResourceConditionListHelper) PrettyPrint() string {
+	// res, _ := json.MarshalIndent(s.Items, "", "\t")
+	res, _ := yaml.Marshal(s.Items)
+	return string(res)
+}
+
+func (s *HelmResourceConditionListHelper) FindCondition(conditionType HelmResourceConditionType, conditionStatus HelmResourceConditionStatus) *HelmResourceCondition {
+	var found *HelmResourceCondition
+	for _, condition := range s.Items {
+		if condition.Type == conditionType && condition.Status == conditionStatus {
+			found = &condition
+			break
+		}
+	}
+	return found
 }

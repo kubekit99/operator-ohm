@@ -71,7 +71,7 @@ func (f managerFactory) newManagerForCR(r *oshv1.HelmRelease) helmif.Manager {
 		namespace:   r.GetNamespace(),
 
 		spec:   r.Spec,
-		status: oshv1.StatusFor(r),
+		status: &r.Status,
 	}
 }
 

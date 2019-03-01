@@ -73,23 +73,9 @@ type HelmReleaseList struct {
 // exists, it will be replaced. SetCondition does not update the resource in
 // the cluster.
 func (s *HelmReleaseStatus) SetCondition(condition HelmResourceCondition) *HelmReleaseStatus {
-	now := metav1.Now()
-	for i := range s.Conditions {
-		if s.Conditions[i].Type == condition.Type {
-			if s.Conditions[i].Status != condition.Status {
-				condition.LastTransitionTime = now
-			} else {
-				condition.LastTransitionTime = s.Conditions[i].LastTransitionTime
-			}
-			s.Conditions[i] = condition
-			return s
-		}
-	}
 
-	// If the condition does not exist,
-	// initialize the lastTransitionTime
-	condition.LastTransitionTime = now
-	s.Conditions = append(s.Conditions, condition)
+	helper := HelmResourceConditionListHelper{Items: s.Conditions}
+	s.Conditions = helper.SetCondition(condition)
 	return s
 }
 
@@ -98,12 +84,9 @@ func (s *HelmReleaseStatus) SetCondition(condition HelmResourceCondition) *HelmR
 // status object is returned unchanged. RemoveCondition does not update the
 // resource in the cluster.
 func (s *HelmReleaseStatus) RemoveCondition(conditionType HelmResourceConditionType) *HelmReleaseStatus {
-	for i := range s.Conditions {
-		if s.Conditions[i].Type == conditionType {
-			s.Conditions = append(s.Conditions[:i], s.Conditions[i+1:]...)
-			return s
-		}
-	}
+
+	helper := HelmResourceConditionListHelper{Items: s.Conditions}
+	s.Conditions = helper.RemoveCondition(conditionType)
 	return s
 }
 
@@ -113,17 +96,6 @@ func NewHelmReleaseVersionKind() *unstructured.Unstructured {
 	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
 	u.SetKind("HelmRelease")
 	return u
-}
-
-// StatusFor safely returns a typed status block from a custom resource.
-func StatusFor(cr *HelmRelease) *HelmReleaseStatus {
-	res := &cr.Status
-
-	if res.Conditions == nil {
-		res.Conditions = make([]HelmResourceCondition, 0)
-	}
-
-	return res
 }
 
 func init() {
