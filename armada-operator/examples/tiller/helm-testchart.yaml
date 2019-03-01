@@ -6,3 +6,4 @@ spec:
   releaseName: testchart
   chartDir: "/opt/armada/armada-charts/tiller-testchart/helm"
   watchHelmDependentResources: true
+  targetState: downloaded

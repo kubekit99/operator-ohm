@@ -40,7 +40,33 @@ spec:
           type: object
         status:
           properties:
-            Reason:
+            conditions:
+              description: 'List of conditions and states related to the resource.
+                JEB: Feature kind of overlap with event recorder'
+              items:
+                properties:
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  resourceName:
+                    type: string
+                  resourceVersion:
+                    format: int32
+                    type: integer
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+            reason:
               description: Reason indicates the reason for any related failures.
               type: string
             succeeded:

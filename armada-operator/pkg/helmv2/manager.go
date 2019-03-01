@@ -133,7 +133,7 @@ func (m *helmv2manager) Sync(ctx context.Context) error {
 func (m helmv2manager) syncReleaseStatus(status oshv1.HelmReleaseStatus) error {
 	var release *rpb.Release
 	for _, condition := range status.Conditions {
-		if condition.Type == oshv1.ConditionDeployed && condition.Status == oshv1.StatusTrue {
+		if condition.Type == oshv1.ConditionDeployed && condition.Status == oshv1.ConditionStatusTrue {
 			//JEB: Issue with deepClone release = condition.Release
 			break
 		}

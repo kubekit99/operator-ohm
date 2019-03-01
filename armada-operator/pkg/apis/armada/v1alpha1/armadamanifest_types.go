@@ -22,6 +22,9 @@ import (
 type ArmadaManifestSpec struct {
 	ChartGroups   []string `json:"chart_groups"`
 	ReleasePrefix string   `json:"release_prefix"`
+
+	// Target state of the Helm Custom Resources
+	TargetState HelmResourceState `json:"target_state"`
 }
 
 // ArmadaManifestStatus defines the observed state of ArmadaManifest
@@ -29,7 +32,11 @@ type ArmadaManifestStatus struct {
 	// Succeeded indicates if the release is in the expected state
 	Succeeded bool `json:"succeeded"`
 	// Reason indicates the reason for any related failures.
-	Reason string `json:"Reason,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	// Actual state of the Helm Custom Resources
+	ActualState HelmResourceState `json:"actual_state"`
+	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
+	Conditions []HelmResourceCondition `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -51,6 +51,9 @@ const (
 	HelmStatusPendingRollback HelmStatus = "pending-rollback"
 )
 
+// Strng converts a status to a printable string
+func (x HelmStatus) String() string { return string(x) }
+
 // Maintainer describes a Chart maintainer.
 type HelmMaintainer struct {
 	// Name is a user name or organization name

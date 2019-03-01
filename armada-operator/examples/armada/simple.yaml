@@ -18,6 +18,7 @@ spec:
     subpath: .
     reference: 87aad18f7d8c6a1a08f3adc8866efd33bee6aa52
   dependencies: []
+  target_state: initialized
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChart
@@ -39,6 +40,7 @@ spec:
     subpath: .
     reference: master
   dependencies: []
+  target_state: initialized
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChartGroup
@@ -50,6 +52,7 @@ spec:
   chart_group:
     - blog-1
     - blog-2
+  target_state: initialized
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaManifest
@@ -59,3 +62,4 @@ spec:
   release_prefix: armada
   chart_groups:
     - blog-group
+  target_state: initialized

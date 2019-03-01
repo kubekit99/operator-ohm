@@ -22,6 +22,9 @@ type ArmadaChartSpec struct {
 	Test      unstructured.Unstructured `json:"test,omitempty"`
 	Timeout   int                       `json:"timeout,omitempty"`
 	Wait      *ArmadaWait               `json:"wait,omitempty"`
+
+	// Target state of the Helm Custom Resources
+	TargetState HelmResourceState `json:"target_state"`
 }
 
 // ArmadaChartStatus defines the observed state of ArmadaChart
@@ -29,7 +32,11 @@ type ArmadaChartStatus struct {
 	// Succeeded indicates if the release is in the expected state
 	Succeeded bool `json:"succeeded"`
 	// Reason indicates the reason for any related failures.
-	Reason string `json:"Reason,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	// Actual state of the Helm Custom Resources
+	ActualState HelmResourceState `json:"actual_state"`
+	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
+	Conditions []HelmResourceCondition `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

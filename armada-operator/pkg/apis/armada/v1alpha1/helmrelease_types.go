@@ -19,58 +19,18 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-type HelmReleaseConditionType string
-type ConditionStatus string
-type HelmReleaseConditionReason string
-
-type HelmReleaseCondition struct {
-	Type    HelmReleaseConditionType   `json:"type"`
-	Status  ConditionStatus            `json:"status"`
-	Reason  HelmReleaseConditionReason `json:"reason,omitempty"`
-	Message string                     `json:"message,omitempty"`
-	// Release     *rpb.Release                  `json:"release,omitempty"`
-	ReleaseName    string `json:"releaseName,omitempty"`
-	ReleaseVersion int32  `json:"releaseVersion,omitempty"`
-
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-}
-
-const (
-	ConditionInitialized    HelmReleaseConditionType = "Initialized"
-	ConditionDeployed       HelmReleaseConditionType = "Deployed"
-	ConditionReleaseFailed  HelmReleaseConditionType = "ReleaseFailed"
-	ConditionIrreconcilable HelmReleaseConditionType = "Irreconcilable"
-	ConditionBackedUp       HelmReleaseConditionType = "BackedUp"
-	ConditionRestored       HelmReleaseConditionType = "Restored"
-	ConditionUpgraded       HelmReleaseConditionType = "Upgraded"
-	ConditionRolledBack     HelmReleaseConditionType = "RolledBack"
-
-	StatusTrue    ConditionStatus = "True"
-	StatusFalse   ConditionStatus = "False"
-	StatusUnknown ConditionStatus = "Unknown"
-
-	ReasonInstallSuccessful   HelmReleaseConditionReason = "InstallSuccessful"
-	ReasonUpdateSuccessful    HelmReleaseConditionReason = "UpdateSuccessful"
-	ReasonUninstallSuccessful HelmReleaseConditionReason = "UninstallSuccessful"
-	ReasonInstallError        HelmReleaseConditionReason = "InstallError"
-	ReasonUpdateError         HelmReleaseConditionReason = "UpdateError"
-	ReasonReconcileError      HelmReleaseConditionReason = "ReconcileError"
-	ReasonUninstallError      HelmReleaseConditionReason = "UninstallError"
-	ReasonBackupError         HelmReleaseConditionReason = "BackupError"
-	ReasonRestoreError        HelmReleaseConditionReason = "RestoreError"
-	ReasonUpgradeError        HelmReleaseConditionReason = "UpgradeError"
-	ReasonRollbackError       HelmReleaseConditionReason = "RollbackError"
-)
-
 // HelmReleaseSpec defines the desired state of HelmRelease
 type HelmReleaseSpec struct {
 	// Helm Chart releate information
-	ReleaseName                 string `json:"releaseName,omitempty"`
-	ChartDir                    string `json:"chartDir,omitempty"`
-	WatchHelmDependentResources bool   `json:"watchHelmDependentResources"`
-
+	ReleaseName string `json:"releaseName,omitempty"`
+	// Path the chart in the container. Will be converted to a container later
+	ChartDir string `json:"chartDir,omitempty"`
+	// Set to true to add Watch to Kubernetes Resources created by the chart
+	WatchHelmDependentResources bool `json:"watchHelmDependentResources"`
 	// ReleaseDesc is the chart that was released.
 	ReleaseDesc *HelmReleaseDesc `json:"releaseDesc,omitempty"`
+	// Target state of the Helm Custom Resources
+	TargetState HelmResourceState `json:"targetState"`
 }
 
 // HelmReleaseStatus defines the observed state of HelmRelease
@@ -78,9 +38,11 @@ type HelmReleaseStatus struct {
 	// Succeeded indicates if the release is in the expected state
 	Succeeded bool `json:"succeeded"`
 	// Reason indicates the reason for any related failures.
-	Reason string `json:"Reason,omitempty"`
-	// List of conditions and states related to the release
-	Conditions []HelmReleaseCondition `json:"conditions"`
+	Reason string `json:"reason,omitempty"`
+	// Actual state of the Helm Custom Resources
+	ActualState HelmResourceState `json:"actual_state"`
+	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
+	Conditions []HelmResourceCondition `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -110,7 +72,7 @@ type HelmReleaseList struct {
 // SetCondition sets a condition on the status object. If the condition already
 // exists, it will be replaced. SetCondition does not update the resource in
 // the cluster.
-func (s *HelmReleaseStatus) SetCondition(condition HelmReleaseCondition) *HelmReleaseStatus {
+func (s *HelmReleaseStatus) SetCondition(condition HelmResourceCondition) *HelmReleaseStatus {
 	now := metav1.Now()
 	for i := range s.Conditions {
 		if s.Conditions[i].Type == condition.Type {
@@ -135,7 +97,7 @@ func (s *HelmReleaseStatus) SetCondition(condition HelmReleaseCondition) *HelmRe
 // the status object. If the condition is not already present, the returned
 // status object is returned unchanged. RemoveCondition does not update the
 // resource in the cluster.
-func (s *HelmReleaseStatus) RemoveCondition(conditionType HelmReleaseConditionType) *HelmReleaseStatus {
+func (s *HelmReleaseStatus) RemoveCondition(conditionType HelmResourceConditionType) *HelmReleaseStatus {
 	for i := range s.Conditions {
 		if s.Conditions[i].Type == conditionType {
 			s.Conditions = append(s.Conditions[:i], s.Conditions[i+1:]...)
@@ -158,7 +120,7 @@ func StatusFor(cr *HelmRelease) *HelmReleaseStatus {
 	res := &cr.Status
 
 	if res.Conditions == nil {
-		res.Conditions = make([]HelmReleaseCondition, 0)
+		res.Conditions = make([]HelmResourceCondition, 0)
 	}
 
 	return res

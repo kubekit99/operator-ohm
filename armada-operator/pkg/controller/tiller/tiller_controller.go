@@ -144,16 +144,16 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	status.SetCondition(oshv1.HelmReleaseCondition{
+	status.SetCondition(oshv1.HelmResourceCondition{
 		Type:   oshv1.ConditionInitialized,
-		Status: oshv1.StatusTrue,
+		Status: oshv1.ConditionStatusTrue,
 	})
 
 	if err := manager.Sync(context.TODO()); err != nil {
 		log.Error(err, "Failed to sync release")
-		status.SetCondition(oshv1.HelmReleaseCondition{
+		status.SetCondition(oshv1.HelmResourceCondition{
 			Type:    oshv1.ConditionIrreconcilable,
-			Status:  oshv1.StatusTrue,
+			Status:  oshv1.ConditionStatusTrue,
 			Reason:  oshv1.ReasonReconcileError,
 			Message: err.Error(),
 		})
@@ -171,25 +171,25 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		uninstalledRelease, err := manager.UninstallRelease(context.TODO())
 		if err != nil && err != helmif.ErrNotFound {
 			log.Error(err, "Failed to uninstall release")
-			status.SetCondition(oshv1.HelmReleaseCondition{
-				Type:    oshv1.ConditionReleaseFailed,
-				Status:  oshv1.StatusTrue,
+			status.SetCondition(oshv1.HelmResourceCondition{
+				Type:    oshv1.ConditionFailed,
+				Status:  oshv1.ConditionStatusTrue,
 				Reason:  oshv1.ReasonUninstallError,
 				Message: err.Error(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(oshv1.ConditionReleaseFailed)
+		status.RemoveCondition(oshv1.ConditionFailed)
 
 		if err == helmif.ErrNotFound {
 			log.Info("Release not found, removing finalizer")
 		} else {
 			r.recorder.Event(instance, v1.EventTypeWarning, "DeletionFailure", fmt.Sprintf("Uninstalled Release %s", uninstalledRelease.GetName()))
 			log.Info("Uninstalled release", "releaseName", uninstalledRelease.GetName(), "releaseVersion", uninstalledRelease.GetVersion())
-			status.SetCondition(oshv1.HelmReleaseCondition{
+			status.SetCondition(oshv1.HelmResourceCondition{
 				Type:   oshv1.ConditionDeployed,
-				Status: oshv1.StatusFalse,
+				Status: oshv1.ConditionStatusFalse,
 				Reason: oshv1.ReasonUninstallSuccessful,
 			})
 		}
@@ -215,19 +215,19 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if err != nil {
 			log.Error(err, "Failed to install release")
 			r.recorder.Event(instance, v1.EventTypeWarning, "InstallationFailure", fmt.Sprintf("Installed Release %s", installedRelease.GetName()))
-			status.SetCondition(oshv1.HelmReleaseCondition{
-				Type:    oshv1.ConditionReleaseFailed,
-				Status:  oshv1.StatusTrue,
+			status.SetCondition(oshv1.HelmResourceCondition{
+				Type:    oshv1.ConditionFailed,
+				Status:  oshv1.ConditionStatusTrue,
 				Reason:  oshv1.ReasonInstallError,
 				Message: err.Error(),
 				//JEB Release:        installedRelease,
-				ReleaseName:    installedRelease.GetName(),
-				ReleaseVersion: installedRelease.GetVersion(),
+				ResourceName:    installedRelease.GetName(),
+				ResourceVersion: installedRelease.GetVersion(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(oshv1.ConditionReleaseFailed)
+		status.RemoveCondition(oshv1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
 			if err := r.releaseWatchUpdater(installedRelease); err != nil {
@@ -239,14 +239,14 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		log.Info("Installed release", "releaseName", installedRelease.GetName(), "releaseVersion", installedRelease.GetVersion())
 		r.recorder.Event(instance, v1.EventTypeNormal, "Installed", fmt.Sprintf("Installed Release %s", installedRelease.GetName()))
 		//JEB log.V(1).Info("Config values", "values", installedRelease.GetConfig())
-		status.SetCondition(oshv1.HelmReleaseCondition{
+		status.SetCondition(oshv1.HelmResourceCondition{
 			Type:    oshv1.ConditionDeployed,
-			Status:  oshv1.StatusTrue,
+			Status:  oshv1.ConditionStatusTrue,
 			Reason:  oshv1.ReasonInstallSuccessful,
 			Message: installedRelease.GetInfo().GetStatus().GetNotes(),
 			//JEB Release:        installedRelease,
-			ReleaseName:    installedRelease.GetName(),
-			ReleaseVersion: installedRelease.GetVersion(),
+			ResourceName:    installedRelease.GetName(),
+			ResourceVersion: installedRelease.GetVersion(),
 		})
 		err = r.updateResourceStatus(instance, status)
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
@@ -257,19 +257,19 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if err != nil {
 			log.Error(err, "Failed to update release")
 			r.recorder.Event(instance, v1.EventTypeWarning, "UpdateFailure", fmt.Sprintf("Updated Release %s", updatedRelease.GetName()))
-			status.SetCondition(oshv1.HelmReleaseCondition{
-				Type:    oshv1.ConditionReleaseFailed,
-				Status:  oshv1.StatusTrue,
+			status.SetCondition(oshv1.HelmResourceCondition{
+				Type:    oshv1.ConditionFailed,
+				Status:  oshv1.ConditionStatusTrue,
 				Reason:  oshv1.ReasonUpdateError,
 				Message: err.Error(),
 				//JEB Release:        updatedRelease,
-				ReleaseName:    updatedRelease.GetName(),
-				ReleaseVersion: updatedRelease.GetVersion(),
+				ResourceName:    updatedRelease.GetName(),
+				ResourceVersion: updatedRelease.GetVersion(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(oshv1.ConditionReleaseFailed)
+		status.RemoveCondition(oshv1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
 			if err := r.releaseWatchUpdater(updatedRelease); err != nil {
@@ -284,14 +284,14 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 			fmt.Println(Diff(previousRelease.GetManifest(), updatedRelease.GetManifest()))
 		}
 		//JEB log.V(1).Info("Config values", "values", updatedRelease.GetConfig())
-		status.SetCondition(oshv1.HelmReleaseCondition{
+		status.SetCondition(oshv1.HelmResourceCondition{
 			Type:    oshv1.ConditionDeployed,
-			Status:  oshv1.StatusTrue,
+			Status:  oshv1.ConditionStatusTrue,
 			Reason:  oshv1.ReasonUpdateSuccessful,
 			Message: updatedRelease.GetInfo().GetStatus().GetNotes(),
 			//JEB Release:        updatedRelease,
-			ReleaseName:    updatedRelease.GetName(),
-			ReleaseVersion: updatedRelease.GetVersion(),
+			ResourceName:    updatedRelease.GetName(),
+			ResourceVersion: updatedRelease.GetVersion(),
 		})
 		err = r.updateResourceStatus(instance, status)
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
@@ -301,9 +301,9 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	_, err = manager.ReconcileRelease(context.TODO())
 	if err != nil {
 		log.Error(err, "Failed to reconcile release")
-		status.SetCondition(oshv1.HelmReleaseCondition{
+		status.SetCondition(oshv1.HelmResourceCondition{
 			Type:    oshv1.ConditionIrreconcilable,
-			Status:  oshv1.StatusTrue,
+			Status:  oshv1.ConditionStatusTrue,
 			Reason:  oshv1.ReasonReconcileError,
 			Message: err.Error(),
 		})
@@ -332,7 +332,7 @@ func (r HelmOperatorReconciler) updateResourceStatus(instance *oshv1.HelmRelease
 	reqLogger := log.WithValues("HelmRelease.Namespace", instance.Namespace, "HelmRelease.Name", instance.Name)
 
 	// JEB: This is already a reference to the object
-	// instance.Status = status
+	// instance.ConditionStatus = status
 
 	// JEB: Be sure to have update status subresources in the CRD.yaml
 	err := r.client.Status().Update(context.TODO(), instance)

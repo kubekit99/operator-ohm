@@ -39,6 +39,8 @@ spec:
         spec:
           properties:
             chartDir:
+              description: Path the chart in the container. Will be converted to a
+                container later
               type: string
             releaseDesc:
               description: ReleaseDesc is the chart that was released.
@@ -117,18 +119,22 @@ spec:
             releaseName:
               description: Helm Chart releate information
               type: string
+            targetState:
+              description: Target state of the Helm Custom Resources
+              type: string
             watchHelmDependentResources:
+              description: Set to true to add Watch to Kubernetes Resources created
+                by the chart
               type: boolean
           required:
           - watchHelmDependentResources
+          - targetState
           type: object
         status:
           properties:
-            Reason:
-              description: Reason indicates the reason for any related failures.
-              type: string
             conditions:
-              description: List of conditions and states related to the release
+              description: 'List of conditions and states related to the resource.
+                JEB: Feature kind of overlap with event recorder'
               items:
                 properties:
                   lastTransitionTime:
@@ -138,10 +144,9 @@ spec:
                     type: string
                   reason:
                     type: string
-                  releaseName:
-                    description: Release     *rpb.Release                  `json:"release,omitempty"`
+                  resourceName:
                     type: string
-                  releaseVersion:
+                  resourceVersion:
                     format: int32
                     type: integer
                   status:
@@ -153,12 +158,14 @@ spec:
                 - status
                 type: object
               type: array
+            reason:
+              description: Reason indicates the reason for any related failures.
+              type: string
             succeeded:
               description: Succeeded indicates if the release is in the expected state
               type: boolean
           required:
           - succeeded
-          - conditions
           type: object
   version: v1alpha1
 status:
