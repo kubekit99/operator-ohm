@@ -194,12 +194,14 @@ func (s *HelmResourceConditionListHelper) InitIfEmpty() []HelmResourceCondition 
 	return s.Items
 }
 
+// Utility function to print an HelmResourceCondition list
 func (s *HelmResourceConditionListHelper) PrettyPrint() string {
 	// res, _ := json.MarshalIndent(s.Items, "", "\t")
 	res, _ := yaml.Marshal(s.Items)
 	return string(res)
 }
 
+// Utility function to find an HelmResourceCondition within the List
 func (s *HelmResourceConditionListHelper) FindCondition(conditionType HelmResourceConditionType, conditionStatus HelmResourceConditionStatus) *HelmResourceCondition {
 	var found *HelmResourceCondition
 	for _, condition := range s.Items {

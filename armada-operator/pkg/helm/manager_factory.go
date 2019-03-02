@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helmv2
+package helm
 
 import (
 	"fmt"
@@ -24,8 +24,8 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	oshv1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
-	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/helmif"
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -44,7 +44,7 @@ type managerFactory struct {
 }
 
 // NewManagerFactory returns a new Helm manager factory capable of installing and uninstalling releases.
-func NewManagerFactory(mgr manager.Manager) helmif.ManagerFactory {
+func NewManagerFactory(mgr manager.Manager) helmif.HelmManagerFactory {
 	// Create Tiller's storage backend and kubernetes client
 	storageBackend := storage.Init(driver.NewMemory())
 	tillerKubeClient, err := NewFromManager(mgr)
@@ -56,12 +56,8 @@ func NewManagerFactory(mgr manager.Manager) helmif.ManagerFactory {
 	return &managerFactory{storageBackend, tillerKubeClient}
 }
 
-func (f managerFactory) NewManager(r *oshv1.HelmRelease) helmif.Manager {
-	return f.newManagerForCR(r)
-}
-
-func (f managerFactory) newManagerForCR(r *oshv1.HelmRelease) helmif.Manager {
-	return &helmv2manager{
+func (f managerFactory) NewTillerManager(r *av1.HelmRelease) helmif.HelmManager {
+	return &tillermanager{
 		storageBackend:   f.storageBackend,
 		tillerKubeClient: f.tillerKubeClient,
 		chartDir:         getChartDir(r),
@@ -75,15 +71,19 @@ func (f managerFactory) newManagerForCR(r *oshv1.HelmRelease) helmif.Manager {
 	}
 }
 
+func (f managerFactory) NewHelm3Manager(r *av1.HelmRelease) helmif.HelmManager {
+	return &helm3manager{}
+}
+
 // tillerRendererForCR creates a ReleaseServer configured with a rendering engine that adds ownerrefs to rendered assets
 // based on the CR.
-func (f managerFactory) tillerRendererForCR(r *oshv1.HelmRelease) *tiller.ReleaseServer {
+func (f managerFactory) tillerRendererForCR(r *av1.HelmRelease) *tiller.ReleaseServer {
 	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
 	baseEngine := helmengine.New()
-	e := NewOwnerRefEngine(baseEngine, ownerRefs)
+	e := helmif.NewOwnerRefEngine(baseEngine, ownerRefs)
 	var ey environment.EngineYard = map[string]environment.Engine{
 		environment.GoTplEngine: e,
 	}
@@ -98,7 +98,7 @@ func (f managerFactory) tillerRendererForCR(r *oshv1.HelmRelease) *tiller.Releas
 	return tiller.NewReleaseServer(env, cs, false)
 }
 
-func getChartDir(r *oshv1.HelmRelease) string {
+func getChartDir(r *av1.HelmRelease) string {
 	if r.Spec.ChartDir != "" {
 		// JEB: We should check for duplicates here as well as syntax of ReleaseName
 		return r.Spec.ChartDir
@@ -107,7 +107,7 @@ func getChartDir(r *oshv1.HelmRelease) string {
 	}
 }
 
-func getReleaseName(r *oshv1.HelmRelease) string {
+func getReleaseName(r *av1.HelmRelease) string {
 	if r.Spec.ReleaseName != "" {
 		// JEB: We should check for duplicates here as well as syntax of ReleaseName
 		return r.Spec.ReleaseName

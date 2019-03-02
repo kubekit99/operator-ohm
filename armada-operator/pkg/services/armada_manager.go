@@ -12,29 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helmif
+package services
 
 import (
 	"context"
-	"errors"
-
-	rpb "k8s.io/helm/pkg/proto/hapi/release"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-var (
-	// ErrNotFound indicates the release was not found.
-	ErrNotFound = errors.New("release not found")
-)
-
-// Manager manages a Helm release. It can install, update, reconcile,
+// Manager manages a Armada release. It can install, update, reconcile,
 // and uninstall a release.
-type Manager interface {
-	ReleaseName() string
+type ArmadaManager interface {
+	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallRelease(context.Context) (*rpb.Release, error)
-	UpdateRelease(context.Context) (*rpb.Release, *rpb.Release, error)
-	ReconcileRelease(context.Context) (*rpb.Release, error)
-	UninstallRelease(context.Context) (*rpb.Release, error)
+	InstallResource(context.Context) (*unstructured.Unstructured, error)
+	UpdateResource(context.Context) (*unstructured.Unstructured, *unstructured.Unstructured, error)
+	ReconcileResource(context.Context) (*unstructured.Unstructured, error)
+	UninstallResource(context.Context) (*unstructured.Unstructured, error)
 }

@@ -12,16 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helmif
+package services
 
 import (
-	osh "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	"context"
+
+	rpb "k8s.io/helm/pkg/proto/hapi/release"
 )
 
-// ManagerFactory creates Managers that are specific to custom resources. It is
-// used by the HelmOperatorReconciler during resource reconciliation, and it
-// improves decoupling between reconciliation logic and the Helm backend
-// components used to manage releases.
-type ManagerFactory interface {
-	NewManager(r *osh.HelmRelease) Manager
+// Manager manages a Helm release. It can install, update, reconcile,
+// and uninstall a release.
+type HelmManager interface {
+	ReleaseName() string
+	IsInstalled() bool
+	IsUpdateRequired() bool
+	Sync(context.Context) error
+	InstallRelease(context.Context) (*rpb.Release, error)
+	UpdateRelease(context.Context) (*rpb.Release, *rpb.Release, error)
+	ReconcileRelease(context.Context) (*rpb.Release, error)
+	UninstallRelease(context.Context) (*rpb.Release, error)
 }

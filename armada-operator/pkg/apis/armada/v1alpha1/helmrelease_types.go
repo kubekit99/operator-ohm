@@ -69,6 +69,10 @@ type HelmReleaseList struct {
 	Items           []HelmRelease `json:"items"`
 }
 
+func init() {
+	SchemeBuilder.Register(&HelmRelease{}, &HelmReleaseList{})
+}
+
 // SetCondition sets a condition on the status object. If the condition already
 // exists, it will be replaced. SetCondition does not update the resource in
 // the cluster.
@@ -96,8 +100,4 @@ func NewHelmReleaseVersionKind() *unstructured.Unstructured {
 	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
 	u.SetKind("HelmRelease")
 	return u
-}
-
-func init() {
-	SchemeBuilder.Register(&HelmRelease{}, &HelmReleaseList{})
 }

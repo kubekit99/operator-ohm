@@ -66,3 +66,32 @@ type ArmadaChartList struct {
 func init() {
 	SchemeBuilder.Register(&ArmadaChart{}, &ArmadaChartList{})
 }
+
+// SetCondition sets a condition on the status object. If the condition already
+// exists, it will be replaced. SetCondition does not update the resource in
+// the cluster.
+func (s *ArmadaChartStatus) SetCondition(condition HelmResourceCondition) *ArmadaChartStatus {
+
+	helper := HelmResourceConditionListHelper{Items: s.Conditions}
+	s.Conditions = helper.SetCondition(condition)
+	return s
+}
+
+// RemoveCondition removes the condition with the passed condition type from
+// the status object. If the condition is not already present, the returned
+// status object is returned unchanged. RemoveCondition does not update the
+// resource in the cluster.
+func (s *ArmadaChartStatus) RemoveCondition(conditionType HelmResourceConditionType) *ArmadaChartStatus {
+
+	helper := HelmResourceConditionListHelper{Items: s.Conditions}
+	s.Conditions = helper.RemoveCondition(conditionType)
+	return s
+}
+
+// Returns a GKV for ArmadaChart
+func NewArmadaChartVersionKind() *unstructured.Unstructured {
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
+	u.SetKind("ArmadaChart")
+	return u
+}

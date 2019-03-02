@@ -19,12 +19,12 @@ import (
 	"fmt"
 	"time"
 
-	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/helmif"
-	"github.com/kubekit99/operator-ohm/armada-operator/pkg/helmv2"
+	helmmgr "github.com/kubekit99/operator-ohm/armada-operator/pkg/helm"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	// "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	oshv1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -54,7 +54,7 @@ func add(mgr manager.Manager) error {
 		client:         mgr.GetClient(),
 		scheme:         mgr.GetScheme(),
 		recorder:       mgr.GetRecorder("tiller-recorder"),
-		managerFactory: helmv2.NewManagerFactory(mgr),
+		managerFactory: helmmgr.NewManagerFactory(mgr),
 		// reconcilePeriod: flags.ReconcilePeriod,
 		watchDependentResources: true,
 	}
@@ -66,13 +66,13 @@ func add(mgr manager.Manager) error {
 	}
 
 	// Watch for changes to primary resource HelmRelease
-	err = c.Watch(&source.Kind{Type: &oshv1.HelmRelease{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &av1.HelmRelease{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// Watch for changes to secondary resource Pods and requeue the owner HelmRelease
-	owner := oshv1.NewHelmReleaseVersionKind()
+	owner := av1.NewHelmReleaseVersionKind()
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    owner,
@@ -93,8 +93,7 @@ type HelmOperatorReconciler struct {
 	client                  client.Client
 	scheme                  *runtime.Scheme
 	recorder                record.EventRecorder
-	gvk                     schema.GroupVersionKind
-	managerFactory          helmif.ManagerFactory
+	managerFactory          helmif.HelmManagerFactory
 	reconcilePeriod         time.Duration
 	releaseWatchUpdater     helmif.ReleaseWatchUpdater
 	watchDependentResources bool
@@ -109,14 +108,13 @@ const (
 // release changes are necessary, Reconcile will create or patch the underlying
 // resources to match the expected release manifest.
 func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	instance := &oshv1.HelmRelease{}
+	instance := &av1.HelmRelease{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
 	log := log.WithValues(
 		"namespace", instance.GetNamespace(),
 		"name", instance.GetName(),
 	)
-	log.V(1).Info("Reconciling")
 
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if apierrors.IsNotFound(err) {
@@ -127,7 +125,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	manager := r.managerFactory.NewManager(instance)
+	manager := r.managerFactory.NewTillerManager(instance)
 	spec := instance.Spec
 	status := &instance.Status
 
@@ -136,7 +134,6 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	deleted := instance.GetDeletionTimestamp() != nil
 	pendingFinalizers := instance.GetFinalizers()
 	if !deleted && !contains(pendingFinalizers, finalizer) {
-		log.V(1).Info("Adding finalizer", "finalizer", finalizer)
 		finalizers := append(pendingFinalizers, finalizer)
 		instance.SetFinalizers(finalizers)
 		err = r.updateResource(instance)
@@ -145,23 +142,23 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	status.SetCondition(oshv1.HelmResourceCondition{
-		Type:   oshv1.ConditionInitialized,
-		Status: oshv1.ConditionStatusTrue,
+	status.SetCondition(av1.HelmResourceCondition{
+		Type:   av1.ConditionInitialized,
+		Status: av1.ConditionStatusTrue,
 	})
 
 	if err := manager.Sync(context.TODO()); err != nil {
 		log.Error(err, "Failed to sync release")
-		status.SetCondition(oshv1.HelmResourceCondition{
-			Type:    oshv1.ConditionIrreconcilable,
-			Status:  oshv1.ConditionStatusTrue,
-			Reason:  oshv1.ReasonReconcileError,
+		status.SetCondition(av1.HelmResourceCondition{
+			Type:    av1.ConditionIrreconcilable,
+			Status:  av1.ConditionStatusTrue,
+			Reason:  av1.ReasonReconcileError,
 			Message: err.Error(),
 		})
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
-	status.RemoveCondition(oshv1.ConditionIrreconcilable)
+	status.RemoveCondition(av1.ConditionIrreconcilable)
 
 	if deleted {
 		if !contains(pendingFinalizers, finalizer) {
@@ -172,26 +169,26 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		uninstalledRelease, err := manager.UninstallRelease(context.TODO())
 		if err != nil && err != helmif.ErrNotFound {
 			log.Error(err, "Failed to uninstall release")
-			status.SetCondition(oshv1.HelmResourceCondition{
-				Type:    oshv1.ConditionFailed,
-				Status:  oshv1.ConditionStatusTrue,
-				Reason:  oshv1.ReasonUninstallError,
+			status.SetCondition(av1.HelmResourceCondition{
+				Type:    av1.ConditionFailed,
+				Status:  av1.ConditionStatusTrue,
+				Reason:  av1.ReasonUninstallError,
 				Message: err.Error(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(oshv1.ConditionFailed)
+		status.RemoveCondition(av1.ConditionFailed)
 
 		if err == helmif.ErrNotFound {
 			log.Info("Release not found, removing finalizer")
 		} else {
 			r.recorder.Event(instance, v1.EventTypeWarning, "DeletionFailure", fmt.Sprintf("Uninstalled Release %s", uninstalledRelease.GetName()))
 			log.Info("Uninstalled release", "releaseName", uninstalledRelease.GetName(), "releaseVersion", uninstalledRelease.GetVersion())
-			status.SetCondition(oshv1.HelmResourceCondition{
-				Type:   oshv1.ConditionDeployed,
-				Status: oshv1.ConditionStatusFalse,
-				Reason: oshv1.ReasonUninstallSuccessful,
+			status.SetCondition(av1.HelmResourceCondition{
+				Type:   av1.ConditionDeployed,
+				Status: av1.ConditionStatusFalse,
+				Reason: av1.ReasonUninstallSuccessful,
 			})
 		}
 		if err := r.updateResourceStatus(instance, status); err != nil {
@@ -216,19 +213,18 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if err != nil {
 			log.Error(err, "Failed to install release")
 			r.recorder.Event(instance, v1.EventTypeWarning, "InstallationFailure", fmt.Sprintf("Installed Release %s", installedRelease.GetName()))
-			status.SetCondition(oshv1.HelmResourceCondition{
-				Type:    oshv1.ConditionFailed,
-				Status:  oshv1.ConditionStatusTrue,
-				Reason:  oshv1.ReasonInstallError,
-				Message: err.Error(),
-				//JEB Release:        installedRelease,
+			status.SetCondition(av1.HelmResourceCondition{
+				Type:            av1.ConditionFailed,
+				Status:          av1.ConditionStatusTrue,
+				Reason:          av1.ReasonInstallError,
+				Message:         err.Error(),
 				ResourceName:    installedRelease.GetName(),
 				ResourceVersion: installedRelease.GetVersion(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(oshv1.ConditionFailed)
+		status.RemoveCondition(av1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
 			if err := r.releaseWatchUpdater(installedRelease); err != nil {
@@ -239,13 +235,11 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 
 		log.Info("Installed release", "releaseName", installedRelease.GetName(), "releaseVersion", installedRelease.GetVersion())
 		r.recorder.Event(instance, v1.EventTypeNormal, "Installed", fmt.Sprintf("Installed Release %s", installedRelease.GetName()))
-		//JEB log.V(1).Info("Config values", "values", installedRelease.GetConfig())
-		status.SetCondition(oshv1.HelmResourceCondition{
-			Type:    oshv1.ConditionDeployed,
-			Status:  oshv1.ConditionStatusTrue,
-			Reason:  oshv1.ReasonInstallSuccessful,
-			Message: installedRelease.GetInfo().GetStatus().GetNotes(),
-			//JEB Release:        installedRelease,
+		status.SetCondition(av1.HelmResourceCondition{
+			Type:            av1.ConditionDeployed,
+			Status:          av1.ConditionStatusTrue,
+			Reason:          av1.ReasonInstallSuccessful,
+			Message:         installedRelease.GetInfo().GetStatus().GetNotes(),
 			ResourceName:    installedRelease.GetName(),
 			ResourceVersion: installedRelease.GetVersion(),
 		})
@@ -258,19 +252,18 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if err != nil {
 			log.Error(err, "Failed to update release")
 			r.recorder.Event(instance, v1.EventTypeWarning, "UpdateFailure", fmt.Sprintf("Updated Release %s", updatedRelease.GetName()))
-			status.SetCondition(oshv1.HelmResourceCondition{
-				Type:    oshv1.ConditionFailed,
-				Status:  oshv1.ConditionStatusTrue,
-				Reason:  oshv1.ReasonUpdateError,
-				Message: err.Error(),
-				//JEB Release:        updatedRelease,
+			status.SetCondition(av1.HelmResourceCondition{
+				Type:            av1.ConditionFailed,
+				Status:          av1.ConditionStatusTrue,
+				Reason:          av1.ReasonUpdateError,
+				Message:         err.Error(),
 				ResourceName:    updatedRelease.GetName(),
 				ResourceVersion: updatedRelease.GetVersion(),
 			})
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
-		status.RemoveCondition(oshv1.ConditionFailed)
+		status.RemoveCondition(av1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
 			if err := r.releaseWatchUpdater(updatedRelease); err != nil {
@@ -284,13 +277,11 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if log.Enabled() {
 			fmt.Println(Diff(previousRelease.GetManifest(), updatedRelease.GetManifest()))
 		}
-		//JEB log.V(1).Info("Config values", "values", updatedRelease.GetConfig())
-		status.SetCondition(oshv1.HelmResourceCondition{
-			Type:    oshv1.ConditionDeployed,
-			Status:  oshv1.ConditionStatusTrue,
-			Reason:  oshv1.ReasonUpdateSuccessful,
-			Message: updatedRelease.GetInfo().GetStatus().GetNotes(),
-			//JEB Release:        updatedRelease,
+		status.SetCondition(av1.HelmResourceCondition{
+			Type:            av1.ConditionDeployed,
+			Status:          av1.ConditionStatusTrue,
+			Reason:          av1.ReasonUpdateSuccessful,
+			Message:         updatedRelease.GetInfo().GetStatus().GetNotes(),
 			ResourceName:    updatedRelease.GetName(),
 			ResourceVersion: updatedRelease.GetVersion(),
 		})
@@ -299,19 +290,18 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	expectedRelease, err := manager.ReconcileRelease(context.TODO())
-	_, err = manager.ReconcileRelease(context.TODO())
 	if err != nil {
 		log.Error(err, "Failed to reconcile release")
-		status.SetCondition(oshv1.HelmResourceCondition{
-			Type:    oshv1.ConditionIrreconcilable,
-			Status:  oshv1.ConditionStatusTrue,
-			Reason:  oshv1.ReasonReconcileError,
+		status.SetCondition(av1.HelmResourceCondition{
+			Type:    av1.ConditionIrreconcilable,
+			Status:  av1.ConditionStatusTrue,
+			Reason:  av1.ReasonReconcileError,
 			Message: err.Error(),
 		})
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
-	status.RemoveCondition(oshv1.ConditionIrreconcilable)
+	status.RemoveCondition(av1.ConditionIrreconcilable)
 
 	if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
 		if err := r.releaseWatchUpdater(expectedRelease); err != nil {
@@ -325,14 +315,16 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }
 
-func (r HelmOperatorReconciler) updateResource(o *oshv1.HelmRelease) error {
+// Update the whole CRD
+func (r HelmOperatorReconciler) updateResource(o *av1.HelmRelease) error {
 	return r.client.Update(context.TODO(), o)
 }
 
-func (r HelmOperatorReconciler) updateResourceStatus(instance *oshv1.HelmRelease, status *oshv1.HelmReleaseStatus) error {
+// Update the Status field in the CRD
+func (r HelmOperatorReconciler) updateResourceStatus(instance *av1.HelmRelease, status *av1.HelmReleaseStatus) error {
 	reqLogger := log.WithValues("HelmRelease.Namespace", instance.Namespace, "HelmRelease.Name", instance.Name)
 
-	helper := oshv1.HelmResourceConditionListHelper{Items: status.Conditions}
+	helper := av1.HelmResourceConditionListHelper{Items: status.Conditions}
 	status.Conditions = helper.InitIfEmpty()
 
 	if log.Enabled() {

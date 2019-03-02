@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ArmadaChartGroupSpec defines the desired state of ArmadaChartGroup
@@ -54,4 +55,33 @@ type ArmadaChartGroupList struct {
 
 func init() {
 	SchemeBuilder.Register(&ArmadaChartGroup{}, &ArmadaChartGroupList{})
+}
+
+// SetCondition sets a condition on the status object. If the condition already
+// exists, it will be replaced. SetCondition does not update the resource in
+// the cluster.
+func (s *ArmadaChartGroupStatus) SetCondition(condition HelmResourceCondition) *ArmadaChartGroupStatus {
+
+	helper := HelmResourceConditionListHelper{Items: s.Conditions}
+	s.Conditions = helper.SetCondition(condition)
+	return s
+}
+
+// RemoveCondition removes the condition with the passed condition type from
+// the status object. If the condition is not already present, the returned
+// status object is returned unchanged. RemoveCondition does not update the
+// resource in the cluster.
+func (s *ArmadaChartGroupStatus) RemoveCondition(conditionType HelmResourceConditionType) *ArmadaChartGroupStatus {
+
+	helper := HelmResourceConditionListHelper{Items: s.Conditions}
+	s.Conditions = helper.RemoveCondition(conditionType)
+	return s
+}
+
+// Returns a GKV for ArmadaChartGroup
+func NewArmadaChartGroupVersionKind() *unstructured.Unstructured {
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
+	u.SetKind("ArmadaChartGroup")
+	return u
 }

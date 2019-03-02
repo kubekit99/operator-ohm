@@ -2,17 +2,24 @@ package armada
 
 import (
 	"context"
+	"fmt"
+	"time"
 
-	armadav1alpha1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	armadamgr "github.com/kubekit99/operator-ohm/armada-operator/pkg/armada"
+	armadaif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	// "k8s.io/apimachinery/pkg/types"
+
 	"k8s.io/client-go/tools/record"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	// "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -24,9 +31,12 @@ import (
 func AddArmadaChartController(mgr manager.Manager) error {
 
 	r := &ArmadaChartReconciler{
-		client:   mgr.GetClient(),
-		scheme:   mgr.GetScheme(),
-		recorder: mgr.GetRecorder("act-recorder"),
+		client:         mgr.GetClient(),
+		scheme:         mgr.GetScheme(),
+		recorder:       mgr.GetRecorder("act-recorder"),
+		managerFactory: armadamgr.NewManagerFactory(mgr),
+		// reconcilePeriod: flags.ReconcilePeriod,
+		watchDependentResources: true,
 	}
 
 	// Create a new controller
@@ -36,7 +46,7 @@ func AddArmadaChartController(mgr manager.Manager) error {
 	}
 
 	// Watch for changes to primary resource ArmadaChart
-	err = c.Watch(&source.Kind{Type: &armadav1alpha1.ArmadaChart{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &av1.ArmadaChart{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -45,7 +55,7 @@ func AddArmadaChartController(mgr manager.Manager) error {
 	// Watch for changes to secondary resource Pods and requeue the owner ArmadaChart
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &armadav1alpha1.ArmadaChart{},
+		OwnerType:    &av1.ArmadaChart{},
 	})
 	if err != nil {
 		return err
@@ -60,10 +70,17 @@ var _ reconcile.Reconciler = &ArmadaChartReconciler{}
 type ArmadaChartReconciler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client   client.Client
-	scheme   *runtime.Scheme
-	recorder record.EventRecorder
+	client                  client.Client
+	scheme                  *runtime.Scheme
+	recorder                record.EventRecorder
+	managerFactory          armadaif.ArmadaManagerFactory
+	reconcilePeriod         time.Duration
+	watchDependentResources bool
 }
+
+const (
+	finalizerArmadaChart = "uninstall-pod"
+)
 
 // Reconcile reads that state of the cluster for a ArmadaChart object and makes changes based on the state read
 // and what is in the ArmadaChart.Spec
@@ -73,92 +90,233 @@ type ArmadaChartReconciler struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling ArmadaChart")
-
-	// Fetch the ArmadaChart instance
-	instance := &armadav1alpha1.ArmadaChart{}
+	instance := &av1.ArmadaChart{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
+	log := log.WithValues(
+		"namespace", instance.GetNamespace(),
+		"name", instance.GetName(),
+	)
+
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if apierrors.IsNotFound(err) {
+		return reconcile.Result{}, nil
+	}
 	if err != nil {
-		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
+		log.Error(err, "Failed to lookup resource")
+		return reconcile.Result{}, err
+	}
+
+	manager := r.managerFactory.NewArmadaChartManager(instance)
+	// spec := instance.Spec
+	status := &instance.Status
+
+	log = log.WithValues("resource", manager.ResourceName())
+
+	deleted := instance.GetDeletionTimestamp() != nil
+	pendingFinalizers := instance.GetFinalizers()
+	if !deleted && !contains(pendingFinalizers, finalizerArmadaChart) {
+		finalizers := append(pendingFinalizers, finalizerArmadaChart)
+		instance.SetFinalizers(finalizers)
+		err = r.updateResource(instance)
+
+		// Need to requeue because finalizer update does not change metadata.generation
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	status.SetCondition(av1.HelmResourceCondition{
+		Type:   av1.ConditionInitialized,
+		Status: av1.ConditionStatusTrue,
+	})
+
+	if err := manager.Sync(context.TODO()); err != nil {
+		log.Error(err, "Failed to sync resource")
+		status.SetCondition(av1.HelmResourceCondition{
+			Type:    av1.ConditionIrreconcilable,
+			Status:  av1.ConditionStatusTrue,
+			Reason:  av1.ReasonReconcileError,
+			Message: err.Error(),
+		})
+		_ = r.updateResourceStatus(instance, status)
+		return reconcile.Result{}, err
+	}
+	status.RemoveCondition(av1.ConditionIrreconcilable)
+
+	if deleted {
+		if !contains(pendingFinalizers, finalizerArmadaChart) {
+			log.Info("Resource is terminated, skipping reconciliation")
 			return reconcile.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
-	}
 
-	// Define a new Pod object
-	pod := newPodForCRToDelete3(instance)
+		uninstalledResource, err := manager.UninstallResource(context.TODO())
+		if err != nil && err != armadaif.ErrNotFound {
+			log.Error(err, "Failed to uninstall resource")
+			status.SetCondition(av1.HelmResourceCondition{
+				Type:    av1.ConditionFailed,
+				Status:  av1.ConditionStatusTrue,
+				Reason:  av1.ReasonUninstallError,
+				Message: err.Error(),
+			})
+			_ = r.updateResourceStatus(instance, status)
+			return reconcile.Result{}, err
+		}
+		status.RemoveCondition(av1.ConditionFailed)
 
-	// Set ArmadaChart instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
-		if err != nil {
+		if err == armadaif.ErrNotFound {
+			log.Info("Resource not found, removing finalizer")
+		} else {
+			r.recorder.Event(instance, corev1.EventTypeWarning, "DeletionFailure", fmt.Sprintf("Uninstalled Resource %s", uninstalledResource.GetName()))
+			log.Info("Uninstalled resource", "resourceName", uninstalledResource.GetName())
+			status.SetCondition(av1.HelmResourceCondition{
+				Type:   av1.ConditionDeployed,
+				Status: av1.ConditionStatusFalse,
+				Reason: av1.ReasonUninstallSuccessful,
+			})
+		}
+		if err := r.updateResourceStatus(instance, status); err != nil {
 			return reconcile.Result{}, err
 		}
 
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		return reconcile.Result{}, err
+		finalizers := []string{}
+		for _, pendingFinalizer := range pendingFinalizers {
+			if pendingFinalizer != finalizerArmadaChart {
+				finalizers = append(finalizers, pendingFinalizer)
+			}
+		}
+		instance.SetFinalizers(finalizers)
+		err = r.updateResource(instance)
+
+		// Need to requeue because finalizer update does not change metadata.generation
+		return reconcile.Result{Requeue: true}, err
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
-	return reconcile.Result{}, nil
+	if !manager.IsInstalled() {
+		installedResource, err := manager.InstallResource(context.TODO())
+		if err != nil {
+			log.Error(err, "Failed to install resource")
+			r.recorder.Event(instance, corev1.EventTypeWarning, "InstallationFailure", fmt.Sprintf("Installed Resource %s", installedResource.GetName()))
+			status.SetCondition(av1.HelmResourceCondition{
+				Type:         av1.ConditionFailed,
+				Status:       av1.ConditionStatusTrue,
+				Reason:       av1.ReasonInstallError,
+				Message:      err.Error(),
+				ResourceName: installedResource.GetName(),
+			})
+			_ = r.updateResourceStatus(instance, status)
+			return reconcile.Result{}, err
+		}
+		status.RemoveCondition(av1.ConditionFailed)
+
+		// if spec.WatchHelmDependentResources && r.resourceWatchUpdater != nil {
+		// 	if err := r.resourceWatchUpdater(installedResource); err != nil {
+		// 		log.Error(err, "Failed to run update resource dependant resources")
+		// 		return reconcile.Result{}, err
+		// 	}
+		// }
+
+		log.Info("Installed resource", "resourceName", installedResource.GetName())
+		r.recorder.Event(instance, corev1.EventTypeNormal, "Installed", fmt.Sprintf("Installed Resource %s", installedResource.GetName()))
+		status.SetCondition(av1.HelmResourceCondition{
+			Type:         av1.ConditionDeployed,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonInstallSuccessful,
+			Message:      "HarcodedMessage",
+			ResourceName: installedResource.GetName(),
+		})
+		err = r.updateResourceStatus(instance, status)
+		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
+	}
+
+	if manager.IsUpdateRequired() {
+		previousResource, updatedResource, err := manager.UpdateResource(context.TODO())
+		if previousResource != nil && updatedResource != nil {
+			log.Info(previousResource.GetName(), updatedResource.GetName())
+		}
+		if err != nil {
+			log.Error(err, "Failed to update resource")
+			r.recorder.Event(instance, corev1.EventTypeWarning, "UpdateFailure", fmt.Sprintf("Updated Resource %s", updatedResource.GetName()))
+			status.SetCondition(av1.HelmResourceCondition{
+				Type:         av1.ConditionFailed,
+				Status:       av1.ConditionStatusTrue,
+				Reason:       av1.ReasonUpdateError,
+				Message:      err.Error(),
+				ResourceName: updatedResource.GetName(),
+			})
+			_ = r.updateResourceStatus(instance, status)
+			return reconcile.Result{}, err
+		}
+		status.RemoveCondition(av1.ConditionFailed)
+
+		// if spec.WatchHelmDependentResources && r.resourceWatchUpdater != nil {
+		// 	if err := r.resourceWatchUpdater(updatedResource); err != nil {
+		// 		log.Error(err, "Failed to run update resource dependant resources")
+		// 		return reconcile.Result{}, err
+		// 	}
+		// }
+
+		log.Info("Updated resource", "resourceName", updatedResource.GetName())
+		r.recorder.Event(instance, corev1.EventTypeNormal, "Updated", fmt.Sprintf("Updated Resource %s", updatedResource.GetName()))
+		status.SetCondition(av1.HelmResourceCondition{
+			Type:         av1.ConditionDeployed,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonUpdateSuccessful,
+			Message:      "HardcodedMessage",
+			ResourceName: updatedResource.GetName(),
+		})
+		err = r.updateResourceStatus(instance, status)
+		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
+	}
+
+	// expectedResource, err := manager.ReconcileRelease(context.TODO())
+	_, err = manager.ReconcileResource(context.TODO())
+	if err != nil {
+		log.Error(err, "Failed to reconcile resource")
+		status.SetCondition(av1.HelmResourceCondition{
+			Type:    av1.ConditionIrreconcilable,
+			Status:  av1.ConditionStatusTrue,
+			Reason:  av1.ReasonReconcileError,
+			Message: err.Error(),
+		})
+		_ = r.updateResourceStatus(instance, status)
+		return reconcile.Result{}, err
+	}
+	status.RemoveCondition(av1.ConditionIrreconcilable)
+
+	// if spec.WatchHelmDependentResources && r.resourceWatchUpdater != nil {
+	// 	if err := r.resourceWatchUpdater(expectedResource); err != nil {
+	// 		log.Error(err, "Failed to run update resource dependant resources")
+	// 		return reconcile.Result{}, err
+	// 	}
+	// }
+
+	log.Info("Reconciled resource")
+	err = r.updateResourceStatus(instance, status)
+	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }
 
-func (r ArmadaChartReconciler) updateResource(o *armadav1alpha1.ArmadaChart) error {
+// Update the Resource object
+func (r ArmadaChartReconciler) updateResource(o *av1.ArmadaChart) error {
 	return r.client.Update(context.TODO(), o)
 }
 
-func (r ArmadaChartReconciler) updateResourceStatus(instance *armadav1alpha1.ArmadaChart, status *armadav1alpha1.ArmadaChartStatus) error {
+// Update the Status field in the CRD
+func (r ArmadaChartReconciler) updateResourceStatus(instance *av1.ArmadaChart, status *av1.ArmadaChartStatus) error {
 	reqLogger := log.WithValues("ArmadaChart.Namespace", instance.Namespace, "ArmadaChart.Name", instance.Name)
 
-	// JEB: This is already a reference to the object
-	// instance.Status = status
+	helper := av1.HelmResourceConditionListHelper{Items: status.Conditions}
+	status.Conditions = helper.InitIfEmpty()
+
+	if log.Enabled() {
+		fmt.Println(helper.PrettyPrint())
+	}
 
 	// JEB: Be sure to have update status subresources in the CRD.yaml
+	// JEB: Look for kubebuilder subresources in the _types.go
 	err := r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
-		reqLogger.Error(err, "Failure to update status")
+		reqLogger.Error(err, "Failure to update status. Ignoring")
+		err = nil
 	}
 
 	return err
-}
-
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCRToDelete3(cr *armadav1alpha1.ArmadaChart) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
-	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
-		},
-	}
 }

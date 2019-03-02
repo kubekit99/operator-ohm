@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helmv2
+package helm
 
 import (
 	"bytes"
@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"strings"
 
-	oshv1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
-	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/helmif"
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
 
 	yaml "gopkg.in/yaml.v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,7 +42,7 @@ import (
 	"github.com/mattbaird/jsonpatch"
 )
 
-type helmv2manager struct {
+type tillermanager struct {
 	storageBackend   *storage.Storage
 	tillerKubeClient *kube.Client
 	chartDir         string
@@ -52,7 +52,7 @@ type helmv2manager struct {
 	namespace   string
 
 	spec   interface{}
-	status *oshv1.HelmReleaseStatus
+	status *av1.HelmReleaseStatus
 
 	isInstalled      bool
 	isUpdateRequired bool
@@ -62,21 +62,21 @@ type helmv2manager struct {
 }
 
 // ReleaseName returns the name of the release.
-func (m helmv2manager) ReleaseName() string {
+func (m tillermanager) ReleaseName() string {
 	return m.releaseName
 }
 
-func (m helmv2manager) IsInstalled() bool {
+func (m tillermanager) IsInstalled() bool {
 	return m.isInstalled
 }
 
-func (m helmv2manager) IsUpdateRequired() bool {
+func (m tillermanager) IsUpdateRequired() bool {
 	return m.isUpdateRequired
 }
 
 // Sync ensures the Helm storage backend is in sync with the status of the
 // custom resource.
-func (m *helmv2manager) Sync(ctx context.Context) error {
+func (m *tillermanager) Sync(ctx context.Context) error {
 	if err := m.syncReleaseStatus(*m.status); err != nil {
 		return fmt.Errorf("failed to sync release status to storage backend: %s", err)
 	}
@@ -130,10 +130,10 @@ func (m *helmv2manager) Sync(ctx context.Context) error {
 	return nil
 }
 
-func (m helmv2manager) syncReleaseStatus(status oshv1.HelmReleaseStatus) error {
+func (m tillermanager) syncReleaseStatus(status av1.HelmReleaseStatus) error {
 	var release *rpb.Release
-	helper := oshv1.HelmResourceConditionListHelper{Items: status.Conditions}
-	condition := helper.FindCondition(oshv1.ConditionDeployed, oshv1.ConditionStatusTrue)
+	helper := av1.HelmResourceConditionListHelper{Items: status.Conditions}
+	condition := helper.FindCondition(av1.ConditionDeployed, av1.ConditionStatusTrue)
 	if condition == nil {
 		return nil
 	} else {
@@ -161,7 +161,7 @@ func notFoundErr(err error) bool {
 	return strings.Contains(err.Error(), "not found")
 }
 
-func (m helmv2manager) loadChartAndConfig() (*cpb.Chart, *cpb.Config, error) {
+func (m tillermanager) loadChartAndConfig() (*cpb.Chart, *cpb.Config, error) {
 	// chart is mutated by the call to processRequirements,
 	// so we need to reload it from disk every time.
 	chart, err := chartutil.LoadDir(m.chartDir)
@@ -197,7 +197,7 @@ func processRequirements(chart *cpb.Chart, values *cpb.Config) error {
 	return nil
 }
 
-func (m helmv2manager) getDeployedRelease() (*rpb.Release, error) {
+func (m tillermanager) getDeployedRelease() (*rpb.Release, error) {
 	deployedRelease, err := m.storageBackend.Deployed(m.releaseName)
 	if err != nil {
 		if strings.Contains(err.Error(), "has no deployed releases") {
@@ -208,7 +208,7 @@ func (m helmv2manager) getDeployedRelease() (*rpb.Release, error) {
 	return deployedRelease, nil
 }
 
-func (m helmv2manager) getCandidateRelease(ctx context.Context, tiller *tiller.ReleaseServer, name string, chart *cpb.Chart, config *cpb.Config) (*rpb.Release, error) {
+func (m tillermanager) getCandidateRelease(ctx context.Context, tiller *tiller.ReleaseServer, name string, chart *cpb.Chart, config *cpb.Config) (*rpb.Release, error) {
 	dryRunReq := &services.UpdateReleaseRequest{
 		Name:   name,
 		Chart:  chart,
@@ -223,7 +223,7 @@ func (m helmv2manager) getCandidateRelease(ctx context.Context, tiller *tiller.R
 }
 
 // InstallRelease performs a Helm release install.
-func (m helmv2manager) InstallRelease(ctx context.Context) (*rpb.Release, error) {
+func (m tillermanager) InstallRelease(ctx context.Context) (*rpb.Release, error) {
 	return installRelease(ctx, m.tiller, m.namespace, m.releaseName, m.chart, m.config)
 }
 
@@ -254,7 +254,7 @@ func installRelease(ctx context.Context, tiller *tiller.ReleaseServer, namespace
 }
 
 // UpdateRelease performs a Helm release update.
-func (m helmv2manager) UpdateRelease(ctx context.Context) (*rpb.Release, *rpb.Release, error) {
+func (m tillermanager) UpdateRelease(ctx context.Context) (*rpb.Release, *rpb.Release, error) {
 	updatedRelease, err := updateRelease(ctx, m.tiller, m.releaseName, m.chart, m.config)
 	return m.deployedRelease, updatedRelease, err
 }
@@ -286,7 +286,7 @@ func updateRelease(ctx context.Context, tiller *tiller.ReleaseServer, name strin
 
 // ReconcileRelease creates or patches resources as necessary to match the
 // deployed release's manifest.
-func (m helmv2manager) ReconcileRelease(ctx context.Context) (*rpb.Release, error) {
+func (m tillermanager) ReconcileRelease(ctx context.Context) (*rpb.Release, error) {
 	err := reconcileRelease(ctx, m.tillerKubeClient, m.namespace, m.deployedRelease.GetManifest())
 	return m.deployedRelease, err
 }
@@ -370,7 +370,7 @@ func generatePatch(existing, expected runtime.Object) ([]byte, error) {
 }
 
 // UninstallRelease performs a Helm release uninstall.
-func (m helmv2manager) UninstallRelease(ctx context.Context) (*rpb.Release, error) {
+func (m tillermanager) UninstallRelease(ctx context.Context) (*rpb.Release, error) {
 	return uninstallRelease(ctx, m.storageBackend, m.tiller, m.releaseName)
 }
 
