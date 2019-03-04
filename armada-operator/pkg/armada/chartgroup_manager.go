@@ -70,22 +70,36 @@ func (m chartgroupmanager) InstallResource(ctx context.Context) (*unstructured.U
 		},
 	}
 
-	// return res, nil
-	return av1.NewArmadaChartGroupVersionKind(), nil
+	res := av1.NewArmadaChartGroupVersionKind()
+	res.SetName(m.resourceName + "-ArmadaChartGroup")
+	res.SetNamespace(m.namespace)
+	return res, nil
 }
 
 // UpdateResource performs a Helm release update.
 func (m chartgroupmanager) UpdateResource(ctx context.Context) (*unstructured.Unstructured, *unstructured.Unstructured, error) {
-	return nil, nil, nil
+	oldValue := av1.NewArmadaChartGroupVersionKind()
+	oldValue.SetName(m.resourceName + "-ArmadaChartGroup")
+	oldValue.SetNamespace(m.namespace)
+	newValue := av1.NewArmadaChartGroupVersionKind()
+	newValue.SetName(m.resourceName + "-ArmadaChartGroup")
+	newValue.SetNamespace(m.namespace)
+	return oldValue, newValue, nil
 }
 
 // ReconcileResource creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m chartgroupmanager) ReconcileResource(ctx context.Context) (*unstructured.Unstructured, error) {
-	return nil, nil
+	res := av1.NewArmadaChartGroupVersionKind()
+	res.SetName(m.resourceName + "-ArmadaChartGroup")
+	res.SetNamespace(m.namespace)
+	return res, nil
 }
 
 // UninstallResource performs a Helm release uninstall.
 func (m chartgroupmanager) UninstallResource(ctx context.Context) (*unstructured.Unstructured, error) {
-	return nil, nil
+	res := av1.NewArmadaChartGroupVersionKind()
+	res.SetName(m.resourceName + "-ArmadaChartGroup")
+	res.SetNamespace(m.namespace)
+	return res, nil
 }

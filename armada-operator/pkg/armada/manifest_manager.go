@@ -70,22 +70,36 @@ func (m manifestmanager) InstallResource(ctx context.Context) (*unstructured.Uns
 		},
 	}
 
-	// return res, nil
-	return av1.NewArmadaManifestVersionKind(), nil
+	res := av1.NewArmadaManifestVersionKind()
+	res.SetName(m.resourceName + "-ArmadaManifest")
+	res.SetNamespace(m.namespace)
+	return res, nil
 }
 
 // UpdateResource performs a Helm release update.
 func (m manifestmanager) UpdateResource(ctx context.Context) (*unstructured.Unstructured, *unstructured.Unstructured, error) {
-	return nil, nil, nil
+	oldValue := av1.NewArmadaManifestVersionKind()
+	oldValue.SetName(m.resourceName + "-ArmadaManifest")
+	oldValue.SetNamespace(m.namespace)
+	newValue := av1.NewArmadaManifestVersionKind()
+	newValue.SetName(m.resourceName + "-ArmadaManifest")
+	newValue.SetNamespace(m.namespace)
+	return oldValue, newValue, nil
 }
 
 // ReconcileResource creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m manifestmanager) ReconcileResource(ctx context.Context) (*unstructured.Unstructured, error) {
-	return nil, nil
+	res := av1.NewArmadaManifestVersionKind()
+	res.SetName(m.resourceName + "-ArmadaManifest")
+	res.SetNamespace(m.namespace)
+	return res, nil
 }
 
 // UninstallResource performs a Helm release uninstall.
 func (m manifestmanager) UninstallResource(ctx context.Context) (*unstructured.Unstructured, error) {
-	return nil, nil
+	res := av1.NewArmadaManifestVersionKind()
+	res.SetName(m.resourceName + "-ArmadaManifest")
+	res.SetNamespace(m.namespace)
+	return res, nil
 }

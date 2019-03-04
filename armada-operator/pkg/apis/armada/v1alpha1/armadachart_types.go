@@ -18,10 +18,10 @@ type ArmadaChartSpec struct {
 	Upgrade *ArmadaUpgrade `json:"upgrade,omitempty"`
 	Values  *ArmadaValues  `json:"values,omitempty"`
 
-	Protected *ArmadaProtected          `json:"protected,omitempty"`
-	Test      unstructured.Unstructured `json:"test,omitempty"`
-	Timeout   int                       `json:"timeout,omitempty"`
-	Wait      *ArmadaWait               `json:"wait,omitempty"`
+	Protected *ArmadaProtected           `json:"protected,omitempty"`
+	Test      *unstructured.Unstructured `json:"test,omitempty"`
+	Timeout   int                        `json:"timeout,omitempty"`
+	Wait      *ArmadaWait                `json:"wait,omitempty"`
 
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`

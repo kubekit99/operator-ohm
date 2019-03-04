@@ -244,7 +244,10 @@ func (in *ArmadaChartSpec) DeepCopyInto(out *ArmadaChartSpec) {
 		*out = new(ArmadaProtected)
 		**out = **in
 	}
-	in.Test.DeepCopyInto(&out.Test)
+	if in.Test != nil {
+		in, out := &in.Test, &out.Test
+		*out = (*in).DeepCopy()
+	}
 	if in.Wait != nil {
 		in, out := &in.Wait, &out.Wait
 		*out = new(ArmadaWait)
