@@ -20,9 +20,7 @@
 
 package v1alpha1
 
-import (
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-)
+import ()
 
 // Labels
 type ArmadaLabels struct {
@@ -30,23 +28,34 @@ type ArmadaLabels struct {
 }
 
 // Native
-type ArmadaNative struct {
+type ArmadaWaitNative struct {
+	// Config for the native ``helm (install|upgrade) --wait`` flag. defaults to true
 	Enabled bool `json:"enabled,omitempty"`
 }
 
 // ResourcesItems
-type ArmadaResourcesItems struct {
-	Labels   *ArmadaLabels             `json:"labels,omitempty"`
-	MinReady unstructured.Unstructured `json:"min_ready,omitempty"`
-	Type     string                    `json:"type"`
+type ArmadaWaitResourcesItems struct {
+	// mapping of kubernetes resource labels
+	Labels *ArmadaLabels `json:"labels,omitempty"`
+	// Only for controller ``type``s. Amount of pods in a controller which must be ready.
+	// Can be integer or percent string e.g. ``80%``. Default ``100%``.
+	MinReady int `json:"min_ready,omitempty"`
+	// k8s resource type, supports: controllers ('deployment', 'daemonset', 'statefulset', 'pod', 'job')
+	Type string `json:"type"`
 }
 
 // Wait
 type ArmadaWait struct {
-	Labels    *ArmadaLabels           `json:"labels,omitempty"`
-	Native    *ArmadaNative           `json:"native,omitempty"`
-	Resources []*ArmadaResourcesItems `json:"resources,omitempty"`
-	Timeout   int                     `json:"timeout,omitempty"`
+	// Base mapping of labels to wait on. They are added to any labels in
+	// each item in the ``resources`` array.
+	Labels *ArmadaLabels `json:"labels,omitempty"`
+	// See `Wait Native`_.
+	Native *ArmadaWaitNative `json:"native,omitempty"`
+	// Array of `Wait Resource`_ to wait on, with ``labels`` added to each
+	// item. Defaults to pods and jobs (if any exist) matching ``labels``.
+	Resources []*ArmadaWaitResourcesItems `json:"resources,omitempty"`
+	// time (in seconds) to wait for chart to deploy
+	Timeout int `json:"timeout,omitempty"`
 }
 
 // HookActionItems
@@ -56,56 +65,68 @@ type ArmadaHookActionItems struct {
 	Type   string        `json:"type"`
 }
 
+// JEB: Install
+// JEB: type ArmadaInstall struct {
+// JEB: }
+
+// Delete
+type ArmadaDelete struct {
+	// time (in seconds) to wait for chart to be deleted
+	Timeout int `json:"timeout,omitempty"`
+}
+
 // Options
-type ArmadaOptions struct {
+type ArmadaUpgradeOptions struct {
 	Force        bool `json:"force,omitempty"`
 	RecreatePods bool `json:"recreate_pods,omitempty"`
 }
 
-// Install
-type ArmadaInstall struct {
-}
-
-// Delete
-type ArmadaDelete struct {
-	Timeout int `json:"timeout,omitempty"`
-}
-
-// Upgrade
-type ArmadaUpgrade struct {
-	NoHooks bool           `json:"no_hooks"`
-	Options *ArmadaOptions `json:"options,omitempty"`
-	Post    *ArmadaPost    `json:"post,omitempty"`
-	Pre     *ArmadaPre     `json:"pre,omitempty"`
-}
-
 // Pre
-type ArmadaPre struct {
+type ArmadaUpgradePre struct {
+	// | pre         | object   | actions performed prior to updating a release                 |
 	Create []*ArmadaHookActionItems `json:"create,omitempty"`
 	Delete []*ArmadaHookActionItems `json:"delete,omitempty"`
 	Update []*ArmadaHookActionItems `json:"update,omitempty"`
 }
 
 // Post
-type ArmadaPost struct {
+type ArmadaUpgradePost struct {
 	Create []*ArmadaHookActionItems `json:"create,omitempty"`
 }
 
+// Upgrade
+type ArmadaUpgrade struct {
+	NoHooks bool                  `json:"no_hooks"`
+	Options *ArmadaUpgradeOptions `json:"options,omitempty"`
+	Post    *ArmadaUpgradePost    `json:"post,omitempty"`
+	Pre     *ArmadaUpgradePre     `json:"pre,omitempty"`
+}
+
 // Protected
-type ArmadaProtected struct {
+type ArmadaProtectedRelease struct {
+	// do not delete FAILED releases when encountered from previous run (provide the
+	// 'continue_processing' bool to continue or halt execution (default: halt))
 	ContinueProcessing bool `json:"continue_processing,omitempty"`
 }
 
-// Values
-type ArmadaValues struct {
-}
-
 // Source
-type ArmadaSource struct {
-	AuthMethod  string `json:"auth_method,omitempty"`
+type ArmadaChartSource struct {
+	AuthMethod string `json:"auth_method,omitempty"`
+	// ``url`` or ``path`` to the chart's parent directory
 	Location    string `json:"location"`
 	ProxyServer string `json:"proxy_server,omitempty"`
-	Reference   string `json:"reference,omitempty"`
-	Subpath     string `json:"subpath"`
-	Type        string `json:"type"`
+	// (optional) branch, commit, or reference in the repo (``master`` if not specified)
+	Reference string `json:"reference,omitempty"`
+	// (optional) relative path to target chart from parent (``.`` if not specified)
+	Subpath string `json:"subpath"`
+	// source to build the chart: ``git``, ``local``, or ``tar``
+	Type string `json:"type"`
+}
+
+// Values. JEB that structure could not be converted automatically
+type ArmadaChartValues struct {
+}
+
+// Test. JEB that structure could not be converted automatically
+type ArmadaTest struct {
 }

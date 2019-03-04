@@ -20,7 +20,7 @@ import (
 	"time"
 
 	helmmgr "github.com/kubekit99/operator-ohm/armada-operator/pkg/helm"
-	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	services "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -81,7 +81,7 @@ func add(mgr manager.Manager) error {
 		return err
 	}
 
-	r.releaseWatchUpdater = helmif.BuildReleaseDependantResourcesWatchUpdater(mgr, owner, c)
+	r.releaseWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
 
 	return nil
 }
@@ -93,9 +93,9 @@ type HelmOperatorReconciler struct {
 	client                  client.Client
 	scheme                  *runtime.Scheme
 	recorder                record.EventRecorder
-	managerFactory          helmif.HelmManagerFactory
+	managerFactory          services.HelmManagerFactory
 	reconcilePeriod         time.Duration
-	releaseWatchUpdater     helmif.ReleaseWatchUpdater
+	releaseWatchUpdater     services.DependantResourceWatchUpdater
 	watchDependentResources bool
 }
 
@@ -167,7 +167,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 
 		uninstalledRelease, err := manager.UninstallRelease(context.TODO())
-		if err != nil && err != helmif.ErrNotFound {
+		if err != nil && err != services.ErrNotFound {
 			log.Error(err, "Failed to uninstall release")
 			status.SetCondition(av1.HelmResourceCondition{
 				Type:    av1.ConditionFailed,
@@ -180,7 +180,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 		status.RemoveCondition(av1.ConditionFailed)
 
-		if err == helmif.ErrNotFound {
+		if err == services.ErrNotFound {
 			log.Info("Release not found, removing finalizer")
 		} else {
 			r.recorder.Event(instance, v1.EventTypeWarning, "DeletionFailure", fmt.Sprintf("Uninstalled Release %s", uninstalledRelease.GetName()))
@@ -227,7 +227,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		status.RemoveCondition(av1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
-			if err := r.releaseWatchUpdater(installedRelease); err != nil {
+			if err := r.releaseWatchUpdater(helmmgr.ExtractDependantResourceFromManifest(installedRelease)); err != nil {
 				log.Error(err, "Failed to run update release dependant resources")
 				return reconcile.Result{}, err
 			}
@@ -266,7 +266,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		status.RemoveCondition(av1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
-			if err := r.releaseWatchUpdater(updatedRelease); err != nil {
+			if err := r.releaseWatchUpdater(helmmgr.ExtractDependantResourceFromManifest(updatedRelease)); err != nil {
 				log.Error(err, "Failed to run update release dependant resources")
 				return reconcile.Result{}, err
 			}
@@ -304,7 +304,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	status.RemoveCondition(av1.ConditionIrreconcilable)
 
 	if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
-		if err := r.releaseWatchUpdater(expectedRelease); err != nil {
+		if err := r.releaseWatchUpdater(helmmgr.ExtractDependantResourceFromManifest(expectedRelease)); err != nil {
 			log.Error(err, "Failed to run update release dependant resources")
 			return reconcile.Result{}, err
 		}

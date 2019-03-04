@@ -7,11 +7,16 @@ import (
 
 // ArmadaChartGroupSpec defines the desired state of ArmadaChartGroup
 type ArmadaChartGroupSpec struct {
-	ChartGroup  []string `json:"chart_group"`
-	Description string   `json:"description,omitempty"`
-	Name        string   `json:"name,omitempty"`
-	Sequenced   bool     `json:"sequenced,omitempty"`
-	TestCharts  bool     `json:"test_charts,omitempty"`
+	// reference to chart document
+	ChartGroup []string `json:"chart_group"`
+	// description of chart set
+	Description string `json:"description,omitempty"`
+	// Name of the chartgroup
+	Name string `json:"name,omitempty"`
+	// enables sequenced chart deployment in a group
+	Sequenced bool `json:"sequenced,omitempty"`
+	// run pre-defined helm tests in a ChartGroup (DEPRECATED)
+	TestCharts bool `json:"test_charts,omitempty"`
 
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`

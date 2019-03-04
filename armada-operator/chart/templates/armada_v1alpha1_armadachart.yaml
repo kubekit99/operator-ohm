@@ -39,32 +39,48 @@ spec:
         spec:
           properties:
             delete:
+              description: See Delete_.
               properties:
                 timeout:
+                  description: time (in seconds) to wait for chart to be deleted
                   format: int64
                   type: integer
               type: object
             dependencies:
+              description: reference any chart dependencies before install
               items:
                 type: string
               type: array
-            install:
-              type: object
             namespace:
+              description: namespace of your chart
               type: string
             protected:
+              description: 'do not delete FAILED releases when encountered from previous
+                run (provide the ''continue_processing'' bool to continue or halt
+                execution (default: halt))'
               type: object
             release:
+              description: name of the release (Armada will prepend with ``release-prefix``
+                during processing)
               type: string
             source:
+              description: provide a path to a ``git repo``, ``local dir``, or ``tarball
+                url`` chart
               properties:
                 location:
+                  description: '``url`` or ``path`` to the chart''s parent directory'
                   type: string
                 reference:
+                  description: (optional) branch, commit, or reference in the repo
+                    (``master`` if not specified)
                   type: string
                 subpath:
+                  description: (optional) relative path to target chart from parent
+                    (``.`` if not specified)
                   type: string
                 type:
+                  description: 'source to build the chart: ``git``, ``local``, or
+                    ``tar``'
                   type: string
               required:
               - location
@@ -72,11 +88,15 @@ spec:
               - type
               type: object
             test:
+              description: See Test_.
               type: object
             timeout:
+              description: time (in seconds) allotted for chart to deploy when 'wait'
+                flag is set (DEPRECATED)
               format: int64
               type: integer
             upgrade:
+              description: upgrade the chart managed by the armada yaml
               properties:
                 options:
                   properties:
@@ -102,6 +122,8 @@ spec:
                 pre:
                   properties:
                     create:
+                      description: '| pre         | object   | actions performed prior
+                        to updating a release                 |'
                       items:
                         properties:
                           labels:
@@ -143,28 +165,42 @@ spec:
                   type: object
               type: object
             values:
+              description: override any default values in the charts
               type: object
             wait:
+              description: See `ArmwadaWait`.
               properties:
                 labels:
+                  description: Base mapping of labels to wait on. They are added to
+                    any labels in each item in the ``resources`` array.
                   type: object
                 native:
+                  description: See `Wait Native`_.
                   properties:
                     enabled:
+                      description: Config for the native ``helm (install|upgrade)
+                        --wait`` flag. defaults to true
                       type: boolean
                   type: object
                 resources:
+                  description: Array of `Wait Resource`_ to wait on, with ``labels``
+                    added to each item. Defaults to pods and jobs (if any exist) matching
+                    ``labels``.
                   items:
                     properties:
                       labels:
+                        description: mapping of kubernetes resource labels
                         type: object
                       type:
+                        description: 'k8s resource type, supports: controllers (''deployment'',
+                          ''daemonset'', ''statefulset'', ''pod'', ''job'')'
                         type: string
                     required:
                     - type
                     type: object
                   type: array
                 timeout:
+                  description: time (in seconds) to wait for chart to deploy
                   format: int64
                   type: integer
               type: object

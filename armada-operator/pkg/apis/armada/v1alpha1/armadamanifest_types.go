@@ -21,8 +21,11 @@ import (
 
 // ArmadaManifestSpec defines the desired state of ArmadaManifest
 type ArmadaManifestSpec struct {
-	ChartGroups   []string `json:"chart_groups"`
-	ReleasePrefix string   `json:"release_prefix"`
+
+	// References ChartGroup document of all groups
+	ChartGroups []string `json:"chart_groups"`
+	// Appends to the front of all charts released by the manifest in order to manage releases throughout their lifecycle
+	ReleasePrefix string `json:"release_prefix"`
 
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`

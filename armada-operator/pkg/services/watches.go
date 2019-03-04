@@ -15,8 +15,6 @@
 package services
 
 import (
-	"bytes"
-	"io"
 	"reflect"
 	"sync"
 
@@ -29,16 +27,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	yaml "gopkg.in/yaml.v2"
-	rpb "k8s.io/helm/pkg/proto/hapi/release"
 	crthandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-type ReleaseWatchUpdater func(*rpb.Release) error
+type DependantResourceWatchUpdater func([]unstructured.Unstructured) error
 
-// BuildReleaseDependantResourcesWatchUpdater builds a function that adds watches for resources in released Helm charts.
-func BuildReleaseDependantResourcesWatchUpdater(mgr manager.Manager, owner *unstructured.Unstructured, c controller.Controller) ReleaseWatchUpdater {
+// BuildDependantResourcesWatchUpdater builds a function that adds watches for resources in released Helm charts.
+func BuildDependantResourceWatchUpdater(mgr manager.Manager, owner *unstructured.Unstructured, c controller.Controller) DependantResourceWatchUpdater {
 
 	dependentPredicate := crtpredicate.Funcs{
 		// We don't need to reconcile dependent resource creation events
@@ -81,18 +77,8 @@ func BuildReleaseDependantResourcesWatchUpdater(mgr manager.Manager, owner *unst
 
 	var m sync.RWMutex
 	watches := map[schema.GroupVersionKind]struct{}{}
-	releaseHook := func(release *rpb.Release) error {
-		dec := yaml.NewDecoder(bytes.NewBufferString(release.GetManifest()))
-		for {
-			var u unstructured.Unstructured
-			err := dec.Decode(&u.Object)
-			if err == io.EOF {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-
+	watchUpdater := func(dependent []unstructured.Unstructured) error {
+		for _, u := range dependent {
 			gvk := u.GroupVersionKind()
 			m.RLock()
 			_, ok := watches[gvk]
@@ -136,7 +122,9 @@ func BuildReleaseDependantResourcesWatchUpdater(mgr manager.Manager, owner *unst
 			m.Unlock()
 			log.Info("Watching dependent resource", "ownerApiVersion", gvk.GroupVersion(), "kind", gvk.Kind)
 		}
+
+		return nil
 	}
 
-	return releaseHook
+	return watchUpdater
 }

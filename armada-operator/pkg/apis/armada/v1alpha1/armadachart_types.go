@@ -7,21 +7,36 @@ import (
 
 // ArmadaChartSpec defines the desired state of ArmadaChart
 type ArmadaChartSpec struct {
-	ChartName    string        `json:"chart_name"`
-	Namespace    string        `json:"namespace"`
-	Release      string        `json:"release"`
-	Source       *ArmadaSource `json:"source"`
-	Dependencies []string      `json:"dependencies"`
+	// name for the chart
+	ChartName string `json:"chart_name"`
+	// namespace of your chart
+	Namespace string `json:"namespace"`
+	// name of the release (Armada will prepend with ``release-prefix`` during processing)
+	Release string `json:"release"`
+	// provide a path to a ``git repo``, ``local dir``, or ``tarball url`` chart
+	Source *ArmadaChartSource `json:"source"`
+	// reference any chart dependencies before install
+	Dependencies []string `json:"dependencies"`
 
-	Install *ArmadaInstall `json:"install,omitempty"`
-	Delete  *ArmadaDelete  `json:"delete,omitempty"`
+	// JEB: install the chart into your Kubernetes cluster
+	// JEB: Install *ArmadaInstall `json:"install,omitempty"`
+
+	// override any default values in the charts
+	Values *ArmadaChartValues `json:"values,omitempty"`
+	// See Delete_.
+	Delete *ArmadaDelete `json:"delete,omitempty"`
+	// upgrade the chart managed by the armada yaml
 	Upgrade *ArmadaUpgrade `json:"upgrade,omitempty"`
-	Values  *ArmadaValues  `json:"values,omitempty"`
 
-	Protected *ArmadaProtected           `json:"protected,omitempty"`
-	Test      *unstructured.Unstructured `json:"test,omitempty"`
-	Timeout   int                        `json:"timeout,omitempty"`
-	Wait      *ArmadaWait                `json:"wait,omitempty"`
+	// do not delete FAILED releases when encountered from previous run (provide the
+	// 'continue_processing' bool to continue or halt execution (default: halt))
+	Protected *ArmadaProtectedRelease `json:"protected,omitempty"`
+	// See Test_.
+	Test *ArmadaTest `json:"test,omitempty"`
+	// time (in seconds) allotted for chart to deploy when 'wait' flag is set (DEPRECATED)
+	Timeout int `json:"timeout,omitempty"`
+	// See `ArmwadaWait`.
+	Wait *ArmadaWait `json:"wait,omitempty"`
 
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`
