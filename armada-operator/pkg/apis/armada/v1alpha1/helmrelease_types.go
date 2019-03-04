@@ -17,6 +17,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // HelmReleaseSpec defines the desired state of HelmRelease
@@ -94,10 +95,33 @@ func (s *HelmReleaseStatus) RemoveCondition(conditionType HelmResourceConditionT
 	return s
 }
 
+// Convert an unstructured.Unstructured into a typed HelmRelease
+func ToHelmRelease(u *unstructured.Unstructured) *HelmRelease {
+	var obj *HelmRelease
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &obj)
+	if err != nil {
+		return &HelmRelease{}
+	}
+	return obj
+}
+
+// Convert a typed HelmRelease into an unstructured.Unstructured
+func FromHelmRelease(obj *HelmRelease) *unstructured.Unstructured {
+	u := NewHelmReleaseVersionKind("", "")
+	tmp, err := runtime.DefaultUnstructuredConverter.ToUnstructured(*obj)
+	if err != nil {
+		return u
+	}
+	u.SetUnstructuredContent(tmp)
+	return u
+}
+
 // Returns a GKV for HelmRelease
-func NewHelmReleaseVersionKind() *unstructured.Unstructured {
+func NewHelmReleaseVersionKind(namespace string, name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
 	u.SetKind("HelmRelease")
+	u.SetNamespace(namespace)
+	u.SetName(name)
 	return u
 }

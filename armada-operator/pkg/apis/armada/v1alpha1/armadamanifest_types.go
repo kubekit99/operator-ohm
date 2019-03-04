@@ -17,6 +17,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ArmadaManifestSpec defines the desired state of ArmadaManifest
@@ -92,10 +93,43 @@ func (s *ArmadaManifestStatus) RemoveCondition(conditionType HelmResourceConditi
 	return s
 }
 
+// Convert an unstructured.Unstructured into a typed ArmadaManifest
+func ToArmadaManifest(u *unstructured.Unstructured) *ArmadaManifest {
+	var obj *ArmadaManifest
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &obj)
+	if err != nil {
+		return &ArmadaManifest{}
+	}
+	return obj
+}
+
+// Convert a typed ArmadaManifest into an unstructured.Unstructured
+func (obj *ArmadaManifest) FromArmadaManifest() *unstructured.Unstructured {
+	u := NewArmadaManifestVersionKind("", "")
+	tmp, err := runtime.DefaultUnstructuredConverter.ToUnstructured(*obj)
+	if err != nil {
+		return u
+	}
+	u.SetUnstructuredContent(tmp)
+	return u
+}
+
+// Return the list of dependant resources to watch
+func (obj *ArmadaManifest) GetDependantResources() []unstructured.Unstructured {
+	var res = make([]unstructured.Unstructured, 0)
+	for _, chartname := range obj.Spec.ChartGroups {
+		u := NewArmadaChartGroupVersionKind(obj.GetNamespace(), chartname)
+		res = append(res, *u)
+	}
+	return res
+}
+
 // Returns a GKV for ArmadaManifest
-func NewArmadaManifestVersionKind() *unstructured.Unstructured {
+func NewArmadaManifestVersionKind(namespace string, name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
 	u.SetKind("ArmadaManifest")
+	u.SetNamespace(namespace)
+	u.SetName(name)
 	return u
 }

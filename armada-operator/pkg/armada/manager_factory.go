@@ -19,24 +19,44 @@ import (
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	armadaif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type managerFactory struct {
+	kubeClient client.Client
 }
 
 // NewManagerFactory returns a new Helm manager factory capable of installing and uninstalling releases.
 func NewManagerFactory(mgr manager.Manager) armadaif.ArmadaManagerFactory {
-	return &managerFactory{}
+	return &managerFactory{kubeClient: mgr.GetClient()}
 }
 
 func (f managerFactory) NewArmadaChartManager(r *av1.ArmadaChart) armadaif.ArmadaManager {
-	return &chartmanager{}
+	return &chartmanager{
+		kubeClient:   f.kubeClient,
+		resourceName: r.GetName(),
+		namespace:    r.GetNamespace(),
+		spec:         &r.Spec,
+		status:       &r.Status,
+	}
 }
 
 func (f managerFactory) NewArmadaChartGroupManager(r *av1.ArmadaChartGroup) armadaif.ArmadaManager {
-	return &chartgroupmanager{}
+	return &chartgroupmanager{
+		kubeClient:   f.kubeClient,
+		resourceName: r.GetName(),
+		namespace:    r.GetNamespace(),
+		spec:         &r.Spec,
+		status:       &r.Status,
+	}
 }
 
 func (f managerFactory) NewArmadaManifestManager(r *av1.ArmadaManifest) armadaif.ArmadaManager {
-	return &manifestmanager{}
+	return &manifestmanager{
+		kubeClient:   f.kubeClient,
+		resourceName: r.GetName(),
+		namespace:    r.GetNamespace(),
+		spec:         &r.Spec,
+		status:       &r.Status,
+	}
 }

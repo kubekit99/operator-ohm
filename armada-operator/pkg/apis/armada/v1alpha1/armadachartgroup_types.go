@@ -3,12 +3,13 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ArmadaChartGroupSpec defines the desired state of ArmadaChartGroup
 type ArmadaChartGroupSpec struct {
 	// reference to chart document
-	ChartGroup []string `json:"chart_group"`
+	Charts []string `json:"chart_group"`
 	// description of chart set
 	Description string `json:"description,omitempty"`
 	// Name of the chartgroup
@@ -83,10 +84,43 @@ func (s *ArmadaChartGroupStatus) RemoveCondition(conditionType HelmResourceCondi
 	return s
 }
 
+// Convert an unstructured.Unstructured into a typed ArmadaChartGroup
+func ToArmadaChartGroup(u *unstructured.Unstructured) *ArmadaChartGroup {
+	var obj *ArmadaChartGroup
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &obj)
+	if err != nil {
+		return &ArmadaChartGroup{}
+	}
+	return obj
+}
+
+// Convert a typed ArmadaChartGroup into an unstructured.Unstructured
+func (obj *ArmadaChartGroup) FromArmadaChartGroup() *unstructured.Unstructured {
+	u := NewArmadaChartGroupVersionKind("", "")
+	tmp, err := runtime.DefaultUnstructuredConverter.ToUnstructured(*obj)
+	if err != nil {
+		return u
+	}
+	u.SetUnstructuredContent(tmp)
+	return u
+}
+
+// Return the list of dependant resources to watch
+func (obj *ArmadaChartGroup) GetDependantResources() []unstructured.Unstructured {
+	var res = make([]unstructured.Unstructured, 0)
+	for _, chartname := range obj.Spec.Charts {
+		u := NewArmadaChartVersionKind(obj.GetNamespace(), chartname)
+		res = append(res, *u)
+	}
+	return res
+}
+
 // Returns a GKV for ArmadaChartGroup
-func NewArmadaChartGroupVersionKind() *unstructured.Unstructured {
+func NewArmadaChartGroupVersionKind(namespace string, name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
 	u.SetKind("ArmadaChartGroup")
+	u.SetNamespace(namespace)
+	u.SetName(name)
 	return u
 }

@@ -18,14 +18,22 @@ import (
 	"context"
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	armadaif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type chartmanager struct {
+	kubeClient       client.Client
 	resourceName     string
 	namespace        string
+	spec             *av1.ArmadaChartSpec
+	status           *av1.ArmadaChartStatus
+	deployedResource *corev1.Pod
 	isInstalled      bool
 	isUpdateRequired bool
 }
@@ -46,14 +54,85 @@ func (m chartmanager) IsUpdateRequired() bool {
 // Sync ensures the Helm storage backend is in sync with the status of the
 // custom resource.
 func (m *chartmanager) Sync(ctx context.Context) error {
+	existingResource := m.newResourceForCR()
+	err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.Name, Namespace: existingResource.Namespace}, existingResource)
+	if err != nil {
+		m.isInstalled = false
+		m.deployedResource = nil
+		if apierrors.IsNotFound(err) {
+			return nil
+		} else {
+			log.Error(err, "Can't not Sync Resource")
+			return err
+		}
+	}
+
+	m.isInstalled = true
+	m.deployedResource = existingResource
+
+	targetResource := m.newResourceForCR()
+	if targetResource.Spec.Containers[0].Image != m.deployedResource.Spec.Containers[0].Image {
+		m.isUpdateRequired = true
+	} else {
+		m.isUpdateRequired = false
+	}
+
 	return nil
 }
 
 func (m chartmanager) InstallResource(ctx context.Context) (*unstructured.Unstructured, error) {
+	newResource := m.newResourceForCR()
+	err := m.kubeClient.Create(context.TODO(), newResource)
+	if err != nil {
+		log.Error(err, "Can't not Create Resource")
+		return nil, err
+	}
+	return FromPod(newResource), nil
+}
+
+// UpdateResource performs a Helm release update.
+func (m chartmanager) UpdateResource(ctx context.Context) (*unstructured.Unstructured, *unstructured.Unstructured, error) {
+	toUpdate := m.newResourceForCR()
+	err := m.kubeClient.Update(context.TODO(), toUpdate)
+	if err != nil {
+		log.Error(err, "Can't not Update Resource")
+		if apierrors.IsNotFound(err) {
+			return nil, nil, armadaif.ErrNotFound
+		} else {
+			return nil, nil, err
+		}
+	}
+	return FromPod(m.deployedResource), FromPod(toUpdate), nil
+}
+
+// ReconcileResource creates or patches resources as necessary to match the
+// deployed release's manifest.
+func (m chartmanager) ReconcileResource(ctx context.Context) (*unstructured.Unstructured, error) {
+	toReconcile := m.newResourceForCR()
+	return FromPod(toReconcile), nil
+}
+
+// UninstallResource performs a Helm release uninstall.
+func (m chartmanager) UninstallResource(ctx context.Context) (*unstructured.Unstructured, error) {
+	toDelete := m.newResourceForCR()
+	err := m.kubeClient.Delete(context.TODO(), toDelete)
+	if err != nil {
+		log.Error(err, "Can't not Delete Resource")
+		if apierrors.IsNotFound(err) {
+			return nil, armadaif.ErrNotFound
+		} else {
+			return nil, err
+		}
+	}
+	return FromPod(toDelete), nil
+}
+
+// newResourceForCR returns a busybox pod with the same name/namespace as the cr
+func (m chartmanager) newResourceForCR() *corev1.Pod {
 	labels := map[string]string{
 		"app": m.resourceName,
 	}
-	_ = &corev1.Pod{
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.resourceName + "-pod",
 			Namespace: m.namespace,
@@ -69,37 +148,4 @@ func (m chartmanager) InstallResource(ctx context.Context) (*unstructured.Unstru
 			},
 		},
 	}
-
-	res := av1.NewArmadaChartGroupVersionKind()
-	res.SetName(m.resourceName + "-ArmadaChart")
-	res.SetNamespace(m.namespace)
-	return res, nil
-}
-
-// UpdateResource performs a Helm release update.
-func (m chartmanager) UpdateResource(ctx context.Context) (*unstructured.Unstructured, *unstructured.Unstructured, error) {
-	oldValue := av1.NewArmadaChartGroupVersionKind()
-	oldValue.SetName(m.resourceName + "-ArmadaChart")
-	oldValue.SetNamespace(m.namespace)
-	newValue := av1.NewArmadaChartGroupVersionKind()
-	newValue.SetName(m.resourceName + "-ArmadaChart")
-	newValue.SetNamespace(m.namespace)
-	return oldValue, newValue, nil
-}
-
-// ReconcileResource creates or patches resources as necessary to match the
-// deployed release's manifest.
-func (m chartmanager) ReconcileResource(ctx context.Context) (*unstructured.Unstructured, error) {
-	res := av1.NewArmadaChartGroupVersionKind()
-	res.SetName(m.resourceName + "-ArmadaChart")
-	res.SetNamespace(m.namespace)
-	return res, nil
-}
-
-// UninstallResource performs a Helm release uninstall.
-func (m chartmanager) UninstallResource(ctx context.Context) (*unstructured.Unstructured, error) {
-	res := av1.NewArmadaChartGroupVersionKind()
-	res.SetName(m.resourceName + "-ArmadaChart")
-	res.SetNamespace(m.namespace)
-	return res, nil
 }

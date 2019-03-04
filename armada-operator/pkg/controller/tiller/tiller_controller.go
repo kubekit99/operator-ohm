@@ -24,7 +24,6 @@ import (
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	// "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -56,7 +54,6 @@ func add(mgr manager.Manager) error {
 		recorder:       mgr.GetRecorder("tiller-recorder"),
 		managerFactory: helmmgr.NewManagerFactory(mgr),
 		// reconcilePeriod: flags.ReconcilePeriod,
-		watchDependentResources: true,
 	}
 
 	// Create a new controller
@@ -72,16 +69,8 @@ func add(mgr manager.Manager) error {
 	}
 
 	// Watch for changes to secondary resource Pods and requeue the owner HelmRelease
-	owner := av1.NewHelmReleaseVersionKind()
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    owner,
-	})
-	if err != nil {
-		return err
-	}
-
-	r.releaseWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
+	owner := av1.NewHelmReleaseVersionKind("", "")
+	r.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
 
 	return nil
 }
@@ -95,8 +84,7 @@ type HelmOperatorReconciler struct {
 	recorder                record.EventRecorder
 	managerFactory          services.HelmManagerFactory
 	reconcilePeriod         time.Duration
-	releaseWatchUpdater     services.DependantResourceWatchUpdater
-	watchDependentResources bool
+	depResourceWatchUpdater services.DependantResourceWatchUpdater
 }
 
 const (
@@ -226,8 +214,8 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 		status.RemoveCondition(av1.ConditionFailed)
 
-		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
-			if err := r.releaseWatchUpdater(helmmgr.ExtractDependantResourceFromManifest(installedRelease)); err != nil {
+		if spec.WatchHelmDependentResources && r.depResourceWatchUpdater != nil {
+			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(installedRelease)); err != nil {
 				log.Error(err, "Failed to run update release dependant resources")
 				return reconcile.Result{}, err
 			}
@@ -265,8 +253,8 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 		status.RemoveCondition(av1.ConditionFailed)
 
-		if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
-			if err := r.releaseWatchUpdater(helmmgr.ExtractDependantResourceFromManifest(updatedRelease)); err != nil {
+		if spec.WatchHelmDependentResources && r.depResourceWatchUpdater != nil {
+			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(updatedRelease)); err != nil {
 				log.Error(err, "Failed to run update release dependant resources")
 				return reconcile.Result{}, err
 			}
@@ -303,8 +291,8 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 	status.RemoveCondition(av1.ConditionIrreconcilable)
 
-	if spec.WatchHelmDependentResources && r.releaseWatchUpdater != nil {
-		if err := r.releaseWatchUpdater(helmmgr.ExtractDependantResourceFromManifest(expectedRelease)); err != nil {
+	if spec.WatchHelmDependentResources && r.depResourceWatchUpdater != nil {
+		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(expectedRelease)); err != nil {
 			log.Error(err, "Failed to run update release dependant resources")
 			return reconcile.Result{}, err
 		}
@@ -327,9 +315,9 @@ func (r HelmOperatorReconciler) updateResourceStatus(instance *av1.HelmRelease, 
 	helper := av1.HelmResourceConditionListHelper{Items: status.Conditions}
 	status.Conditions = helper.InitIfEmpty()
 
-	if log.Enabled() {
-		fmt.Println(helper.PrettyPrint())
-	}
+	// if log.Enabled() {
+	// 	fmt.Println(helper.PrettyPrint())
+	// }
 
 	// JEB: Be sure to have update status subresources in the CRD.yaml
 	err := r.client.Status().Update(context.TODO(), instance)

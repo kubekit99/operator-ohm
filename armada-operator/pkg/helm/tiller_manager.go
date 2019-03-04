@@ -138,7 +138,7 @@ func (m tillermanager) syncReleaseStatus(status av1.HelmReleaseStatus) error {
 		return nil
 	} else {
 		// JEB: Big issue here. Original code was saving the release in the Condition
-		// release = condition.release
+		release = &rpb.Release{Name: condition.ResourceName, Version: condition.ResourceVersion}
 	}
 	if release == nil {
 		return nil

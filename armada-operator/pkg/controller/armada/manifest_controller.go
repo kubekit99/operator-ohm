@@ -11,15 +11,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	// "k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/client-go/tools/record"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	// "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -36,7 +33,6 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 		recorder:       mgr.GetRecorder("act-recorder"),
 		managerFactory: armadamgr.NewManagerFactory(mgr),
 		// reconcilePeriod: flags.ReconcilePeriod,
-		watchDependentResources: true,
 	}
 
 	// Create a new controller
@@ -51,15 +47,10 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
+	// Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner ArmadaManifest
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &av1.ArmadaManifest{},
-	})
-	if err != nil {
-		return err
-	}
+	owner := av1.NewArmadaManifestVersionKind("", "")
+	r.depResourceWatchUpdater = armadaif.BuildDependantResourceWatchUpdater(mgr, owner, c)
 
 	return nil
 }
@@ -75,7 +66,7 @@ type ArmadaManifestReconciler struct {
 	recorder                record.EventRecorder
 	managerFactory          armadaif.ArmadaManagerFactory
 	reconcilePeriod         time.Duration
-	watchDependentResources bool
+	depResourceWatchUpdater armadaif.DependantResourceWatchUpdater
 }
 
 const (
@@ -207,12 +198,12 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 		}
 		status.RemoveCondition(av1.ConditionFailed)
 
-		// if spec.WatchHelmDependentResources && r.resourceWatchUpdater != nil {
-		// 	if err := r.resourceWatchUpdater(installedResource); err != nil {
-		// 		log.Error(err, "Failed to run update resource dependant resources")
-		// 		return reconcile.Result{}, err
-		// 	}
-		// }
+		if r.depResourceWatchUpdater != nil {
+			if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
+				log.Error(err, "Failed to run update resource dependant resources")
+				return reconcile.Result{}, err
+			}
+		}
 
 		log.Info("Installed resource", "resourceName", installedResource.GetName())
 		r.recorder.Event(instance, corev1.EventTypeNormal, "Installed", fmt.Sprintf("Installed Resource %s", installedResource.GetName()))
@@ -247,12 +238,12 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 		}
 		status.RemoveCondition(av1.ConditionFailed)
 
-		// if spec.WatchHelmDependentResources && r.resourceWatchUpdater != nil {
-		// 	if err := r.resourceWatchUpdater(updatedResource); err != nil {
-		// 		log.Error(err, "Failed to run update resource dependant resources")
-		// 		return reconcile.Result{}, err
-		// 	}
-		// }
+		if r.depResourceWatchUpdater != nil {
+			if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
+				log.Error(err, "Failed to run update resource dependant resources")
+				return reconcile.Result{}, err
+			}
+		}
 
 		log.Info("Updated resource", "resourceName", updatedResource.GetName())
 		r.recorder.Event(instance, corev1.EventTypeNormal, "Updated", fmt.Sprintf("Updated Resource %s", updatedResource.GetName()))
@@ -267,7 +258,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 	}
 
-	// expectedResource, err := manager.ReconcileRelease(context.TODO())
+	// expectedResource, err := manager.ReconcileResource(context.TODO())
 	_, err = manager.ReconcileResource(context.TODO())
 	if err != nil {
 		log.Error(err, "Failed to reconcile resource")
@@ -282,12 +273,12 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 	}
 	status.RemoveCondition(av1.ConditionIrreconcilable)
 
-	// if spec.WatchHelmDependentResources && r.resourceWatchUpdater != nil {
-	// 	if err := r.resourceWatchUpdater(expectedResource); err != nil {
-	// 		log.Error(err, "Failed to run update resource dependant resources")
-	// 		return reconcile.Result{}, err
-	// 	}
-	// }
+	if r.depResourceWatchUpdater != nil {
+		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
+			log.Error(err, "Failed to run update resource dependant resources")
+			return reconcile.Result{}, err
+		}
+	}
 
 	log.Info("Reconciled resource")
 	err = r.updateResourceStatus(instance, status)
@@ -305,10 +296,6 @@ func (r ArmadaManifestReconciler) updateResourceStatus(instance *av1.ArmadaManif
 
 	helper := av1.HelmResourceConditionListHelper{Items: status.Conditions}
 	status.Conditions = helper.InitIfEmpty()
-
-	if log.Enabled() {
-		fmt.Println(helper.PrettyPrint())
-	}
 
 	// JEB: Be sure to have update status subresources in the CRD.yaml
 	// JEB: Look for kubebuilder subresources in the _types.go

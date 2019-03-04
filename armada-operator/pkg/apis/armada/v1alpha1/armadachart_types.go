@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ArmadaChartSpec defines the desired state of ArmadaChart
@@ -103,10 +104,39 @@ func (s *ArmadaChartStatus) RemoveCondition(conditionType HelmResourceConditionT
 	return s
 }
 
+// Convert an unstructured.Unstructured into a typed ArmadaChart
+func ToArmadaChart(u *unstructured.Unstructured) *ArmadaChart {
+	var obj *ArmadaChart
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &obj)
+	if err != nil {
+		return &ArmadaChart{}
+	}
+	return obj
+}
+
+// Convert a typed ArmadaChart into an unstructured.Unstructured
+func (obj *ArmadaChart) FromArmadaChart() *unstructured.Unstructured {
+	u := NewArmadaChartVersionKind("", "")
+	tmp, err := runtime.DefaultUnstructuredConverter.ToUnstructured(*obj)
+	if err != nil {
+		return u
+	}
+	u.SetUnstructuredContent(tmp)
+	return u
+}
+
+// Return the list of dependant resources to watch
+func (obj *ArmadaChart) GetDependantResources() []unstructured.Unstructured {
+	var res = make([]unstructured.Unstructured, 0)
+	return res
+}
+
 // Returns a GKV for ArmadaChart
-func NewArmadaChartVersionKind() *unstructured.Unstructured {
+func NewArmadaChartVersionKind(namespace string, name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
 	u.SetKind("ArmadaChart")
+	u.SetNamespace(namespace)
+	u.SetName(name)
 	return u
 }
