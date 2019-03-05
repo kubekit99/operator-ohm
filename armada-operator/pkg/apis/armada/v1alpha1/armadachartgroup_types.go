@@ -63,6 +63,13 @@ func init() {
 	SchemeBuilder.Register(&ArmadaChartGroup{}, &ArmadaChartGroupList{})
 }
 
+// Synthesis the actual state based on the conditions
+func (s *ArmadaChartGroupStatus) ComputeActualState(condition *HelmResourceCondition, targetState HelmResourceState) {
+	s.ActualState = targetState
+	s.Succeeded = (s.ActualState == targetState)
+	s.Reason = ""
+}
+
 // SetCondition sets a condition on the status object. If the condition already
 // exists, it will be replaced. SetCondition does not update the resource in
 // the cluster.

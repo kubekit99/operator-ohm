@@ -22,7 +22,7 @@ import (
 	helmmgr "github.com/kubekit99/operator-ohm/armada-operator/pkg/helm"
 	services "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 
@@ -88,14 +88,17 @@ type HelmOperatorReconciler struct {
 }
 
 const (
-	finalizer = "uninstall-helm-release"
+	finalizerHelmRelease = "uninstall-helm-release"
 )
 
-// Reconcile reconciles the requested resource by installing, updating, or
-// uninstalling a Helm release based on the resource's current state. If no
-// release changes are necessary, Reconcile will create or patch the underlying
-// resources to match the expected release manifest.
-func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+// Reconcile reads that state of the cluster for a HelmRelease object and makes changes based on the state read
+// and what is in the HelmRelease.Spec
+// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
+// a Pod as an example
+// Note:
+// The Controller will requeue the Request to be processed again if the returned error is non-nil or
+// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
+func (r *HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	instance := &av1.HelmRelease{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
@@ -117,12 +120,12 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	spec := instance.Spec
 	status := &instance.Status
 
-	log = log.WithValues("release", manager.ReleaseName())
+	log = log.WithValues("resource", manager.ReleaseName())
 
 	deleted := instance.GetDeletionTimestamp() != nil
 	pendingFinalizers := instance.GetFinalizers()
-	if !deleted && !contains(pendingFinalizers, finalizer) {
-		finalizers := append(pendingFinalizers, finalizer)
+	if !deleted && !contains(pendingFinalizers, finalizerHelmRelease) {
+		finalizers := append(pendingFinalizers, finalizerHelmRelease)
 		instance.SetFinalizers(finalizers)
 		err = r.updateResource(instance)
 
@@ -130,54 +133,64 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	status.SetCondition(av1.HelmResourceCondition{
+	hrc := av1.HelmResourceCondition{
 		Type:   av1.ConditionInitialized,
 		Status: av1.ConditionStatusTrue,
-	})
+	}
+	status.SetCondition(hrc)
+	status.ComputeActualState(&hrc, spec.TargetState)
 
 	if err := manager.Sync(context.TODO()); err != nil {
-		log.Error(err, "Failed to sync release")
-		status.SetCondition(av1.HelmResourceCondition{
+		hrc := av1.HelmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
 			Status:  av1.ConditionStatusTrue,
 			Reason:  av1.ReasonReconcileError,
 			Message: err.Error(),
-		})
+		}
+		status.SetCondition(hrc)
+		status.ComputeActualState(&hrc, spec.TargetState)
+		r.logAndRecordFailure(instance, &hrc, err)
+
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
 	status.RemoveCondition(av1.ConditionIrreconcilable)
 
 	if deleted {
-		if !contains(pendingFinalizers, finalizer) {
+		if !contains(pendingFinalizers, finalizerHelmRelease) {
 			log.Info("Resource is terminated, skipping reconciliation")
 			return reconcile.Result{}, nil
 		}
 
-		uninstalledRelease, err := manager.UninstallRelease(context.TODO())
+		uninstalledResource, err := manager.UninstallRelease(context.TODO())
 		if err != nil && err != services.ErrNotFound {
-			log.Error(err, "Failed to uninstall release")
-			status.SetCondition(av1.HelmResourceCondition{
-				Type:    av1.ConditionFailed,
-				Status:  av1.ConditionStatusTrue,
-				Reason:  av1.ReasonUninstallError,
-				Message: err.Error(),
-			})
+			hrc := av1.HelmResourceCondition{
+				Type:         av1.ConditionFailed,
+				Status:       av1.ConditionStatusTrue,
+				Reason:       av1.ReasonUninstallError,
+				Message:      err.Error(),
+				ResourceName: uninstalledResource.GetName(),
+			}
+			status.SetCondition(hrc)
+			status.ComputeActualState(&hrc, spec.TargetState)
+			r.logAndRecordFailure(instance, &hrc, err)
+
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
 		status.RemoveCondition(av1.ConditionFailed)
 
 		if err == services.ErrNotFound {
-			log.Info("Release not found, removing finalizer")
+			log.Info("Resource not found, removing finalizer")
 		} else {
-			r.recorder.Event(instance, v1.EventTypeWarning, "DeletionFailure", fmt.Sprintf("Uninstalled Release %s", uninstalledRelease.GetName()))
-			log.Info("Uninstalled release", "releaseName", uninstalledRelease.GetName(), "releaseVersion", uninstalledRelease.GetVersion())
-			status.SetCondition(av1.HelmResourceCondition{
+			hrc := av1.HelmResourceCondition{
 				Type:   av1.ConditionDeployed,
 				Status: av1.ConditionStatusFalse,
 				Reason: av1.ReasonUninstallSuccessful,
-			})
+			}
+			status.SetCondition(hrc)
+			status.ComputeActualState(&hrc, spec.TargetState)
+			r.logAndRecordSuccess(instance, &hrc)
 		}
 		if err := r.updateResourceStatus(instance, status); err != nil {
 			return reconcile.Result{}, err
@@ -185,7 +198,7 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 
 		finalizers := []string{}
 		for _, pendingFinalizer := range pendingFinalizers {
-			if pendingFinalizer != finalizer {
+			if pendingFinalizer != finalizerHelmRelease {
 				finalizers = append(finalizers, pendingFinalizer)
 			}
 		}
@@ -197,113 +210,133 @@ func (r HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	if !manager.IsInstalled() {
-		installedRelease, err := manager.InstallRelease(context.TODO())
+		installedResource, err := manager.InstallRelease(context.TODO())
 		if err != nil {
-			log.Error(err, "Failed to install release")
-			r.recorder.Event(instance, v1.EventTypeWarning, "InstallationFailure", fmt.Sprintf("Installed Release %s", installedRelease.GetName()))
-			status.SetCondition(av1.HelmResourceCondition{
-				Type:            av1.ConditionFailed,
-				Status:          av1.ConditionStatusTrue,
-				Reason:          av1.ReasonInstallError,
-				Message:         err.Error(),
-				ResourceName:    installedRelease.GetName(),
-				ResourceVersion: installedRelease.GetVersion(),
-			})
+			hrc := av1.HelmResourceCondition{
+				Type:         av1.ConditionFailed,
+				Status:       av1.ConditionStatusTrue,
+				Reason:       av1.ReasonInstallError,
+				Message:      err.Error(),
+				ResourceName: installedResource.GetName(),
+			}
+			status.SetCondition(hrc)
+			status.ComputeActualState(&hrc, spec.TargetState)
+			r.logAndRecordFailure(instance, &hrc, err)
+
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
 		status.RemoveCondition(av1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.depResourceWatchUpdater != nil {
-			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(installedRelease)); err != nil {
-				log.Error(err, "Failed to run update release dependant resources")
+			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(installedResource)); err != nil {
+				log.Error(err, "Failed to run update resource dependant resources")
 				return reconcile.Result{}, err
 			}
 		}
 
-		log.Info("Installed release", "releaseName", installedRelease.GetName(), "releaseVersion", installedRelease.GetVersion())
-		r.recorder.Event(instance, v1.EventTypeNormal, "Installed", fmt.Sprintf("Installed Release %s", installedRelease.GetName()))
-		status.SetCondition(av1.HelmResourceCondition{
+		hrc := av1.HelmResourceCondition{
 			Type:            av1.ConditionDeployed,
 			Status:          av1.ConditionStatusTrue,
 			Reason:          av1.ReasonInstallSuccessful,
-			Message:         installedRelease.GetInfo().GetStatus().GetNotes(),
-			ResourceName:    installedRelease.GetName(),
-			ResourceVersion: installedRelease.GetVersion(),
-		})
+			Message:         installedResource.GetInfo().GetStatus().GetNotes(),
+			ResourceName:    installedResource.GetName(),
+			ResourceVersion: installedResource.GetVersion(),
+		}
+		status.SetCondition(hrc)
+		status.ComputeActualState(&hrc, spec.TargetState)
+		r.logAndRecordSuccess(instance, &hrc)
+
 		err = r.updateResourceStatus(instance, status)
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 	}
 
 	if manager.IsUpdateRequired() {
-		previousRelease, updatedRelease, err := manager.UpdateRelease(context.TODO())
+		previousResource, updatedResource, err := manager.UpdateRelease(context.TODO())
+		if previousResource != nil && updatedResource != nil {
+			log.Info(previousResource.GetName(), updatedResource.GetName())
+		}
 		if err != nil {
-			log.Error(err, "Failed to update release")
-			r.recorder.Event(instance, v1.EventTypeWarning, "UpdateFailure", fmt.Sprintf("Updated Release %s", updatedRelease.GetName()))
-			status.SetCondition(av1.HelmResourceCondition{
-				Type:            av1.ConditionFailed,
-				Status:          av1.ConditionStatusTrue,
-				Reason:          av1.ReasonUpdateError,
-				Message:         err.Error(),
-				ResourceName:    updatedRelease.GetName(),
-				ResourceVersion: updatedRelease.GetVersion(),
-			})
+			hrc := av1.HelmResourceCondition{
+				Type:         av1.ConditionFailed,
+				Status:       av1.ConditionStatusTrue,
+				Reason:       av1.ReasonUpdateError,
+				Message:      err.Error(),
+				ResourceName: updatedResource.GetName(),
+			}
+			status.SetCondition(hrc)
+			status.ComputeActualState(&hrc, spec.TargetState)
+			r.logAndRecordFailure(instance, &hrc, err)
+
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
 		status.RemoveCondition(av1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.depResourceWatchUpdater != nil {
-			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(updatedRelease)); err != nil {
-				log.Error(err, "Failed to run update release dependant resources")
+			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(updatedResource)); err != nil {
+				log.Error(err, "Failed to run update resource dependant resources")
 				return reconcile.Result{}, err
 			}
 		}
 
-		log.Info("Updated release", "releaseName", updatedRelease.GetName(), "releaseVersion", updatedRelease.GetVersion())
-		r.recorder.Event(instance, v1.EventTypeNormal, "Updated", fmt.Sprintf("Updated Release %s", updatedRelease.GetName()))
-		if log.Enabled() {
-			fmt.Println(Diff(previousRelease.GetManifest(), updatedRelease.GetManifest()))
-		}
-		status.SetCondition(av1.HelmResourceCondition{
+		hrc := av1.HelmResourceCondition{
 			Type:            av1.ConditionDeployed,
 			Status:          av1.ConditionStatusTrue,
 			Reason:          av1.ReasonUpdateSuccessful,
-			Message:         updatedRelease.GetInfo().GetStatus().GetNotes(),
-			ResourceName:    updatedRelease.GetName(),
-			ResourceVersion: updatedRelease.GetVersion(),
-		})
+			Message:         updatedResource.GetInfo().GetStatus().GetNotes(),
+			ResourceName:    updatedResource.GetName(),
+			ResourceVersion: updatedResource.GetVersion(),
+		}
+		status.SetCondition(hrc)
+		status.ComputeActualState(&hrc, spec.TargetState)
+		r.logAndRecordSuccess(instance, &hrc)
+
 		err = r.updateResourceStatus(instance, status)
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 	}
 
-	expectedRelease, err := manager.ReconcileRelease(context.TODO())
+	expectedResource, err := manager.ReconcileRelease(context.TODO())
 	if err != nil {
-		log.Error(err, "Failed to reconcile release")
-		status.SetCondition(av1.HelmResourceCondition{
-			Type:    av1.ConditionIrreconcilable,
-			Status:  av1.ConditionStatusTrue,
-			Reason:  av1.ReasonReconcileError,
-			Message: err.Error(),
-		})
+		hrc := av1.HelmResourceCondition{
+			Type:         av1.ConditionIrreconcilable,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonReconcileError,
+			Message:      err.Error(),
+			ResourceName: expectedResource.GetName(),
+		}
+		status.SetCondition(hrc)
+		r.logAndRecordFailure(instance, &hrc, err)
+
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
 	status.RemoveCondition(av1.ConditionIrreconcilable)
 
 	if spec.WatchHelmDependentResources && r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(expectedRelease)); err != nil {
-			log.Error(err, "Failed to run update release dependant resources")
+		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(expectedResource)); err != nil {
+			log.Error(err, "Failed to run update resource dependant resources")
 			return reconcile.Result{}, err
 		}
 	}
 
-	log.Info("Reconciled release")
+	log.Info("Reconciled resource")
 	err = r.updateResourceStatus(instance, status)
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }
 
-// Update the whole CRD
+// Add a success event to the recorder
+func (r HelmOperatorReconciler) logAndRecordFailure(instance *av1.HelmRelease, hrc *av1.HelmResourceCondition, err error) {
+	log.Error(err, fmt.Sprintf("%s", hrc.Type.String()))
+	r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
+}
+
+func (r HelmOperatorReconciler) logAndRecordSuccess(instance *av1.HelmRelease, hrc *av1.HelmResourceCondition) {
+	log.Info(fmt.Sprintf("%s", hrc.Type.String()))
+	r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
+}
+
+// Update the Resource object
 func (r HelmOperatorReconciler) updateResource(o *av1.HelmRelease) error {
 	return r.client.Update(context.TODO(), o)
 }
@@ -315,15 +348,13 @@ func (r HelmOperatorReconciler) updateResourceStatus(instance *av1.HelmRelease, 
 	helper := av1.HelmResourceConditionListHelper{Items: status.Conditions}
 	status.Conditions = helper.InitIfEmpty()
 
-	// if log.Enabled() {
-	// 	fmt.Println(helper.PrettyPrint())
-	// }
-
 	// JEB: Be sure to have update status subresources in the CRD.yaml
+	// JEB: Look for kubebuilder subresources in the _types.go
 	err := r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
 		reqLogger.Error(err, "Failure to update status. Ignoring")
+		err = nil
 	}
 
-	return nil
+	return err
 }

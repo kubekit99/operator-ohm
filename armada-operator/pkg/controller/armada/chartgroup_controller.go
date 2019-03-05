@@ -99,7 +99,7 @@ func (r *ArmadaChartGroupReconciler) Reconcile(request reconcile.Request) (recon
 	}
 
 	manager := r.managerFactory.NewArmadaChartGroupManager(instance)
-	// spec := instance.Spec
+	spec := instance.Spec
 	status := &instance.Status
 
 	log = log.WithValues("resource", manager.ResourceName())
@@ -115,19 +115,24 @@ func (r *ArmadaChartGroupReconciler) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	status.SetCondition(av1.HelmResourceCondition{
+	hrc := av1.HelmResourceCondition{
 		Type:   av1.ConditionInitialized,
 		Status: av1.ConditionStatusTrue,
-	})
+	}
+	status.SetCondition(hrc)
+	status.ComputeActualState(&hrc, spec.TargetState)
 
 	if err := manager.Sync(context.TODO()); err != nil {
-		log.Error(err, "Failed to sync resource")
-		status.SetCondition(av1.HelmResourceCondition{
+		hrc := av1.HelmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
 			Status:  av1.ConditionStatusTrue,
 			Reason:  av1.ReasonReconcileError,
 			Message: err.Error(),
-		})
+		}
+		status.SetCondition(hrc)
+		status.ComputeActualState(&hrc, spec.TargetState)
+		r.logAndRecordFailure(instance, &hrc, err)
+
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
@@ -141,13 +146,17 @@ func (r *ArmadaChartGroupReconciler) Reconcile(request reconcile.Request) (recon
 
 		uninstalledResource, err := manager.UninstallResource(context.TODO())
 		if err != nil && err != armadaif.ErrNotFound {
-			log.Error(err, "Failed to uninstall resource")
-			status.SetCondition(av1.HelmResourceCondition{
-				Type:    av1.ConditionFailed,
-				Status:  av1.ConditionStatusTrue,
-				Reason:  av1.ReasonUninstallError,
-				Message: err.Error(),
-			})
+			hrc := av1.HelmResourceCondition{
+				Type:         av1.ConditionFailed,
+				Status:       av1.ConditionStatusTrue,
+				Reason:       av1.ReasonUninstallError,
+				Message:      err.Error(),
+				ResourceName: uninstalledResource.GetName(),
+			}
+			status.SetCondition(hrc)
+			status.ComputeActualState(&hrc, spec.TargetState)
+			r.logAndRecordFailure(instance, &hrc, err)
+
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
@@ -156,13 +165,14 @@ func (r *ArmadaChartGroupReconciler) Reconcile(request reconcile.Request) (recon
 		if err == armadaif.ErrNotFound {
 			log.Info("Resource not found, removing finalizer")
 		} else {
-			r.recorder.Event(instance, corev1.EventTypeWarning, "DeletionFailure", fmt.Sprintf("Uninstalled Resource %s", uninstalledResource.GetName()))
-			log.Info("Uninstalled resource", "resourceName", uninstalledResource.GetName())
-			status.SetCondition(av1.HelmResourceCondition{
+			hrc := av1.HelmResourceCondition{
 				Type:   av1.ConditionDeployed,
 				Status: av1.ConditionStatusFalse,
 				Reason: av1.ReasonUninstallSuccessful,
-			})
+			}
+			status.SetCondition(hrc)
+			status.ComputeActualState(&hrc, spec.TargetState)
+			r.logAndRecordSuccess(instance, &hrc)
 		}
 		if err := r.updateResourceStatus(instance, status); err != nil {
 			return reconcile.Result{}, err
@@ -184,15 +194,17 @@ func (r *ArmadaChartGroupReconciler) Reconcile(request reconcile.Request) (recon
 	if !manager.IsInstalled() {
 		installedResource, err := manager.InstallResource(context.TODO())
 		if err != nil {
-			log.Error(err, "Failed to install resource")
-			r.recorder.Event(instance, corev1.EventTypeWarning, "InstallationFailure", fmt.Sprintf("Installed Resource %s", installedResource.GetName()))
-			status.SetCondition(av1.HelmResourceCondition{
+			hrc := av1.HelmResourceCondition{
 				Type:         av1.ConditionFailed,
 				Status:       av1.ConditionStatusTrue,
 				Reason:       av1.ReasonInstallError,
 				Message:      err.Error(),
 				ResourceName: installedResource.GetName(),
-			})
+			}
+			status.SetCondition(hrc)
+			status.ComputeActualState(&hrc, spec.TargetState)
+			r.logAndRecordFailure(instance, &hrc, err)
+
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
@@ -205,15 +217,17 @@ func (r *ArmadaChartGroupReconciler) Reconcile(request reconcile.Request) (recon
 			}
 		}
 
-		log.Info("Installed resource", "resourceName", installedResource.GetName())
-		r.recorder.Event(instance, corev1.EventTypeNormal, "Installed", fmt.Sprintf("Installed Resource %s", installedResource.GetName()))
-		status.SetCondition(av1.HelmResourceCondition{
+		hrc := av1.HelmResourceCondition{
 			Type:         av1.ConditionDeployed,
 			Status:       av1.ConditionStatusTrue,
 			Reason:       av1.ReasonInstallSuccessful,
-			Message:      "HarcodedMessage",
+			Message:      "",
 			ResourceName: installedResource.GetName(),
-		})
+		}
+		status.SetCondition(hrc)
+		status.ComputeActualState(&hrc, spec.TargetState)
+		r.logAndRecordSuccess(instance, &hrc)
+
 		err = r.updateResourceStatus(instance, status)
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 	}
@@ -224,15 +238,17 @@ func (r *ArmadaChartGroupReconciler) Reconcile(request reconcile.Request) (recon
 			log.Info(previousResource.GetName(), updatedResource.GetName())
 		}
 		if err != nil {
-			log.Error(err, "Failed to update resource")
-			r.recorder.Event(instance, corev1.EventTypeWarning, "UpdateFailure", fmt.Sprintf("Updated Resource %s", updatedResource.GetName()))
-			status.SetCondition(av1.HelmResourceCondition{
+			hrc := av1.HelmResourceCondition{
 				Type:         av1.ConditionFailed,
 				Status:       av1.ConditionStatusTrue,
 				Reason:       av1.ReasonUpdateError,
 				Message:      err.Error(),
 				ResourceName: updatedResource.GetName(),
-			})
+			}
+			status.SetCondition(hrc)
+			status.ComputeActualState(&hrc, spec.TargetState)
+			r.logAndRecordFailure(instance, &hrc, err)
+
 			_ = r.updateResourceStatus(instance, status)
 			return reconcile.Result{}, err
 		}
@@ -245,29 +261,33 @@ func (r *ArmadaChartGroupReconciler) Reconcile(request reconcile.Request) (recon
 			}
 		}
 
-		log.Info("Updated resource", "resourceName", updatedResource.GetName())
-		r.recorder.Event(instance, corev1.EventTypeNormal, "Updated", fmt.Sprintf("Updated Resource %s", updatedResource.GetName()))
-		status.SetCondition(av1.HelmResourceCondition{
+		hrc := av1.HelmResourceCondition{
 			Type:         av1.ConditionDeployed,
 			Status:       av1.ConditionStatusTrue,
 			Reason:       av1.ReasonUpdateSuccessful,
 			Message:      "HardcodedMessage",
 			ResourceName: updatedResource.GetName(),
-		})
+		}
+		status.SetCondition(hrc)
+		status.ComputeActualState(&hrc, spec.TargetState)
+		r.logAndRecordSuccess(instance, &hrc)
+
 		err = r.updateResourceStatus(instance, status)
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 	}
 
-	// expectedResource, err := manager.ReconcileResource(context.TODO())
-	_, err = manager.ReconcileResource(context.TODO())
+	expectedResource, err := manager.ReconcileResource(context.TODO())
 	if err != nil {
-		log.Error(err, "Failed to reconcile resource")
-		status.SetCondition(av1.HelmResourceCondition{
-			Type:    av1.ConditionIrreconcilable,
-			Status:  av1.ConditionStatusTrue,
-			Reason:  av1.ReasonReconcileError,
-			Message: err.Error(),
-		})
+		hrc := av1.HelmResourceCondition{
+			Type:         av1.ConditionIrreconcilable,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonReconcileError,
+			Message:      err.Error(),
+			ResourceName: expectedResource.GetName(),
+		}
+		status.SetCondition(hrc)
+		r.logAndRecordFailure(instance, &hrc, err)
+
 		_ = r.updateResourceStatus(instance, status)
 		return reconcile.Result{}, err
 	}
@@ -283,6 +303,17 @@ func (r *ArmadaChartGroupReconciler) Reconcile(request reconcile.Request) (recon
 	log.Info("Reconciled resource")
 	err = r.updateResourceStatus(instance, status)
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
+}
+
+// Add a success event to the recorder
+func (r ArmadaChartGroupReconciler) logAndRecordFailure(instance *av1.ArmadaChartGroup, hrc *av1.HelmResourceCondition, err error) {
+	log.Error(err, fmt.Sprintf("%s", hrc.Type.String()))
+	r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
+}
+
+func (r ArmadaChartGroupReconciler) logAndRecordSuccess(instance *av1.ArmadaChartGroup, hrc *av1.HelmResourceCondition) {
+	log.Info(fmt.Sprintf("%s", hrc.Type.String()))
+	r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
 }
 
 // Update the Resource object
