@@ -1,3 +1,17 @@
+// Copyright 2018 The Operator-SDK Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package armada
 
 import (
@@ -5,14 +19,11 @@ import (
 	"fmt"
 	"time"
 
-	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
-	armadamgr "github.com/kubekit99/operator-ohm/armada-operator/pkg/armada"
-	armadaif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	helmmgr "github.com/kubekit99/operator-ohm/armada-operator/pkg/helm"
+	services "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/client-go/tools/record"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,17 +32,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // Add creates a new ArmadaChart Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func AddArmadaChartController(mgr manager.Manager) error {
+	return add(mgr)
+}
 
+// add adds a new Controller to mgr with r as the reconcile.Reconciler
+func add(mgr manager.Manager) error {
 	r := &ArmadaChartReconciler{
 		client:         mgr.GetClient(),
 		scheme:         mgr.GetScheme(),
 		recorder:       mgr.GetRecorder("act-recorder"),
-		managerFactory: armadamgr.NewManagerFactory(mgr),
+		managerFactory: helmmgr.NewManagerFactory(mgr),
 		// reconcilePeriod: flags.ReconcilePeriod,
 	}
 
@@ -47,30 +65,27 @@ func AddArmadaChartController(mgr manager.Manager) error {
 		return err
 	}
 
-	// Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner ArmadaChart
 	owner := av1.NewArmadaChartVersionKind("", "")
-	r.depResourceWatchUpdater = armadaif.BuildDependantResourceWatchUpdater(mgr, owner, c)
+	r.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
 
 	return nil
 }
 
 var _ reconcile.Reconciler = &ArmadaChartReconciler{}
 
-// ArmadaChartReconciler reconciles a ArmadaChart object
+// ArmadaChartReconciler reconciles custom resources as Helm releases.
 type ArmadaChartReconciler struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
 	client                  client.Client
 	scheme                  *runtime.Scheme
 	recorder                record.EventRecorder
-	managerFactory          armadaif.ArmadaManagerFactory
+	managerFactory          services.HelmManagerFactory
 	reconcilePeriod         time.Duration
-	depResourceWatchUpdater armadaif.DependantResourceWatchUpdater
+	depResourceWatchUpdater services.DependantResourceWatchUpdater
 }
 
 const (
-	finalizerArmadaChart = "uninstall-pod"
+	finalizerArmadaChart = "uninstall-helm-release"
 )
 
 // Reconcile reads that state of the cluster for a ArmadaChart object and makes changes based on the state read
@@ -98,11 +113,11 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	manager := r.managerFactory.NewArmadaChartManager(instance)
+	manager := r.managerFactory.NewArmadaChartTillerManager(instance)
 	spec := instance.Spec
 	status := &instance.Status
 
-	log = log.WithValues("resource", manager.ResourceName())
+	log = log.WithValues("resource", manager.ReleaseName())
 
 	deleted := instance.GetDeletionTimestamp() != nil
 	pendingFinalizers := instance.GetFinalizers()
@@ -144,8 +159,8 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 			return reconcile.Result{}, nil
 		}
 
-		uninstalledResource, err := manager.UninstallResource(context.TODO())
-		if err != nil && err != armadaif.ErrNotFound {
+		uninstalledResource, err := manager.UninstallRelease(context.TODO())
+		if err != nil && err != services.ErrNotFound {
 			hrc := av1.HelmResourceCondition{
 				Type:         av1.ConditionFailed,
 				Status:       av1.ConditionStatusTrue,
@@ -162,7 +177,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		}
 		status.RemoveCondition(av1.ConditionFailed)
 
-		if err == armadaif.ErrNotFound {
+		if err == services.ErrNotFound {
 			log.Info("Resource not found, removing finalizer")
 		} else {
 			hrc := av1.HelmResourceCondition{
@@ -192,7 +207,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	if !manager.IsInstalled() {
-		installedResource, err := manager.InstallResource(context.TODO())
+		installedResource, err := manager.InstallRelease(context.TODO())
 		if err != nil {
 			hrc := av1.HelmResourceCondition{
 				Type:    av1.ConditionFailed,
@@ -210,18 +225,19 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		status.RemoveCondition(av1.ConditionFailed)
 
 		if r.depResourceWatchUpdater != nil {
-			if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
+			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(installedResource)); err != nil {
 				log.Error(err, "Failed to run update resource dependant resources")
 				return reconcile.Result{}, err
 			}
 		}
 
 		hrc := av1.HelmResourceCondition{
-			Type:         av1.ConditionDeployed,
-			Status:       av1.ConditionStatusTrue,
-			Reason:       av1.ReasonInstallSuccessful,
-			Message:      "",
-			ResourceName: installedResource.GetName(),
+			Type:            av1.ConditionDeployed,
+			Status:          av1.ConditionStatusTrue,
+			Reason:          av1.ReasonInstallSuccessful,
+			Message:         installedResource.GetInfo().GetStatus().GetNotes(),
+			ResourceName:    installedResource.GetName(),
+			ResourceVersion: installedResource.GetVersion(),
 		}
 		status.SetCondition(hrc)
 		status.ComputeActualState(&hrc, spec.TargetState)
@@ -232,7 +248,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	if manager.IsUpdateRequired() {
-		previousResource, updatedResource, err := manager.UpdateResource(context.TODO())
+		previousResource, updatedResource, err := manager.UpdateRelease(context.TODO())
 		if previousResource != nil && updatedResource != nil {
 			log.Info(previousResource.GetName(), updatedResource.GetName())
 		}
@@ -254,18 +270,19 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		status.RemoveCondition(av1.ConditionFailed)
 
 		if r.depResourceWatchUpdater != nil {
-			if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
+			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(updatedResource)); err != nil {
 				log.Error(err, "Failed to run update resource dependant resources")
 				return reconcile.Result{}, err
 			}
 		}
 
 		hrc := av1.HelmResourceCondition{
-			Type:         av1.ConditionDeployed,
-			Status:       av1.ConditionStatusTrue,
-			Reason:       av1.ReasonUpdateSuccessful,
-			Message:      "HardcodedMessage",
-			ResourceName: updatedResource.GetName(),
+			Type:            av1.ConditionDeployed,
+			Status:          av1.ConditionStatusTrue,
+			Reason:          av1.ReasonUpdateSuccessful,
+			Message:         updatedResource.GetInfo().GetStatus().GetNotes(),
+			ResourceName:    updatedResource.GetName(),
+			ResourceVersion: updatedResource.GetVersion(),
 		}
 		status.SetCondition(hrc)
 		status.ComputeActualState(&hrc, spec.TargetState)
@@ -275,7 +292,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 	}
 
-	expectedResource, err := manager.ReconcileResource(context.TODO())
+	expectedResource, err := manager.ReconcileRelease(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
 			Type:         av1.ConditionIrreconcilable,
@@ -293,7 +310,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	status.RemoveCondition(av1.ConditionIrreconcilable)
 
 	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
+		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(expectedResource)); err != nil {
 			log.Error(err, "Failed to run update resource dependant resources")
 			return reconcile.Result{}, err
 		}

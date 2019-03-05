@@ -31,16 +31,6 @@ func NewManagerFactory(mgr manager.Manager) armadaif.ArmadaManagerFactory {
 	return &managerFactory{kubeClient: mgr.GetClient()}
 }
 
-func (f managerFactory) NewArmadaChartManager(r *av1.ArmadaChart) armadaif.ArmadaManager {
-	return &chartmanager{
-		kubeClient:   f.kubeClient,
-		resourceName: r.GetName(),
-		namespace:    r.GetNamespace(),
-		spec:         &r.Spec,
-		status:       &r.Status,
-	}
-}
-
 func (f managerFactory) NewArmadaChartGroupManager(r *av1.ArmadaChartGroup) armadaif.ArmadaManager {
 	return &chartgroupmanager{
 		kubeClient:   f.kubeClient,

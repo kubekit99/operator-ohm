@@ -23,6 +23,7 @@ import (
 // improves decoupling between reconciliation logic and the Helm backend
 // components used to manage releases.
 type HelmManagerFactory interface {
-	NewTillerManager(r *av1.HelmRelease) HelmManager
+	NewHelmReleaseTillerManager(r *av1.HelmRelease) HelmManager
+	NewArmadaChartTillerManager(r *av1.ArmadaChart) HelmManager
 	NewHelm3Manager(r *av1.HelmRelease) HelmManager
 }

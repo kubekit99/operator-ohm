@@ -146,8 +146,8 @@ func (m chartgroupmanager) newResourceForCR() *av1.ArmadaChart {
 				NoHooks: false,
 			},
 			Source: &av1.ArmadaChartSource{
-				Type:      "git",
-				Location:  "https://github.com/gardlt/hello-world-chart",
+				Type:      "local",
+				Location:  "/opt/armada/armada-charts/tiller-testchart/helm",
 				Subpath:   ".",
 				Reference: "master",
 			},

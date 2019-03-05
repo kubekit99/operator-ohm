@@ -35,10 +35,7 @@ import (
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
-
-var log = logf.Log.WithName("tiller")
 
 // Add creates a new HelmRelease Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -116,7 +113,7 @@ func (r *HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	manager := r.managerFactory.NewTillerManager(instance)
+	manager := r.managerFactory.NewHelmReleaseTillerManager(instance)
 	spec := instance.Spec
 	status := &instance.Status
 

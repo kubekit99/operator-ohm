@@ -23,7 +23,6 @@ import (
 // improves decoupling between reconciliation logic and the Helm backend
 // components used to manage releases.
 type ArmadaManagerFactory interface {
-	NewArmadaChartManager(r *av1.ArmadaChart) ArmadaManager
 	NewArmadaChartGroupManager(r *av1.ArmadaChartGroup) ArmadaManager
 	NewArmadaManifestManager(r *av1.ArmadaManifest) ArmadaManager
 }
