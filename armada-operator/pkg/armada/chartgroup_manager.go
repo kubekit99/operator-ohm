@@ -19,7 +19,6 @@ import (
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	armadaif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -33,7 +32,7 @@ type chartgroupmanager struct {
 	namespace        string
 	spec             *av1.ArmadaChartGroupSpec
 	status           *av1.ArmadaChartGroupStatus
-	deployedResource *corev1.Pod
+	deployedResource *av1.ArmadaChart
 	isInstalled      bool
 	isUpdateRequired bool
 }
@@ -71,7 +70,7 @@ func (m *chartgroupmanager) Sync(ctx context.Context) error {
 	m.deployedResource = existingResource
 
 	targetResource := m.newResourceForCR()
-	if targetResource.Spec.Containers[0].Image != m.deployedResource.Spec.Containers[0].Image {
+	if !targetResource.Equivalent(m.deployedResource) {
 		m.isUpdateRequired = true
 	} else {
 		m.isUpdateRequired = false
@@ -87,7 +86,7 @@ func (m chartgroupmanager) InstallResource(ctx context.Context) (*unstructured.U
 		log.Error(err, "Can't not Create Resource")
 		return nil, err
 	}
-	return FromPod(newResource), nil
+	return newResource.FromArmadaChart(), nil
 }
 
 // UpdateResource performs a Helm release update.
@@ -102,14 +101,14 @@ func (m chartgroupmanager) UpdateResource(ctx context.Context) (*unstructured.Un
 			return nil, nil, err
 		}
 	}
-	return FromPod(m.deployedResource), FromPod(toUpdate), nil
+	return m.deployedResource.FromArmadaChart(), toUpdate.FromArmadaChart(), nil
 }
 
 // ReconcileResource creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m chartgroupmanager) ReconcileResource(ctx context.Context) (*unstructured.Unstructured, error) {
 	toReconcile := m.newResourceForCR()
-	return FromPod(toReconcile), nil
+	return toReconcile.FromArmadaChart(), nil
 }
 
 // UninstallResource performs a Helm release uninstall.
@@ -124,28 +123,36 @@ func (m chartgroupmanager) UninstallResource(ctx context.Context) (*unstructured
 			return nil, err
 		}
 	}
-	return FromPod(toDelete), nil
+	return toDelete.FromArmadaChart(), nil
 }
 
-// newResourceForCR returns a busybox pod with the same name/namespace as the cr
-func (m chartgroupmanager) newResourceForCR() *corev1.Pod {
+// newResourceForCR returns a dummy ArmadaChart the same name/namespace as the cr
+func (m chartgroupmanager) newResourceForCR() *av1.ArmadaChart {
 	labels := map[string]string{
 		"app": m.resourceName,
 	}
-	return &corev1.Pod{
+
+	return &av1.ArmadaChart{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.resourceName + "-pod",
+			Name:      m.resourceName + "-act",
 			Namespace: m.namespace,
 			Labels:    labels,
 		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
+		Spec: av1.ArmadaChartSpec{
+			ChartName: m.resourceName + "-act",
+			Release:   m.resourceName + "-release",
+			Namespace: m.namespace,
+			Upgrade: &av1.ArmadaUpgrade{
+				NoHooks: false,
 			},
+			Source: &av1.ArmadaChartSource{
+				Type:      "git",
+				Location:  "https://github.com/gardlt/hello-world-chart",
+				Subpath:   ".",
+				Reference: "master",
+			},
+			Dependencies: make([]string, 0),
+			TargetState:  av1.StateInitialized,
 		},
 	}
 }

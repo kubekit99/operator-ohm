@@ -213,11 +213,10 @@ func (r *HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile
 		installedResource, err := manager.InstallRelease(context.TODO())
 		if err != nil {
 			hrc := av1.HelmResourceCondition{
-				Type:         av1.ConditionFailed,
-				Status:       av1.ConditionStatusTrue,
-				Reason:       av1.ReasonInstallError,
-				Message:      err.Error(),
-				ResourceName: installedResource.GetName(),
+				Type:    av1.ConditionFailed,
+				Status:  av1.ConditionStatusTrue,
+				Reason:  av1.ReasonInstallError,
+				Message: err.Error(),
 			}
 			status.SetCondition(hrc)
 			status.ComputeActualState(&hrc, spec.TargetState)
