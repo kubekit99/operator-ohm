@@ -93,6 +93,16 @@ func (s *ArmadaChartGroupStatus) RemoveCondition(conditionType HelmResourceCondi
 	return s
 }
 
+// Return the list of dependant resources to watch
+func (obj *ArmadaChartGroup) GetDependantResources() []unstructured.Unstructured {
+	var res = make([]unstructured.Unstructured, 0)
+	for _, chartname := range obj.Spec.Charts {
+		u := NewArmadaChartVersionKind(obj.GetNamespace(), chartname)
+		res = append(res, *u)
+	}
+	return res
+}
+
 // Convert an unstructured.Unstructured into a typed ArmadaChartGroup
 func ToArmadaChartGroup(u *unstructured.Unstructured) *ArmadaChartGroup {
 	var obj *ArmadaChartGroup
@@ -114,16 +124,6 @@ func (obj *ArmadaChartGroup) FromArmadaChartGroup() *unstructured.Unstructured {
 	return u
 }
 
-// Return the list of dependant resources to watch
-func (obj *ArmadaChartGroup) GetDependantResources() []unstructured.Unstructured {
-	var res = make([]unstructured.Unstructured, 0)
-	for _, chartname := range obj.Spec.Charts {
-		u := NewArmadaChartVersionKind(obj.GetNamespace(), chartname)
-		res = append(res, *u)
-	}
-	return res
-}
-
 // JEB: Not sure yet if we really will need it
 func (obj *ArmadaChartGroup) Equivalent(other *ArmadaChartGroup) bool {
 	if other == nil {
@@ -137,6 +137,45 @@ func NewArmadaChartGroupVersionKind(namespace string, name string) *unstructured
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
 	u.SetKind("ArmadaChartGroup")
+	u.SetNamespace(namespace)
+	u.SetName(name)
+	return u
+}
+
+// Convert an unstructured.Unstructured into a typed ArmadaChartGroupList
+func ToArmadaChartGroupList(u *unstructured.Unstructured) *ArmadaChartGroupList {
+	var obj *ArmadaChartGroupList
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &obj)
+	if err != nil {
+		return &ArmadaChartGroupList{}
+	}
+	return obj
+}
+
+// Convert a typed ArmadaChartGroupList into an unstructured.Unstructured
+func (obj *ArmadaChartGroupList) FromArmadaChartGroupList() *unstructured.Unstructured {
+	u := NewArmadaChartGroupListVersionKind("", "")
+	tmp, err := runtime.DefaultUnstructuredConverter.ToUnstructured(*obj)
+	if err != nil {
+		return u
+	}
+	u.SetUnstructuredContent(tmp)
+	return u
+}
+
+// JEB: Not sure yet if we really will need it
+func (obj *ArmadaChartGroupList) Equivalent(other *ArmadaChartGroupList) bool {
+	if other == nil {
+		return false
+	}
+	return reflect.DeepEqual(obj.Items, other.Items)
+}
+
+// Returns a GKV for ArmadaChartGroupList
+func NewArmadaChartGroupListVersionKind(namespace string, name string) *unstructured.Unstructured {
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
+	u.SetKind("ArmadaChartGroupList")
 	u.SetNamespace(namespace)
 	u.SetName(name)
 	return u

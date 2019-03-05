@@ -442,14 +442,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:23ffae70055f9e10c20f42157f8bcd9fa00fc5241ab453eaac3850541639ad0d"
-  name = "github.com/martinlindhe/base36"
-  packages = ["."]
-  pruneopts = "NT"
-  revision = "5cda0030da1725952be91a1223090c4ecef8dfb2"
-
-[[projects]]
-  branch = "master"
   digest = "1:0e9bfc47ab9941ecc3344e580baca5deb4091177e84dd9773b48b38ec26b93d5"
   name = "github.com/mattbaird/jsonpatch"
   packages = ["."]
@@ -1447,13 +1439,11 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/martinlindhe/base36",
     "github.com/mattbaird/jsonpatch",
     "github.com/operator-framework/operator-sdk/pkg/k8sutil",
     "github.com/operator-framework/operator-sdk/pkg/leader",
     "github.com/operator-framework/operator-sdk/pkg/metrics",
     "github.com/operator-framework/operator-sdk/version",
-    "github.com/pborman/uuid",
     "github.com/sergi/go-diff/diffmatchpatch",
     "gopkg.in/yaml.v2",
     "k8s.io/api/core/v1",

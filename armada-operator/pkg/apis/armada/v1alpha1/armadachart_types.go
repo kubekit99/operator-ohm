@@ -113,6 +113,12 @@ func (s *ArmadaChartStatus) RemoveCondition(conditionType HelmResourceConditionT
 	return s
 }
 
+// Return the list of dependant resources to watch
+func (obj *ArmadaChart) GetDependantResources() []unstructured.Unstructured {
+	var res = make([]unstructured.Unstructured, 0)
+	return res
+}
+
 // Convert an unstructured.Unstructured into a typed ArmadaChart
 func ToArmadaChart(u *unstructured.Unstructured) *ArmadaChart {
 	var obj *ArmadaChart
@@ -134,12 +140,6 @@ func (obj *ArmadaChart) FromArmadaChart() *unstructured.Unstructured {
 	return u
 }
 
-// Return the list of dependant resources to watch
-func (obj *ArmadaChart) GetDependantResources() []unstructured.Unstructured {
-	var res = make([]unstructured.Unstructured, 0)
-	return res
-}
-
 // JEB: Not sure yet if we really will need it
 func (obj *ArmadaChart) Equivalent(other *ArmadaChart) bool {
 	if other == nil {
@@ -153,6 +153,45 @@ func NewArmadaChartVersionKind(namespace string, name string) *unstructured.Unst
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
 	u.SetKind("ArmadaChart")
+	u.SetNamespace(namespace)
+	u.SetName(name)
+	return u
+}
+
+// Convert an unstructured.Unstructured into a typed ArmadaChartList
+func ToArmadaChartList(u *unstructured.Unstructured) *ArmadaChartList {
+	var obj *ArmadaChartList
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &obj)
+	if err != nil {
+		return &ArmadaChartList{}
+	}
+	return obj
+}
+
+// Convert a typed ArmadaChartList into an unstructured.Unstructured
+func (obj *ArmadaChartList) FromArmadaChartList() *unstructured.Unstructured {
+	u := NewArmadaChartListVersionKind("", "")
+	tmp, err := runtime.DefaultUnstructuredConverter.ToUnstructured(*obj)
+	if err != nil {
+		return u
+	}
+	u.SetUnstructuredContent(tmp)
+	return u
+}
+
+// JEB: Not sure yet if we really will need it
+func (obj *ArmadaChartList) Equivalent(other *ArmadaChartList) bool {
+	if other == nil {
+		return false
+	}
+	return reflect.DeepEqual(obj.Items, other.Items)
+}
+
+// Returns a GKV for ArmadaChartList
+func NewArmadaChartListVersionKind(namespace string, name string) *unstructured.Unstructured {
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
+	u.SetKind("ArmadaChartList")
 	u.SetNamespace(namespace)
 	u.SetName(name)
 	return u

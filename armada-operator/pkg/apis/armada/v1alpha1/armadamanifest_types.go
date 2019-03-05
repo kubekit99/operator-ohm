@@ -102,6 +102,16 @@ func (s *ArmadaManifestStatus) RemoveCondition(conditionType HelmResourceConditi
 	return s
 }
 
+// Return the list of dependant resources to watch
+func (obj *ArmadaManifest) GetDependantResources() []unstructured.Unstructured {
+	var res = make([]unstructured.Unstructured, 0)
+	for _, chartname := range obj.Spec.ChartGroups {
+		u := NewArmadaChartGroupVersionKind(obj.GetNamespace(), chartname)
+		res = append(res, *u)
+	}
+	return res
+}
+
 // Convert an unstructured.Unstructured into a typed ArmadaManifest
 func ToArmadaManifest(u *unstructured.Unstructured) *ArmadaManifest {
 	var obj *ArmadaManifest
@@ -123,16 +133,6 @@ func (obj *ArmadaManifest) FromArmadaManifest() *unstructured.Unstructured {
 	return u
 }
 
-// Return the list of dependant resources to watch
-func (obj *ArmadaManifest) GetDependantResources() []unstructured.Unstructured {
-	var res = make([]unstructured.Unstructured, 0)
-	for _, chartname := range obj.Spec.ChartGroups {
-		u := NewArmadaChartGroupVersionKind(obj.GetNamespace(), chartname)
-		res = append(res, *u)
-	}
-	return res
-}
-
 // JEB: Not sure yet if we really will need it
 func (obj *ArmadaManifest) Equivalent(other *ArmadaManifest) bool {
 	if other == nil {
@@ -146,6 +146,45 @@ func NewArmadaManifestVersionKind(namespace string, name string) *unstructured.U
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
 	u.SetKind("ArmadaManifest")
+	u.SetNamespace(namespace)
+	u.SetName(name)
+	return u
+}
+
+// Convert an unstructured.Unstructured into a typed ArmadaManifestList
+func ToArmadaManifestList(u *unstructured.Unstructured) *ArmadaManifestList {
+	var obj *ArmadaManifestList
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &obj)
+	if err != nil {
+		return &ArmadaManifestList{}
+	}
+	return obj
+}
+
+// Convert a typed ArmadaManifestList into an unstructured.Unstructured
+func (obj *ArmadaManifestList) FromArmadaManifestList() *unstructured.Unstructured {
+	u := NewArmadaManifestListVersionKind("", "")
+	tmp, err := runtime.DefaultUnstructuredConverter.ToUnstructured(*obj)
+	if err != nil {
+		return u
+	}
+	u.SetUnstructuredContent(tmp)
+	return u
+}
+
+// JEB: Not sure yet if we really will need it
+func (obj *ArmadaManifestList) Equivalent(other *ArmadaManifestList) bool {
+	if other == nil {
+		return false
+	}
+	return reflect.DeepEqual(obj.Items, other.Items)
+}
+
+// Returns a GKV for ArmadaManifestList
+func NewArmadaManifestListVersionKind(namespace string, name string) *unstructured.Unstructured {
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion("armada.airshipit.org/v1alpha1")
+	u.SetKind("ArmadaManifestList")
 	u.SetNamespace(namespace)
 	u.SetName(name)
 	return u
