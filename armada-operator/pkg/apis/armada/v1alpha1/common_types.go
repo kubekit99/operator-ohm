@@ -50,7 +50,7 @@ const (
 	// StateUnknown indicates that a release/chart/chartgroup/manifest is in an uncertain state.
 	StateUnknown HelmResourceState = "unknown"
 	// StateInitialized indicates that a release/chart/chartgroup/manifest is in an Kubernetes
-	StateIntialized HelmResourceState = "initialized"
+	StateInitialized HelmResourceState = "initialized"
 	// StateDeployed indicates that the release/chart/chartgroup/manifest has been downloaded from artifact repository
 	StateDownloaded HelmResourceState = "downloaded"
 	// StateDeployed indicates that the release/chart/chartgroup/manifest has been pushed to Kubernetes.

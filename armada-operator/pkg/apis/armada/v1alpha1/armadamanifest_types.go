@@ -15,6 +15,8 @@
 package v1alpha1
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -129,6 +131,14 @@ func (obj *ArmadaManifest) GetDependantResources() []unstructured.Unstructured {
 		res = append(res, *u)
 	}
 	return res
+}
+
+// JEB: Not sure yet if we really will need it
+func (obj *ArmadaManifest) Equivalent(other *ArmadaManifest) bool {
+	if other == nil {
+		return false
+	}
+	return reflect.DeepEqual(obj.Spec.ChartGroups, other.Spec.ChartGroups)
 }
 
 // Returns a GKV for ArmadaManifest

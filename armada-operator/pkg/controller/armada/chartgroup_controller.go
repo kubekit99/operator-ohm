@@ -30,13 +30,13 @@ func AddArmadaChartGroupController(mgr manager.Manager) error {
 	r := &ArmadaChartGroupReconciler{
 		client:         mgr.GetClient(),
 		scheme:         mgr.GetScheme(),
-		recorder:       mgr.GetRecorder("act-recorder"),
+		recorder:       mgr.GetRecorder("acg-recorder"),
 		managerFactory: armadamgr.NewManagerFactory(mgr),
 		// reconcilePeriod: flags.ReconcilePeriod,
 	}
 
 	// Create a new controller
-	c, err := controller.New("act-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("acg-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}

@@ -19,7 +19,6 @@ import (
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	armadaif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -33,7 +32,7 @@ type manifestmanager struct {
 	namespace        string
 	spec             *av1.ArmadaManifestSpec
 	status           *av1.ArmadaManifestStatus
-	deployedResource *corev1.Pod
+	deployedResource *av1.ArmadaChartGroup
 	isInstalled      bool
 	isUpdateRequired bool
 }
@@ -71,7 +70,7 @@ func (m *manifestmanager) Sync(ctx context.Context) error {
 	m.deployedResource = existingResource
 
 	targetResource := m.newResourceForCR()
-	if targetResource.Spec.Containers[0].Image != m.deployedResource.Spec.Containers[0].Image {
+	if !targetResource.Equivalent(m.deployedResource) {
 		m.isUpdateRequired = true
 	} else {
 		m.isUpdateRequired = false
@@ -87,7 +86,7 @@ func (m manifestmanager) InstallResource(ctx context.Context) (*unstructured.Uns
 		log.Error(err, "Can't not Create Resource")
 		return nil, err
 	}
-	return FromPod(newResource), nil
+	return newResource.FromArmadaChartGroup(), nil
 }
 
 // UpdateResource performs a Helm release update.
@@ -102,14 +101,14 @@ func (m manifestmanager) UpdateResource(ctx context.Context) (*unstructured.Unst
 			return nil, nil, err
 		}
 	}
-	return FromPod(m.deployedResource), FromPod(toUpdate), nil
+	return m.deployedResource.FromArmadaChartGroup(), toUpdate.FromArmadaChartGroup(), nil
 }
 
 // ReconcileResource creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m manifestmanager) ReconcileResource(ctx context.Context) (*unstructured.Unstructured, error) {
 	toReconcile := m.newResourceForCR()
-	return FromPod(toReconcile), nil
+	return toReconcile.FromArmadaChartGroup(), nil
 }
 
 // UninstallResource performs a Helm release uninstall.
@@ -124,28 +123,31 @@ func (m manifestmanager) UninstallResource(ctx context.Context) (*unstructured.U
 			return nil, err
 		}
 	}
-	return FromPod(toDelete), nil
+	return toDelete.FromArmadaChartGroup(), nil
 }
 
-// newResourceForCR returns a busybox pod with the same name/namespace as the cr
-func (m manifestmanager) newResourceForCR() *corev1.Pod {
+// newResourceForCR returns a dummy ArmadaChartGroup the same name/namespace as the cr
+func (m manifestmanager) newResourceForCR() *av1.ArmadaChartGroup {
 	labels := map[string]string{
 		"app": m.resourceName,
 	}
-	return &corev1.Pod{
+
+	var charts = make([]string, 0)
+	charts = append(charts, m.resourceName+"-chart")
+
+	return &av1.ArmadaChartGroup{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.resourceName + "-pod",
+			Name:      m.resourceName + "-acg",
 			Namespace: m.namespace,
 			Labels:    labels,
 		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
+		Spec: av1.ArmadaChartGroupSpec{
+			Charts:      charts,
+			Description: "Created by " + m.resourceName,
+			Name:        m.resourceName + "-acg",
+			Sequenced:   false,
+			TestCharts:  false,
+			TargetState: av1.StateInitialized,
 		},
 	}
 }

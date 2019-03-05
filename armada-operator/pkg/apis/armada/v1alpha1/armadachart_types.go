@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -136,6 +138,14 @@ func (obj *ArmadaChart) FromArmadaChart() *unstructured.Unstructured {
 func (obj *ArmadaChart) GetDependantResources() []unstructured.Unstructured {
 	var res = make([]unstructured.Unstructured, 0)
 	return res
+}
+
+// JEB: Not sure yet if we really will need it
+func (obj *ArmadaChart) Equivalent(other *ArmadaChart) bool {
+	if other == nil {
+		return false
+	}
+	return reflect.DeepEqual(obj.Spec, other.Spec)
 }
 
 // Returns a GKV for ArmadaChart
