@@ -1,0 +1,42 @@
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaChart
+metadata:
+  name: mariadb
+spec:
+  chart_name: mariadb
+  release: mariadb
+  namespace: default
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values: {}
+  source:
+    type: local
+    location: /opt/armada/helm-charts/mariadb
+    subpath: .
+    reference: 87aad18f7d8c6a1a08f3adc8866efd33bee6aa52
+  dependencies: []
+  target_state: initialized
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaChartGroup
+metadata:
+  name: mariadb
+spec:
+  description: Deploys MariaDB
+  sequenced: False
+  chart_group:
+    - mariadb
+  target_state: initialized
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaManifest
+metadata:
+  name: mariadb
+spec:
+  release_prefix: armada
+  chart_groups:
+    - mariadb
+  target_state: initialized

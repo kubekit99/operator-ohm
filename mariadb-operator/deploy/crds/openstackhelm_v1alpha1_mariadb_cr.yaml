@@ -1,9 +1,0 @@
-apiVersion: openstackhelm.openstack.org/v1alpha1
-kind: Mariadb
-metadata:
-  name: example-mariadb
-spec:
-  # Add fields here
-  pod:
-    replicas:
-       server: 2
