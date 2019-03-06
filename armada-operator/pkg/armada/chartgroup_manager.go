@@ -58,7 +58,7 @@ func (m *chartgroupmanager) Sync(ctx context.Context) error {
 	for _, existingResource := range (*targetResourceList).Items {
 		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.Name, Namespace: existingResource.Namespace}, &existingResource)
 		if err != nil {
-			if !apierrors.IsNotFound(errs[0]) {
+			if !apierrors.IsNotFound(err) {
 				log.Error(err, "Can't not Sync ArmadaChart")
 			}
 			errs = append(errs, err)
