@@ -62,14 +62,20 @@ purge: setup
 
 installmanifest:
 	kubectl label nodes airship openstack-control-plane=enabled --overwrite
-	kubectl apply -f example/keystone/simple.yaml
-	kubectl describe amf/keystone
+	kubectl apply -f example/keystone/simple_local.yaml
+	kubectl describe amf/armada-manifest
 
 describemanifest:
+	kubectl describe amf/armada-manifest
+	kubectl describe acg/keystone-infra-services
+	kubectl describe acg/openstack-keystone
+	kubectl describe act/helm-toolkit
 	kubectl describe act/keystone
-	kubectl describe acg/keystone
-	kubectl describe amf/keystone
+	kubectl describe act/mariadb
+	kubectl describe act/memcached
+	kubectl describe act/rabbitmq
 
 deletemanifest:
-	kubectl delete -f example/keystone/simple.yaml
-	kubectl describe amf/keystone 
+	kubectl delete -f example/keystone/simple_local.yaml
+	kubectl describe amf/armada-manifest 
+
