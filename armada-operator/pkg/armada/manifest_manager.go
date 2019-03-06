@@ -1,4 +1,4 @@
-// Copyright 2018 The Operator-SDK Authors
+// Copyright 2019 The Armada Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ type manifestmanager struct {
 	namespace        string
 	spec             *av1.ArmadaManifestSpec
 	status           *av1.ArmadaManifestStatus
-	deployedResource *av1.ArmadaChartGroup
+	deployedResource *av1.ArmadaChartGroupList
 	isInstalled      bool
 	isUpdateRequired bool
 }
@@ -50,104 +50,138 @@ func (m manifestmanager) IsUpdateRequired() bool {
 	return m.isUpdateRequired
 }
 
-// Sync ensures the Helm storage backend is in sync with the status of the
-// custom resource.
+// Sync detects which ArmadaChartGroup are already present for that ArmadaManifest
 func (m *manifestmanager) Sync(ctx context.Context) error {
-	existingResource := m.newResourceForCR()
-	err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.Name, Namespace: existingResource.Namespace}, existingResource)
-	if err != nil {
-		m.isInstalled = false
-		m.deployedResource = nil
-		if apierrors.IsNotFound(err) {
-			return nil
+	m.deployedResource = &av1.ArmadaChartGroupList{Items: make([]av1.ArmadaChartGroup, 0)}
+	errs := make([]error, 0)
+	targetResourceList := m.newResourceForCR()
+	for _, existingResource := range (*targetResourceList).Items {
+		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.Name, Namespace: existingResource.Namespace}, &existingResource)
+		if err != nil {
+			if !apierrors.IsNotFound(errs[0]) {
+				log.Error(err, "Can't not Sync ArmadaChartGroup")
+			}
+			errs = append(errs, err)
 		} else {
-			log.Error(err, "Can't not Sync Resource")
-			return err
+			m.deployedResource.Items = append(m.deployedResource.Items, existingResource)
 		}
 	}
 
-	m.isInstalled = true
-	m.deployedResource = existingResource
+	// Let's check if some of the ArmaChartGroup are already present.
+	// If yes, let's consider the ArmadaManifest as installed and we will update it.
+	if len(m.deployedResource.Items) == 0 {
+		m.isInstalled = false
+		return nil
+	} else {
+		m.isInstalled = true
+	}
 
-	targetResource := m.newResourceForCR()
-	if !targetResource.Equivalent(m.deployedResource) {
+	if len(targetResourceList.Items) != len(m.deployedResource.Items) {
 		m.isUpdateRequired = true
 	} else {
 		m.isUpdateRequired = false
 	}
 
 	return nil
+
 }
 
 func (m manifestmanager) InstallResource(ctx context.Context) (*unstructured.Unstructured, error) {
-	newResource := m.newResourceForCR()
-	err := m.kubeClient.Create(context.TODO(), newResource)
-	if err != nil {
-		log.Error(err, "Can't not Create Resource")
-		return nil, err
+	errs := make([]error, 0)
+	toInstallList := m.newResourceForCR()
+	for _, toInstall := range (*toInstallList).Items {
+		err := m.kubeClient.Create(context.TODO(), &toInstall)
+		if err != nil {
+			log.Error(err, "Can't not Create ArmadaChartGroup")
+			errs = append(errs, err)
+		}
 	}
-	return newResource.FromArmadaChartGroup(), nil
+	if len(errs) != 0 {
+		return nil, errs[0]
+	}
+	return toInstallList.FromArmadaChartGroupList(), nil
 }
 
 // UpdateResource performs a Helm release update.
 func (m manifestmanager) UpdateResource(ctx context.Context) (*unstructured.Unstructured, *unstructured.Unstructured, error) {
-	toUpdate := m.newResourceForCR()
-	err := m.kubeClient.Update(context.TODO(), toUpdate)
-	if err != nil {
-		log.Error(err, "Can't not Update Resource")
-		if apierrors.IsNotFound(err) {
-			return nil, nil, armadaif.ErrNotFound
-		} else {
-			return nil, nil, err
+	errs := make([]error, 0)
+	toUpdateList := m.newResourceForCR()
+	for _, toUpdate := range (*toUpdateList).Items {
+		err := m.kubeClient.Update(context.TODO(), &toUpdate)
+		if err != nil {
+			log.Error(err, "Can't not Update ArmadaChartGroup")
+			errs = append(errs, err)
 		}
 	}
-	return m.deployedResource.FromArmadaChartGroup(), toUpdate.FromArmadaChartGroup(), nil
+
+	if len(errs) != 0 {
+		if apierrors.IsNotFound(errs[0]) {
+			return nil, nil, armadaif.ErrNotFound
+		} else {
+			return nil, nil, errs[0]
+		}
+	}
+	return m.deployedResource.FromArmadaChartGroupList(), toUpdateList.FromArmadaChartGroupList(), nil
 }
 
 // ReconcileResource creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m manifestmanager) ReconcileResource(ctx context.Context) (*unstructured.Unstructured, error) {
 	toReconcile := m.newResourceForCR()
-	return toReconcile.FromArmadaChartGroup(), nil
+	return toReconcile.FromArmadaChartGroupList(), nil
 }
 
 // UninstallResource performs a Helm release uninstall.
 func (m manifestmanager) UninstallResource(ctx context.Context) (*unstructured.Unstructured, error) {
-	toDelete := m.newResourceForCR()
-	err := m.kubeClient.Delete(context.TODO(), toDelete)
-	if err != nil {
-		log.Error(err, "Can't not Delete Resource")
-		if apierrors.IsNotFound(err) {
-			return nil, armadaif.ErrNotFound
-		} else {
-			return nil, err
+	errs := make([]error, 0)
+	toDeleteList := m.newResourceForCR()
+	for _, toDelete := range (*toDeleteList).Items {
+		err := m.kubeClient.Delete(context.TODO(), &toDelete)
+		if err != nil {
+			log.Error(err, "Can't not Delete ArmadaChartGroup")
+			errs = append(errs, err)
 		}
 	}
-	return toDelete.FromArmadaChartGroup(), nil
+
+	if len(errs) != 0 {
+		if apierrors.IsNotFound(errs[0]) {
+			return nil, armadaif.ErrNotFound
+		} else {
+			return nil, errs[0]
+		}
+	}
+	return toDeleteList.FromArmadaChartGroupList(), nil
 }
 
-// newResourceForCR returns a dummy ArmadaChartGroup the same name/namespace as the cr
-func (m manifestmanager) newResourceForCR() *av1.ArmadaChartGroup {
+// newResourceForCR returns a dummy ArmadaChart the same name/namespace as the cr
+func (m manifestmanager) newResourceForCR() *av1.ArmadaChartGroupList {
 	labels := map[string]string{
 		"app": m.resourceName,
 	}
 
-	var charts = make([]string, 0)
-	charts = append(charts, m.resourceName+"-chart")
-
-	return &av1.ArmadaChartGroup{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.resourceName + "-acg",
-			Namespace: m.namespace,
-			Labels:    labels,
-		},
-		Spec: av1.ArmadaChartGroupSpec{
-			Charts:      charts,
-			Description: "Created by " + m.resourceName,
-			Name:        m.resourceName + "-acg",
-			Sequenced:   false,
-			TestCharts:  false,
-			TargetState: av1.StateInitialized,
-		},
+	var res = av1.ArmadaChartGroupList{
+		Items: make([]av1.ArmadaChartGroup, 0),
 	}
+
+	for _, chartgroupname := range m.spec.ChartGroups {
+		res.Items = append(res.Items,
+			av1.ArmadaChartGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      chartgroupname,
+					Namespace: m.namespace,
+					Labels:    labels,
+				},
+				Spec: av1.ArmadaChartGroupSpec{
+					Charts:      make([]string, 0),
+					Description: "Created by " + m.resourceName,
+					Name:        chartgroupname,
+					Sequenced:   false,
+					TestCharts:  false,
+					TargetState: av1.StateInitialized,
+				},
+			},
+		)
+	}
+
+	return &res
 }

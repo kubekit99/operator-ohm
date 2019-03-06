@@ -17,4 +17,5 @@
 // +k8s:deepcopy-gen=package,register
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=armada.airshipit.org
+
 package v1alpha1

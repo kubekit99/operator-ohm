@@ -128,7 +128,9 @@ func (m chartmanager) syncReleaseStatus(status av1.ArmadaChartStatus) error {
 		return nil
 	} else {
 		// JEB: Big issue here. Original code was saving the release in the Condition
-		release = &rpb.Release{Name: condition.ResourceName, Version: condition.ResourceVersion}
+		// Still does not work right and cause fatal in the subsequent m.storageBackend.Create(release)
+		// release = &rpb.Release{Name: condition.ResourceName, Version: condition.ResourceVersion}
+		release = nil
 	}
 	if release == nil {
 		return nil
