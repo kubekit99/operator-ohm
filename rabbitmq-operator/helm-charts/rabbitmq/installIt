@@ -1,0 +1,2 @@
+#!/bin/bash
+helm install --name rabbitmq --namespace openstack .
