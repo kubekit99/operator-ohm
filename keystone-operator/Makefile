@@ -25,33 +25,51 @@ docker-push:
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 install: docker-build
-	kubectl create namespace operatorpoc
-	kubectl create -f deploy/crds/openstackhelm_v1alpha1_keystone_crd.yaml -n operatorpoc
-	kubectl create -f deploy/service_account.yaml -n operatorpoc
-	kubectl create -f deploy/role.yaml -n operatorpoc
-	kubectl create -f deploy/role_binding.yaml -n operatorpoc
-	kubectl create -f deploy/operator.yaml -n operatorpoc
-	kubectl get all -n operatorpoc
+	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
+	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
+	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
+	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadarequest.yaml
+	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_helmrelease.yaml
+	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_helmrequest.yaml
+	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycleevent.yaml
+	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycle.yaml
+	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_manifest.yaml
+	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_releaseaudit.yaml
+	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_release.yaml
+	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_values.yaml
+	kubectl apply -f ../armada-operator/chart/templates/role_binding.yaml
+	kubectl apply -f ../armada-operator/chart/templates/role.yaml
+	kubectl apply -f ../armada-operator/chart/templates/service_account.yaml
+	kubectl create -f deploy/operator.yaml
 
 purge: setup
-	kubectl delete -f deploy/operator.yaml -n operatorpoc
-	kubectl delete -f deploy/role_binding.yaml -n operatorpoc
-	kubectl delete -f deploy/role.yaml -n operatorpoc
-	kubectl delete -f deploy/service_account.yaml -n operatorpoc
-	kubectl delete -f deploy/crds/openstackhelm_v1alpha1_keystone_crd.yaml -n operatorpoc
-	kubectl get all -n operatorpoc
-	kubectl delete namespace operatorpoc
+	kubectl delete -f deploy/operator.yaml
+	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
+	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
+	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
+	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadarequest.yaml
+	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_helmrelease.yaml
+	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_helmrequest.yaml
+	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycleevent.yaml
+	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycle.yaml
+	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_manifest.yaml
+	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_releaseaudit.yaml
+	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_release.yaml
+	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_values.yaml
+	kubectl delete -f ../armada-operator/chart/templates/role_binding.yaml
+	kubectl delete -f ../armada-operator/chart/templates/role.yaml
+	kubectl delete -f ../armada-operator/chart/templates/service_account.yaml
 
-createchart:
+installmanifest:
 	kubectl label nodes airship openstack-control-plane=enabled --overwrite
-	kubectl create -f deploy/crds/openstackhelm_v1alpha1_keystone_cr.yaml -n operatorpoc
-	kubectl get keystones.openstackhelm.openstack.org -n operatorpoc
-	kubectl get all -n operatorpoc
+	kubectl apply -f example/keystone/simple.yaml
+	kubectl describe amf/keystone
 
-describechart:
-	kubectl describe keystones/example-keystone -n operatorpoc
+describemanifest:
+	kubectl describe act/keystone
+	kubectl describe acg/keystone
+	kubectl describe amf/keystone
 
-deletechart:
-	kubectl delete -f deploy/crds/openstackhelm_v1alpha1_keystone_cr.yaml -n operatorpoc
-	kubectl get keystones.openstackhelm.openstack.org -n operatorpoc
-	kubectl get all -n operatorpoc
+deletemanifest:
+	kubectl delete -f example/keystone/simple.yaml
+	kubectl describe amf/keystone 

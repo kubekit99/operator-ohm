@@ -1,7 +1,0 @@
-apiVersion: openstackhelm.openstack.org/v1alpha1
-kind: Keystone
-metadata:
-  name: example-keystone
-spec:
-  # Add fields here
-  size: 3

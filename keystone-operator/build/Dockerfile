@@ -1,4 +1,3 @@
-FROM quay.io/operator-framework/helm-operator:v0.4.0
+FROM kubekit99/armada-operator-dev:latest
 
-COPY helm-charts/ ${HOME}/helm-charts/
-COPY watches.yaml ${HOME}/watches.yaml
+COPY helm-charts/ /opt/armada/helm-charts/
