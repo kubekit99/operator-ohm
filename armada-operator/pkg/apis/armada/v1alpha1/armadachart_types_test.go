@@ -31,8 +31,24 @@ func TestStorageArmadaChart(t *testing.T) {
 	created := &ArmadaChart{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
+			Namespace: "default"},
+		Spec: ArmadaChartSpec{
+			ChartName: "foo",
+			Release:   "foo-release",
 			Namespace: "default",
-		}}
+			Upgrade: &ArmadaUpgrade{
+				NoHooks: false,
+			},
+			Source: &ArmadaChartSource{
+				Type:      "local",
+				Location:  "/opt/armada/helm-charts/foo",
+				Subpath:   ".",
+				Reference: "master",
+			},
+			Dependencies: make([]string, 0),
+			TargetState:  StateInitialized,
+		},
+	}
 	g := gomega.NewGomegaWithT(t)
 
 	// Test Create

@@ -18,9 +18,15 @@ clean:
 	rm -fr vendor
 	rm -fr cover.out
 	rm -fr build/_output
+	rm -fr config/crds
 
 # Run tests
 unittest: setup fmt vet
+	echo "sudo systemctl stop kubelet"
+	echo "docker stop $(docker ps -qa)"
+	echo "export PATH=$PATH:/usr/local/kubebuilder/bin"
+	mkdir -p config/crds
+	cp chart/templates/*v1alpha1* config/crds/
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 # Run go fmt against code
@@ -38,7 +44,7 @@ generate: setup
 	operator-sdk generate k8s
 
 # Build the docker image
-docker-build: unittest
+docker-build: fmt vet
 	operator-sdk build ${IMG}
 	docker tag ${IMG} ${DHUBREPO}:latest
 
@@ -64,6 +70,3 @@ installhelm3crdrelease:
 
 deletehelm3crdrelease:
 	kubectl delete -f examples/helm3crd/release.yaml
-
-
-

@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	armadav1alpha1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
@@ -39,7 +39,27 @@ const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	instance := &armadav1alpha1.ArmadaChart{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	instance := &av1.ArmadaChart{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "default"},
+		Spec: av1.ArmadaChartSpec{
+			ChartName: "foo",
+			Release:   "foo-release",
+			Namespace: "default",
+			Upgrade: &av1.ArmadaUpgrade{
+				NoHooks: false,
+			},
+			Source: &av1.ArmadaChartSource{
+				Type:      "local",
+				Location:  "/opt/armada/helm-charts/foo",
+				Subpath:   ".",
+				Reference: "master",
+			},
+			Dependencies: make([]string, 0),
+			TargetState:  av1.StateInitialized,
+		},
+	}
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.

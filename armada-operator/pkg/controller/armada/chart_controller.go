@@ -40,11 +40,11 @@ import (
 // Add creates a new ArmadaChart Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func AddArmadaChartController(mgr manager.Manager) error {
-	return add(mgr)
+	return add(mgr, newReconciler(mgr))
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager) error {
+// newReconciler returns a new reconcile.Reconciler
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	r := &ArmadaChartReconciler{
 		client:         mgr.GetClient(),
 		scheme:         mgr.GetScheme(),
@@ -52,6 +52,11 @@ func add(mgr manager.Manager) error {
 		managerFactory: helmmgr.NewManagerFactory(mgr),
 		// reconcilePeriod: flags.ReconcilePeriod,
 	}
+	return r
+}
+
+// add adds a new Controller to mgr with r as the reconcile.Reconciler
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Create a new controller
 	c, err := controller.New("act-controller", mgr, controller.Options{Reconciler: r})
@@ -66,8 +71,15 @@ func add(mgr manager.Manager) error {
 	}
 
 	// Watch for changes to secondary resource Pods and requeue the owner ArmadaChart
-	owner := av1.NewArmadaChartVersionKind("", "")
-	r.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
+	if racr, isArmadaChartReconciler := r.(*ArmadaChartReconciler); isArmadaChartReconciler {
+		owner := av1.NewArmadaChartVersionKind("", "")
+		racr.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
+	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
+		log.Info("ddd", rrf)
+		// JEB: This the wrapper used during the unit tests
+		// owner := av1.NewArmadaChartVersionKind("", "")
+		// rrf.inner.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
+	}
 
 	return nil
 }
