@@ -15,7 +15,7 @@ spec:
     no_hooks: false
   source:
     type: local
-    location: /opt/armada/armada-charts/tiller-testchart/helm
+    location: opt/armada/helm-charts/testchart
     subpath: .
     reference: master
   dependencies: []

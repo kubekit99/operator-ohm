@@ -15,6 +15,7 @@ rules:
   - events
   - configmaps
   - secrets
+  - serviceaccounts
   verbs:
   - '*'
 - apiGroups:
@@ -24,12 +25,25 @@ rules:
   verbs:
   - get
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - '*'
+- apiGroups:
   - apps
   resources:
   - deployments
   - daemonsets
   - replicasets
   - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - policy 
+  resources:
+  - poddisruptionbudgets
   verbs:
   - '*'
 - apiGroups:

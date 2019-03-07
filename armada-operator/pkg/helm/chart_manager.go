@@ -161,6 +161,9 @@ func (m chartmanager) loadChartAndConfig() (*cpb.Chart, *cpb.Config, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse values: %s", err)
 	}
+	// JEB: Looks the Values field in the Chart with a bad structure
+	// is messing the content in the "values.yaml" provided with the chart
+	cr = make([]byte, 0)
 	config := &cpb.Config{Raw: string(cr)}
 
 	err = processRequirements(chart, config)

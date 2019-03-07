@@ -4,6 +4,6 @@ metadata:
   name: testchart
 spec:
   releaseName: testchart
-  chartDir: "/opt/armada/armada-charts/tiller-testchart/helm"
+  chartDir: "/opt/armada/helm-charts/testchart"
   watchHelmDependentResources: true
   targetState: downloaded

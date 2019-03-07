@@ -178,7 +178,7 @@ func (m chartgroupmanager) newResourceForCR() *av1.ArmadaChartList {
 				},
 				Source: &av1.ArmadaChartSource{
 					Type:      "local",
-					Location:  "/opt/armada/armada-charts/tiller-testchart/helm",
+					Location:  "/opt/armada/helm-charts/testchart",
 					Subpath:   ".",
 					Reference: "master",
 				},
