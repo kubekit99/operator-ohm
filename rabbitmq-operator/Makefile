@@ -62,14 +62,12 @@ purge: setup
 
 installmanifest:
 	kubectl label nodes airship openstack-control-plane=enabled --overwrite
-	kubectl apply -f example/rabbitmq/simple.yaml
-	kubectl describe amf/rabbitmq
+	kubectl apply -f examples/rabbitmq/simple.yaml
+	kubectl describe act/rabbitmq
 
 describemanifest:
 	kubectl describe act/rabbitmq
-	kubectl describe acg/rabbitmq
-	kubectl describe amf/rabbitmq
 
 deletemanifest:
-	kubectl delete -f example/rabbitmq/simple.yaml
-	kubectl describe amf/rabbitmq 
+	kubectl delete -f examples/rabbitmq/simple.yaml
+	kubectl describe act/rabbitmq 

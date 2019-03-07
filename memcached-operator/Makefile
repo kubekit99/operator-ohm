@@ -62,14 +62,12 @@ purge: setup
 
 installmanifest:
 	kubectl label nodes airship openstack-control-plane=enabled --overwrite
-	kubectl apply -f example/memcached/simple.yaml
-	kubectl describe amf/memcached
+	kubectl apply -f examples/memcached/simple.yaml
+	kubectl describe act/memcached
 
 describemanifest:
 	kubectl describe act/memcached
-	kubectl describe acg/memcached
-	kubectl describe amf/memcached
 
 deletemanifest:
-	kubectl delete -f example/memcached/simple.yaml
-	kubectl describe amf/memcached 
+	kubectl delete -f examples/memcached/simple.yaml
+	kubectl describe act/memcached 

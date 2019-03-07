@@ -1,100 +1,312 @@
 # MariaDB operator
 
-Operator-SDK Helm-Operator deployment of MariaDB
+Armada-Operator deployment of mariadb
 
-## MariaDB
+# Prerequisite
 
-### Initialization
+MariaDB-Operator still requires:
+- Helm2 tiller to be deployed in your cluster
 
-The basic structure was created using the following command
+
+# Deploy the MariaDB-Operator
+
+## Rebuild the operator if needed and deploy it
 
 ```bash
-operator-sdk new mariadb-operator --api-version=openstackhelm.openstack.org/v1alpha1 --kind=Mariadb --type=helm --skip-git-init
+make install
+
+docker build -t kubekit99/mariadb-operator:poc -f build/Dockerfile .
+Sending build context to Docker daemon  222.2kB
+Step 1/2 : FROM kubekit99/armada-operator-dev:latest
+ ---> 05ffe3152315
+Step 2/2 : COPY helm-charts/ /opt/armada/helm-charts/
+ ---> Using cache
+ ---> 74f4d8069d59
+Successfully built 74f4d8069d59
+Successfully tagged kubekit99/mariadb-operator:poc
+docker tag kubekit99/mariadb-operator:poc kubekit99/mariadb-operator:latest
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
+customresourcedefinition.apiextensions.k8s.io/armadachartgroups.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
+customresourcedefinition.apiextensions.k8s.io/armadacharts.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
+customresourcedefinition.apiextensions.k8s.io/armadamanifests.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadarequest.yaml
+customresourcedefinition.apiextensions.k8s.io/armadarequests.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_helmrelease.yaml
+customresourcedefinition.apiextensions.k8s.io/helmreleases.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_helmrequest.yaml
+customresourcedefinition.apiextensions.k8s.io/helmrequests.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycleevent.yaml
+customresourcedefinition.apiextensions.k8s.io/lifecyleevents.helm3crd.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycle.yaml
+customresourcedefinition.apiextensions.k8s.io/lifecyles.helm3crd.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_manifest.yaml
+customresourcedefinition.apiextensions.k8s.io/manifests.helm3crd.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_releaseaudit.yaml
+customresourcedefinition.apiextensions.k8s.io/releaseaudits.helm3crd.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_release.yaml
+customresourcedefinition.apiextensions.k8s.io/releases.helm3crd.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_values.yaml
+customresourcedefinition.apiextensions.k8s.io/values.helm3crd.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/role_binding.yaml
+rolebinding.rbac.authorization.k8s.io/armada-operator created
+kubectl apply -f ../armada-operator/chart/templates/role.yaml
+role.rbac.authorization.k8s.io/armada-operator created
+kubectl apply -f ../armada-operator/chart/templates/service_account.yaml
+serviceaccount/armada-operator created
+kubectl create -f deploy/operator.yaml
+deployment.apps/mariadb-operator created
 ```
 
-### Implementation
+## Check the installation of the CRD and operator
 
-First did ugly copy paste of mariadb openstackhelm chart and helmtoolkit into helm-charts
+```bash
+kubectl get all
 
-The created operator helm operator image. Helm charts ends up beeing delivered as part of the docker image.
+NAME                                    READY   STATUS    RESTARTS   AGE
+pod/mariadb-operator-7847f4c4dc-gtrq6   1/1     Running   0          61s
 
-```
-docker build -t mariadb-operator:poc -f build/Dockerfile .
-```
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+service/kubernetes         ClusterIP   10.96.0.1        <none>        443/TCP    40m
+service/mariadb-operator   ClusterIP   10.105.205.210   <none>        8383/TCP   59s
 
-Note that the role had to be modified because the operator invokes the helm chart which in turn create roles, rolebinding and serviceaccounts.
-Could not go in production with 
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/mariadb-operator   1/1     1            1           61s
 
-
-### Deployment
-
-Then deployed the operator and the CR. Number of mariadb server is supposed to matched number in _cr.yaml
-
-```
-kubectl create namespace operatorpoc
-kubectl create -f deploy/crds/openstackhelm_v1alpha1_mariadb_crd.yaml -n operatorpoc
-kubectl create -f deploy/service_account.yaml -n operatorpoc
-kubectl create -f deploy/role.yaml -n operatorpoc
-kubectl create -f deploy/role_binding.yaml -n operatorpoc
-kubectl create -f deploy/operator.yaml -n operatorpoc
-kubectl create -f deploy/crds/openstackhelm_v1alpha1_mariadb_cr.yaml -n operatorpoc
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/mariadb-operator-7847f4c4dc   1         1         1       61s
 ```
 
-Check deployment
-
+```bash
+kubectl get amf
+No resources found.
 ```
-kubectl get all -n operatorpoc
 
-NAME                                               READY   STATUS    RESTARTS   AGE
-pod/mariadb-ingress-6ccc4dbf76-ptfk7               0/1     Running   0          31s
-pod/mariadb-ingress-error-pages-85c9996d68-45jpm   1/1     Running   0          31s
-pod/mariadb-operator-6786859b89-kg8lx              1/1     Running   0          34s
-pod/mariadb-server-0                               0/1     Running   0          31s
-pod/mariadb-server-1                               0/1     Running   0          31s
+```bash
+kubectl get acg
+No resources found.
+```
+
+```bash
+kubectl get act
+No resources found.
+```
+
+
+# Create the ArmadaChart CRD
+
+```bash
+make installmanifest
+```
+
+or
+
+```bash
+kubectl label nodes airship openstack-control-plane=enabled --overwrite
+kubectl apply -f examples/mariadb/simple.yaml
+kubectl describe act/mariadb
+```
+
+Result should be:
+
+```bash
+kubectl label nodes airship openstack-control-plane=enabled --overwrite
+node/airship not labeled
+kubectl apply -f examples/mariadb/simple.yaml
+armadachart.armada.airshipit.org/mariadb created
+```
+
+# Check the CRD and the deployment of the underlying helm chart
+
+## Check the ArmachaChart Custom Resource
+
+```bash
+kubectl describe act/mariadb
+
+Name:         mariadb
+Namespace:    default
+Labels:       <none>
+Annotations:  kubectl.kubernetes.io/last-applied-configuration:
+                {"apiVersion":"armada.airshipit.org/v1alpha1","kind":"ArmadaChart","metadata":{"annotations":{},"name":"mariadb","namespace":"default"},"s...
+API Version:  armada.airshipit.org/v1alpha1
+Kind:         ArmadaChart
+Metadata:
+  Creation Timestamp:  2019-03-07T16:35:44Z
+  Finalizers:
+    uninstall-helm-release
+  Generation:        2
+  Resource Version:  4133
+  Self Link:         /apis/armada.airshipit.org/v1alpha1/namespaces/default/armadacharts/mariadb
+  UID:               0dd907db-40f7-11e9-a001-0800272e6982
+Spec:
+  Chart Name:  mariadb
+  Dependencies:
+  Namespace:  default
+  Release:    mariadb
+  Source:
+    Location:    /opt/armada/helm-charts/mariadb
+    Reference:   87aad18f7d8c6a1a08f3adc8866efd33bee6aa52
+    Subpath:     .
+    Type:        local
+  Target State:  initialized
+  Upgrade:
+    No Hooks:  false
+  Values:
+Status:
+  Actual State:  initialized
+  Conditions:
+    Last Transition Time:  2019-03-07T16:35:44Z
+    Status:                True
+    Type:                  Initialized
+    Last Transition Time:  2019-03-07T16:35:45Z
+    Reason:                UpdateSuccessful
+    Resource Name:         mariadb
+    Resource Version:      5
+    Status:                True
+    Type:                  Deployed
+  Succeeded:               true
+Events:
+  Type    Reason    Age                From          Message
+  ----    ------    ----               ----          -------
+  Normal  Deployed  55s                act-recorder  InstallSuccessful
+  Normal  Deployed  51s (x4 over 54s)  act-recorder  UpdateSuccessful
+```
+
+  
+## Check the MariaDB service deployment
+
+```bash
+kubectl get all
+
+NAME                                              READY   STATUS    RESTARTS   AGE
+pod/mariadb-ingress-75cb44bc8c-tt2dx              1/1     Running   0          2m
+pod/mariadb-ingress-error-pages-8f44b444b-lrcrx   1/1     Running   0          2m
+pod/mariadb-operator-7847f4c4dc-gtrq6             1/1     Running   0          3m51s
+pod/mariadb-server-0                              1/1     Running   0          2m
 
 NAME                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
-service/mariadb                       ClusterIP   10.105.88.65     <none>        3306/TCP            31s
-service/mariadb-discovery             ClusterIP   None             <none>        3306/TCP,4567/TCP   31s
-service/mariadb-ingress-error-pages   ClusterIP   None             <none>        80/TCP              31s
-service/mariadb-server                ClusterIP   10.103.136.223   <none>        3306/TCP            31s
+service/kubernetes                    ClusterIP   10.96.0.1        <none>        443/TCP             42m
+service/mariadb                       ClusterIP   10.108.196.84    <none>        3306/TCP            2m1s
+service/mariadb-discovery             ClusterIP   None             <none>        3306/TCP,4567/TCP   2m1s
+service/mariadb-ingress-error-pages   ClusterIP   None             <none>        80/TCP              2m1s
+service/mariadb-operator              ClusterIP   10.105.205.210   <none>        8383/TCP            3m49s
+service/mariadb-server                ClusterIP   10.103.59.60     <none>        3306/TCP            2m1s
 
 NAME                                          READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/mariadb-ingress               0/1     1            0           31s
-deployment.apps/mariadb-ingress-error-pages   1/1     1            1           31s
-deployment.apps/mariadb-operator              1/1     1            1           34s
+deployment.apps/mariadb-ingress               1/1     1            1           2m
+deployment.apps/mariadb-ingress-error-pages   1/1     1            1           2m1s
+deployment.apps/mariadb-operator              1/1     1            1           3m51s
 
-NAME                                                     DESIRED   CURRENT   READY   AGE
-replicaset.apps/mariadb-ingress-6ccc4dbf76               1         1         0       31s
-replicaset.apps/mariadb-ingress-error-pages-85c9996d68   1         1         1       31s
-replicaset.apps/mariadb-operator-6786859b89              1         1         1       34s
+NAME                                                    DESIRED   CURRENT   READY   AGE
+replicaset.apps/mariadb-ingress-75cb44bc8c              1         1         1       2m
+replicaset.apps/mariadb-ingress-error-pages-8f44b444b   1         1         1       2m1s
+replicaset.apps/mariadb-operator-7847f4c4dc             1         1         1       3m51s
 
 NAME                              READY   AGE
-statefulset.apps/mariadb-server   0/2     31s
+statefulset.apps/mariadb-server   1/1     2m
 ```
 
-### Conclusions
+# Remove the CRD 
 
-#### Note 1
-
-Does not seem to work right. May be coming from the helm chart itself. 
-
-```
-vi deploy/crds/openstackhelm_v1alpha1_mariadb_cr.yaml
-kubectl create -f deploy/crds/openstackhelm_v1alpha1_mariadb_cr.yaml -n operatorpoc
+```bash
+make deletemanifest
 ```
 
-#### Note 2
+or
 
-Had to add roles, rolebinding in the roles.yaml to let operator run the helm chart which are creating roles and serviceaccount
+```bash
+kubectl delete -f examples/mariadb/simple.yaml
+```
 
-#### Note 3
+Check the corresponding resources are being deleted
 
-The Dockerfile should do some kind of wget or helm fetch in order to avoid ugly duplication of the chart and toolkit
+```bash
+kubectl get all
+NAME                                              READY   STATUS        RESTARTS   AGE
+pod/mariadb-ingress-75cb44bc8c-tt2dx              0/1     Terminating   0          3m28s
+pod/mariadb-ingress-error-pages-8f44b444b-lrcrx   0/1     Terminating   0          3m28s
+pod/mariadb-operator-7847f4c4dc-gtrq6             1/1     Running       0          5m19s
+pod/mariadb-server-0                              1/1     Terminating   0          3m28s
 
-#### Note 4
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+service/kubernetes         ClusterIP   10.96.0.1        <none>        443/TCP    44m
+service/mariadb-operator   ClusterIP   10.105.205.210   <none>        8383/TCP   5m17s
 
-Note sure how far such as solution will be from helm v3....if every chart comes with its own CR and CRD.
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/mariadb-operator   1/1     1            1           5m19s
 
-#### Note 5
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/mariadb-operator-7847f4c4dc   1         1         1       5m19
+```
 
-"helm ls" does not see the deployed chart, I guess the helm-operator is not accessing tiller.
+Check the ArmadaManifest, ChartGroup and Chart are no longer present
+```bash
+kubectl get amf
+No resources found.
+```
+
+```bash
+kubectl get acg
+No resources found.
+```
+
+```bash
+kubectl get act
+No resources found.
+```
+
+# Purge artifacts from Kubernetes cluster
+
+```bash
+make purge
+
+kubectl delete -f deploy/operator.yaml
+deployment.apps "mariadb-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
+customresourcedefinition.apiextensions.k8s.io "armadachartgroups.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
+customresourcedefinition.apiextensions.k8s.io "armadacharts.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
+customresourcedefinition.apiextensions.k8s.io "armadamanifests.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadarequest.yaml
+customresourcedefinition.apiextensions.k8s.io "armadarequests.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_helmrelease.yaml
+customresourcedefinition.apiextensions.k8s.io "helmreleases.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_helmrequest.yaml
+customresourcedefinition.apiextensions.k8s.io "helmrequests.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycleevent.yaml
+customresourcedefinition.apiextensions.k8s.io "lifecyleevents.helm3crd.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycle.yaml
+customresourcedefinition.apiextensions.k8s.io "lifecyles.helm3crd.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_manifest.yaml
+customresourcedefinition.apiextensions.k8s.io "manifests.helm3crd.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_releaseaudit.yaml
+customresourcedefinition.apiextensions.k8s.io "releaseaudits.helm3crd.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_release.yaml
+customresourcedefinition.apiextensions.k8s.io "releases.helm3crd.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_values.yaml
+customresourcedefinition.apiextensions.k8s.io "values.helm3crd.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/role_binding.yaml
+rolebinding.rbac.authorization.k8s.io "armada-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/role.yaml
+role.rbac.authorization.k8s.io "armada-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/service_account.yaml
+serviceaccount "armada-operator" delete
+```
+
+```
+kubectl get all
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   25m
+```
+
+Delete the configmaps related to mariadb if needed
+```
+kubectl get configmaps
+
+NAME                              DATA   AGE
+mariadb-mariadb-mariadb-ingress   0      5m3s
+mariadb-mariadb-state             5      4m46s
+```

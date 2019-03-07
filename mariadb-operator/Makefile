@@ -62,14 +62,12 @@ purge: setup
 
 installmanifest:
 	kubectl label nodes airship openstack-control-plane=enabled --overwrite
-	kubectl apply -f example/mariadb/simple.yaml
-	kubectl describe amf/mariadb
+	kubectl apply -f examples/mariadb/simple.yaml
+	kubectl describe act/mariadb
 
 describemanifest:
 	kubectl describe act/mariadb
-	kubectl describe acg/mariadb
-	kubectl describe amf/mariadb
 
 deletemanifest:
-	kubectl delete -f example/mariadb/simple.yaml
-	kubectl describe amf/mariadb 
+	kubectl delete -f examples/mariadb/simple.yaml
+	kubectl describe act/mariadb 
