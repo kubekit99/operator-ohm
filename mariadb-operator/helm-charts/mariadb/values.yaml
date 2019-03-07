@@ -298,7 +298,7 @@ manifests:
       job_user_create: false
       secret_etc: false
       service_exporter: false
-  pdb_server: false
+  pdb_server: true
   network_policy: false
   secret_db: true
   secret_etc: true

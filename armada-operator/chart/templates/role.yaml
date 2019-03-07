@@ -47,6 +47,18 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - extensions 
+  resources:
+  - ingresses
+  verbs:
+  - '*'
+- apiGroups:
+  - batch 
+  resources:
+  - jobs
+  verbs:
+  - '*'
+- apiGroups:
   - monitoring.coreos.com
   resources:
   - servicemonitors
