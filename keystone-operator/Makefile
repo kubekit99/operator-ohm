@@ -73,7 +73,7 @@ purge: setup
 
 installmanifest:
 	kubectl label nodes airship openstack-control-plane=enabled --overwrite
-	kubectl apply -f example/keystone/simple_local.yaml
+	kubectl apply -f examples/keystone/simple_local.yaml
 	kubectl describe amf/armada-manifest
 
 describemanifest:
@@ -87,6 +87,8 @@ describemanifest:
 	kubectl describe act/rabbitmq
 
 deletemanifest:
-	kubectl delete -f example/keystone/simple_local.yaml
+	kubectl delete -f examples/keystone/simple_local.yaml
+	kubectl delete configmap mariadb-mariadb-mariadb-ingress
+	kubectl delete configmap mariadb-mariadb-state
 	kubectl describe amf/armada-manifest 
 
