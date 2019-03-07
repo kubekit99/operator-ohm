@@ -8,6 +8,8 @@ required = [
   "k8s.io/code-generator/cmd/informer-gen",
   "k8s.io/code-generator/cmd/openapi-gen",
   "k8s.io/gengo/args",
+  # "github.com/onsi/ginkgo", # for test framework
+  # "github.com/onsi/gomega", # for test matchers
   "sigs.k8s.io/controller-tools/cmd/controller-gen", # for crd/rbac generation
 ]
 
