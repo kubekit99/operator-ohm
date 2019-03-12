@@ -101,7 +101,7 @@ func init() {
 
 // Synthesis the actual state based on the conditions
 func (s *ArmadaChartStatus) ComputeActualState(condition *HelmResourceCondition, targetState HelmResourceState) {
-	s.ActualState = targetState
+	// TODO(Ian): finish this
 	s.Succeeded = (s.ActualState == targetState)
 	s.Reason = ""
 }
@@ -209,4 +209,9 @@ func NewArmadaChartListVersionKind(namespace string, name string) *unstructured.
 	u.SetNamespace(namespace)
 	u.SetName(name)
 	return u
+}
+
+// IsDeleted returns true if the chart has been deleted
+func (obj *ArmadaChart) IsDeleted() bool {
+	return obj.GetDeletionTimestamp() != nil
 }
