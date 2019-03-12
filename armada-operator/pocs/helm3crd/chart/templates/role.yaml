@@ -1,0 +1,24 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: armada-operator
+rules:
+- apiGroups:
+  - helm3crd.airshipit.org
+  resources:
+  - releases
+  - releases/status
+  - manifests
+  - manifests/status
+  - lifecycles
+  - lifecycles/status
+  - lifecycleevents
+  - lifecycleevents/status
+  - values
+  - values/status
+  - releaseaudits
+  - releaseaudits/status
+  verbs:
+  - '*'
