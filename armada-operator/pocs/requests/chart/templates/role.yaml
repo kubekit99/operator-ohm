@@ -1,0 +1,10 @@
+---
+- apiGroups:
+  - armada.airshipit.org
+  resources:
+  - helmrequests
+  - helmrequests/status
+  - armadarequests
+  - armadarequests/status
+  verbs:
+  - '*'
