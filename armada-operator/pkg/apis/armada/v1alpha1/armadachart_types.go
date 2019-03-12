@@ -210,3 +210,8 @@ func NewArmadaChartListVersionKind(namespace string, name string) *unstructured.
 	u.SetName(name)
 	return u
 }
+
+// IsDeleted returns true if the chart has been deleted
+func (obj *ArmadaChart) IsDeleted() bool {
+	return obj.GetDeletionTimestamp() != nil
+}

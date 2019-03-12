@@ -109,18 +109,12 @@ const (
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	instance := &av1.ArmadaChart{}
-	instance.SetNamespace(request.Namespace)
-	instance.SetName(request.Name)
 	log := log.WithValues(
-		"namespace", instance.GetNamespace(),
-		"name", instance.GetName(),
+		"namespace", request.Namespace,
+		"name", request.Name,
 	)
 
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
-	if apierrors.IsNotFound(err) {
-		return reconcile.Result{}, nil
-	}
+	instance, err := r.getArmadaChartInstance(request)
 	if err != nil {
 		log.Error(err, "Failed to lookup resource")
 		return reconcile.Result{}, err
@@ -131,9 +125,8 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 
 	log = log.WithValues("resource", manager.ReleaseName())
 
-	deleted := instance.GetDeletionTimestamp() != nil
 	pendingFinalizers := instance.GetFinalizers()
-	if !deleted && !contains(pendingFinalizers, finalizerArmadaChart) {
+	if !instance.IsDeleted() && !contains(pendingFinalizers, finalizerArmadaChart) {
 		finalizers := append(pendingFinalizers, finalizerArmadaChart)
 		instance.SetFinalizers(finalizers)
 		err = r.updateResource(instance)
@@ -157,7 +150,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 
-	if deleted {
+	if instance.IsDeleted() {
 		if !contains(pendingFinalizers, finalizerArmadaChart) {
 			log.Info("Resource is terminated, skipping reconciliation")
 			return reconcile.Result{}, nil
@@ -282,6 +275,18 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	log.Info("Reconciled resource")
 	err = r.updateResourceStatus(instance)
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
+}
+
+func (r *ArmadaChartReconciler) getArmadaChartInstance(request reconcile.Request) (*av1.ArmadaChart, error) {
+	instance := &av1.ArmadaChart{}
+	instance.SetNamespace(request.Namespace)
+	instance.SetName(request.Name)
+
+	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if apierrors.IsNotFound(err) {
+		return &av1.ArmadaChart{}, err
+	}
+	return instance, nil
 }
 
 // Add a success event to the recorder
