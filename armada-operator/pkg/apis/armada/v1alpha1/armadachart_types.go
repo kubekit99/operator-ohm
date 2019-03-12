@@ -101,7 +101,7 @@ func init() {
 
 // Synthesis the actual state based on the conditions
 func (s *ArmadaChartStatus) ComputeActualState(condition *HelmResourceCondition, targetState HelmResourceState) {
-	s.ActualState = targetState
+	// TODO(Ian): finish this
 	s.Succeeded = (s.ActualState == targetState)
 	s.Reason = ""
 }
