@@ -138,22 +138,19 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 
-	if instance.IsDeleted() {
+	switch {
+	case instance.IsDeleted():
 		if shouldRequeue, err = r.deleteArmadaChart(manager, instance); shouldRequeue {
 			// Need to requeue because finalizer update does not change metadata.generation
 			return reconcile.Result{Requeue: true}, err
 		}
 		return reconcile.Result{}, err
-	}
-
-	if !manager.IsInstalled() {
+	case !manager.IsInstalled():
 		if shouldRequeue, err = r.installArmadaChart(manager, instance); shouldRequeue {
 			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 		}
 		return reconcile.Result{}, err
-	}
-
-	if manager.IsUpdateRequired() {
+	case manager.IsUpdateRequired():
 		if shouldRequeue, err = r.updateArmadaChart(manager, instance); shouldRequeue {
 			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 		}
