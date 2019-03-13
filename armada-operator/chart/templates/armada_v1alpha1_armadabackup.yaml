@@ -10,7 +10,6 @@ spec:
   - JSONPath: .status.succeeded
     description: success
     name: succeeded
-    priority: 1
     type: boolean
   group: armada.airshipit.org
   names:
