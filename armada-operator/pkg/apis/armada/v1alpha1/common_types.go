@@ -27,22 +27,36 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// State is the status of a release
+// Administractive state of the reconcilation of a CRD by the corresponding controller
+type ArmadaAdminState string
+
+// Describe the Administrative State of the Chart
+const (
+	// StateUnknown indicates that a release/chart/chartgroup/manifest automatic reconcilation by the controller is enabled
+	StateEnabled ArmadaAdminState = "enabled"
+	// StateUnknown indicates that a release/chart/chartgroup/manifest automatic reconcilation by the controller is disabled
+	StateDisabled ArmadaAdminState = "disabled"
+)
+
+// String converts a ArmadaAdminState to a printable string
+func (x ArmadaAdminState) String() string { return string(x) }
+
+// State is the status of a release/chart/chartgroup/manifest
 type HelmResourceState string
 type HelmResourceConditionType string
 type HelmResourceConditionStatus string
 type HelmResourceConditionReason string
 
-// Strng converts a HelmResourceState to a printable string
+// String converts a HelmResourceState to a printable string
 func (x HelmResourceState) String() string { return string(x) }
 
-// Strng converts a HelmResourceConditionType to a printable string
+// String converts a HelmResourceConditionType to a printable string
 func (x HelmResourceConditionType) String() string { return string(x) }
 
-// Strng converts a HelmResourceConditionState to a printable string
+// String converts a HelmResourceConditionState to a printable string
 func (x HelmResourceConditionStatus) String() string { return string(x) }
 
-// Strng converts a HelmResourceConditionReason to a printable string
+// String converts a HelmResourceConditionReason to a printable string
 func (x HelmResourceConditionReason) String() string { return string(x) }
 
 // Describe the status of a release
