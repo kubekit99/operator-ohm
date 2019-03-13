@@ -679,7 +679,6 @@ conf:
           ha-sync-mode: "automatic"
           #70s
           message-ttl: 70000
-        priority: 0
         apply-to: all
         pattern: '(notifications)\.'
   rally_tests:
