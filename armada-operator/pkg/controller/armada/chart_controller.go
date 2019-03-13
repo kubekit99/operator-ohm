@@ -147,32 +147,10 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	if !manager.IsInstalled() {
-		installedResource, err := manager.InstallRelease(context.TODO())
-		if err != nil {
-			hrc := getConditionInstallError(err.Error())
-			instance.Status.SetCondition(hrc)
-			instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
-			r.logAndRecordFailure(instance, &hrc, err)
-
-			_ = r.updateResourceStatus(instance)
-			return reconcile.Result{}, err
+		if shouldRequeue, err = r.installArmadaChart(manager, instance); shouldRequeue {
+			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 		}
-		instance.Status.RemoveCondition(av1.ConditionFailed)
-
-		if r.depResourceWatchUpdater != nil {
-			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(installedResource)); err != nil {
-				log.Error(err, "Failed to run update resource dependant resources")
-				return reconcile.Result{}, err
-			}
-		}
-
-		hrc := getConditionInstallSuccess(installedResource)
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
-		r.logAndRecordSuccess(instance, &hrc)
-
-		err = r.updateResourceStatus(instance)
-		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
+		return reconcile.Result{}, err
 	}
 
 	if manager.IsUpdateRequired() {
@@ -340,6 +318,36 @@ func (r ArmadaChartReconciler) deleteArmadaChart(mgr services.HelmManager, insta
 	instance.SetFinalizers(finalizers)
 	err = r.updateResource(instance)
 
+	return true, err
+}
+
+// installArmadaChart attempts to install instance. It returns true if the reconciler needs to be requeued
+func (r ArmadaChartReconciler) installArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+	installedResource, err := mgr.InstallRelease(context.TODO())
+	if err != nil {
+		hrc := getConditionInstallError(err.Error())
+		instance.Status.SetCondition(hrc)
+		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		r.logAndRecordFailure(instance, &hrc, err)
+
+		_ = r.updateResourceStatus(instance)
+		return false, err
+	}
+	instance.Status.RemoveCondition(av1.ConditionFailed)
+
+	if r.depResourceWatchUpdater != nil {
+		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(installedResource)); err != nil {
+			log.Error(err, "Failed to run update resource dependant resources")
+			return false, err
+		}
+	}
+
+	hrc := getConditionInstallSuccess(installedResource)
+	instance.Status.SetCondition(hrc)
+	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+	r.logAndRecordSuccess(instance, &hrc)
+
+	err = r.updateResourceStatus(instance)
 	return true, err
 }
 
