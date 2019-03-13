@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/helm/pkg/proto/hapi/release"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -243,6 +244,16 @@ func (r ArmadaChartReconciler) updateFinalizers(instance *av1.ArmadaChart) (bool
 	return false, nil
 }
 
+func (r ArmadaChartReconciler) updateDependentResources(resource *release.Release) error {
+	if r.depResourceWatchUpdater != nil {
+		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(resource)); err != nil {
+			log.Error(err, "Failed to run update resource dependant resources")
+			return err
+		}
+	}
+	return nil
+}
+
 func (r ArmadaChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
 	pendingFinalizers := instance.GetFinalizers()
 	if !contains(pendingFinalizers, finalizerArmadaChart) {
@@ -315,11 +326,8 @@ func (r ArmadaChartReconciler) installArmadaChart(mgr services.HelmManager, inst
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(installedResource)); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
-			return false, err
-		}
+	if err := r.updateDependentResources(installedResource); err != nil {
+		return false, err
 	}
 
 	hrc := av1.HelmResourceCondition{
@@ -361,11 +369,8 @@ func (r ArmadaChartReconciler) updateArmadaChart(mgr services.HelmManager, insta
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(updatedResource)); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
-			return false, err
-		}
+	if err := r.updateDependentResources(updatedResource); err != nil {
+		return false, err
 	}
 
 	hrc := av1.HelmResourceCondition{
@@ -401,13 +406,6 @@ func (r ArmadaChartReconciler) reconcileArmadaChart(mgr services.HelmManager, in
 		return err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-
-	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(expectedResource)); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
-			return err
-		}
-	}
-
-	return nil
+	err = r.updateDependentResources(expectedResource)
+	return err
 }
