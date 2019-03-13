@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/helm/pkg/proto/hapi/release"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -129,7 +128,10 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	hrc := getConditionInitialized()
+	hrc := av1.HelmResourceCondition{
+		Type:   av1.ConditionInitialized,
+		Status: av1.ConditionStatusTrue,
+	}
 	instance.Status.SetCondition(hrc)
 	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 
@@ -159,7 +161,13 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 
 	expectedResource, err := manager.ReconcileRelease(context.TODO())
 	if err != nil {
-		hrc := getConditionIrreconcilable(expectedResource, err.Error())
+		hrc := av1.HelmResourceCondition{
+			Type:         av1.ConditionIrreconcilable,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonReconcileError,
+			Message:      err.Error(),
+			ResourceName: expectedResource.GetName(),
+		}
 		instance.Status.SetCondition(hrc)
 		r.logAndRecordFailure(instance, &hrc, err)
 
@@ -228,7 +236,12 @@ func (r ArmadaChartReconciler) updateResourceStatus(instance *av1.ArmadaChart) e
 
 func (r ArmadaChartReconciler) ensureSynced(mgr services.HelmManager, instance *av1.ArmadaChart) error {
 	if err := mgr.Sync(context.TODO()); err != nil {
-		hrc := getConditionIrreconcilable(nil, err.Error())
+		hrc := av1.HelmResourceCondition{
+			Type:    av1.ConditionIrreconcilable,
+			Status:  av1.ConditionStatusTrue,
+			Reason:  av1.ReasonReconcileError,
+			Message: err.Error(),
+		}
 		instance.Status.SetCondition(hrc)
 		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
@@ -259,7 +272,13 @@ func (r ArmadaChartReconciler) deleteArmadaChart(mgr services.HelmManager, insta
 
 	uninstalledResource, err := mgr.UninstallRelease(context.TODO())
 	if err != nil && err != services.ErrNotFound {
-		hrc := getConditionUninstallError(uninstalledResource, err.Error())
+		hrc := av1.HelmResourceCondition{
+			Type:         av1.ConditionFailed,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonUninstallError,
+			Message:      err.Error(),
+			ResourceName: uninstalledResource.GetName(),
+		}
 		instance.Status.SetCondition(hrc)
 		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
@@ -272,7 +291,11 @@ func (r ArmadaChartReconciler) deleteArmadaChart(mgr services.HelmManager, insta
 	if err == services.ErrNotFound {
 		log.Info("Resource not found, removing finalizer")
 	} else {
-		hrc := getConditionUninstallSuccessful()
+		hrc := av1.HelmResourceCondition{
+			Type:   av1.ConditionDeployed,
+			Status: av1.ConditionStatusFalse,
+			Reason: av1.ReasonUninstallSuccessful,
+		}
 		instance.Status.SetCondition(hrc)
 		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 		r.logAndRecordSuccess(instance, &hrc)
@@ -297,7 +320,12 @@ func (r ArmadaChartReconciler) deleteArmadaChart(mgr services.HelmManager, insta
 func (r ArmadaChartReconciler) installArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
 	installedResource, err := mgr.InstallRelease(context.TODO())
 	if err != nil {
-		hrc := getConditionInstallError(err.Error())
+		hrc := av1.HelmResourceCondition{
+			Type:    av1.ConditionFailed,
+			Status:  av1.ConditionStatusTrue,
+			Reason:  av1.ReasonInstallError,
+			Message: err.Error(),
+		}
 		instance.Status.SetCondition(hrc)
 		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
@@ -314,7 +342,14 @@ func (r ArmadaChartReconciler) installArmadaChart(mgr services.HelmManager, inst
 		}
 	}
 
-	hrc := getConditionInstallSuccess(installedResource)
+	hrc := av1.HelmResourceCondition{
+		Type:            av1.ConditionDeployed,
+		Status:          av1.ConditionStatusTrue,
+		Reason:          av1.ReasonInstallSuccessful,
+		Message:         installedResource.GetInfo().GetStatus().GetNotes(),
+		ResourceName:    installedResource.GetName(),
+		ResourceVersion: installedResource.GetVersion(),
+	}
 	instance.Status.SetCondition(hrc)
 	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
@@ -330,7 +365,13 @@ func (r ArmadaChartReconciler) updateArmadaChart(mgr services.HelmManager, insta
 		log.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
 	}
 	if err != nil {
-		hrc := getConditionUpdateError(updatedResource, err.Error())
+		hrc := av1.HelmResourceCondition{
+			Type:         av1.ConditionFailed,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonUpdateError,
+			Message:      err.Error(),
+			ResourceName: updatedResource.GetName(),
+		}
 		instance.Status.SetCondition(hrc)
 		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
@@ -347,92 +388,18 @@ func (r ArmadaChartReconciler) updateArmadaChart(mgr services.HelmManager, insta
 		}
 	}
 
-	hrc := getConditionUpdateSuccessful(updatedResource)
+	hrc := av1.HelmResourceCondition{
+		Type:            av1.ConditionDeployed,
+		Status:          av1.ConditionStatusTrue,
+		Reason:          av1.ReasonUpdateSuccessful,
+		Message:         updatedResource.GetInfo().GetStatus().GetNotes(),
+		ResourceName:    updatedResource.GetName(),
+		ResourceVersion: updatedResource.GetVersion(),
+	}
 	instance.Status.SetCondition(hrc)
 	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
 
 	err = r.updateResourceStatus(instance)
 	return true, err
-}
-
-func getConditionInitialized() av1.HelmResourceCondition {
-	return av1.HelmResourceCondition{
-		Type:   av1.ConditionInitialized,
-		Status: av1.ConditionStatusTrue,
-	}
-}
-
-func getConditionIrreconcilable(resource *release.Release, message string) av1.HelmResourceCondition {
-	hrc := av1.HelmResourceCondition{
-		Type:    av1.ConditionIrreconcilable,
-		Status:  av1.ConditionStatusTrue,
-		Reason:  av1.ReasonReconcileError,
-		Message: message,
-	}
-
-	if resource != nil {
-		hrc.ResourceName = resource.GetName()
-	}
-
-	return hrc
-}
-
-func getConditionUninstallError(resource *release.Release, message string) av1.HelmResourceCondition {
-	return av1.HelmResourceCondition{
-		Type:         av1.ConditionFailed,
-		Status:       av1.ConditionStatusTrue,
-		Reason:       av1.ReasonUninstallError,
-		Message:      message,
-		ResourceName: resource.GetName(),
-	}
-}
-
-func getConditionUninstallSuccessful() av1.HelmResourceCondition {
-	return av1.HelmResourceCondition{
-		Type:   av1.ConditionDeployed,
-		Status: av1.ConditionStatusFalse,
-		Reason: av1.ReasonUninstallSuccessful,
-	}
-}
-
-func getConditionInstallError(message string) av1.HelmResourceCondition {
-	return av1.HelmResourceCondition{
-		Type:    av1.ConditionFailed,
-		Status:  av1.ConditionStatusTrue,
-		Reason:  av1.ReasonInstallError,
-		Message: message,
-	}
-}
-
-func getConditionInstallSuccess(resource *release.Release) av1.HelmResourceCondition {
-	return av1.HelmResourceCondition{
-		Type:            av1.ConditionDeployed,
-		Status:          av1.ConditionStatusTrue,
-		Reason:          av1.ReasonInstallSuccessful,
-		Message:         resource.GetInfo().GetStatus().GetNotes(),
-		ResourceName:    resource.GetName(),
-		ResourceVersion: resource.GetVersion(),
-	}
-}
-
-func getConditionUpdateError(resource *release.Release, message string) av1.HelmResourceCondition {
-	return av1.HelmResourceCondition{
-		Type:         av1.ConditionFailed,
-		Status:       av1.ConditionStatusTrue,
-		Reason:       av1.ReasonUpdateError,
-		Message:      message,
-		ResourceName: resource.GetName(),
-	}
-}
-
-func getConditionUpdateSuccessful(resource *release.Release) av1.HelmResourceCondition {
-	return av1.HelmResourceCondition{
-		Type:            av1.ConditionDeployed,
-		Status:          av1.ConditionStatusTrue,
-		Reason:          av1.ReasonUpdateSuccessful,
-		Message:         resource.GetInfo().GetStatus().GetNotes(),
-		ResourceName:    resource.GetName(),
-		ResourceVersion: resource.GetVersion(),
-	}
 }
