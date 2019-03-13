@@ -154,35 +154,10 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	if manager.IsUpdateRequired() {
-		previousResource, updatedResource, err := manager.UpdateRelease(context.TODO())
-		if previousResource != nil && updatedResource != nil {
-			log.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
+		if shouldRequeue, err = r.updateArmadaChart(manager, instance); shouldRequeue {
+			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 		}
-		if err != nil {
-			hrc := getConditionUpdateError(updatedResource, err.Error())
-			instance.Status.SetCondition(hrc)
-			instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
-			r.logAndRecordFailure(instance, &hrc, err)
-
-			_ = r.updateResourceStatus(instance)
-			return reconcile.Result{}, err
-		}
-		instance.Status.RemoveCondition(av1.ConditionFailed)
-
-		if r.depResourceWatchUpdater != nil {
-			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(updatedResource)); err != nil {
-				log.Error(err, "Failed to run update resource dependant resources")
-				return reconcile.Result{}, err
-			}
-		}
-
-		hrc := getConditionUpdateSuccessful(updatedResource)
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
-		r.logAndRecordSuccess(instance, &hrc)
-
-		err = r.updateResourceStatus(instance)
-		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
+		return reconcile.Result{}, err
 	}
 
 	expectedResource, err := manager.ReconcileRelease(context.TODO())
@@ -343,6 +318,39 @@ func (r ArmadaChartReconciler) installArmadaChart(mgr services.HelmManager, inst
 	}
 
 	hrc := getConditionInstallSuccess(installedResource)
+	instance.Status.SetCondition(hrc)
+	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+	r.logAndRecordSuccess(instance, &hrc)
+
+	err = r.updateResourceStatus(instance)
+	return true, err
+}
+
+// updateArmadaChart attempts to update instance. It returns true if the reconciler needs to be requeued
+func (r ArmadaChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+	previousResource, updatedResource, err := mgr.UpdateRelease(context.TODO())
+	if previousResource != nil && updatedResource != nil {
+		log.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
+	}
+	if err != nil {
+		hrc := getConditionUpdateError(updatedResource, err.Error())
+		instance.Status.SetCondition(hrc)
+		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		r.logAndRecordFailure(instance, &hrc, err)
+
+		_ = r.updateResourceStatus(instance)
+		return false, err
+	}
+	instance.Status.RemoveCondition(av1.ConditionFailed)
+
+	if r.depResourceWatchUpdater != nil {
+		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(updatedResource)); err != nil {
+			log.Error(err, "Failed to run update resource dependant resources")
+			return false, err
+		}
+	}
+
+	hrc := getConditionUpdateSuccessful(updatedResource)
 	instance.Status.SetCondition(hrc)
 	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
