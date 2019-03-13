@@ -30,6 +30,8 @@ type ArmadaManifestSpec struct {
 	// Appends to the front of all charts released by the manifest in order to manage releases throughout their lifecycle
 	ReleasePrefix string `json:"release_prefix"`
 
+	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
+	AdminState ArmadaAdminState `json:"admin_state"`
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`
 }

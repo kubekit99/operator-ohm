@@ -55,6 +55,8 @@ type ArmadaChartSpec struct {
 	// See `ArmwadaWait`.
 	Wait *ArmadaWait `json:"wait,omitempty"`
 
+	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
+	AdminState ArmadaAdminState `json:"admin_state"`
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`
 }
