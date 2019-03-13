@@ -121,8 +121,6 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	}
 
 	manager := r.managerFactory.NewArmadaChartTillerManager(instance)
-	spec := instance.Spec
-
 	log = log.WithValues("resource", manager.ReleaseName())
 
 	pendingFinalizers := instance.GetFinalizers()
@@ -137,15 +135,9 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 
 	hrc := getConditionInitialized()
 	instance.Status.SetCondition(hrc)
-	instance.Status.ComputeActualState(&hrc, spec.TargetState)
+	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 
-	if err := manager.Sync(context.TODO()); err != nil {
-		hrc := getConditionIrreconcilable(nil, err.Error())
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, spec.TargetState)
-		r.logAndRecordFailure(instance, &hrc, err)
-
-		_ = r.updateResourceStatus(instance)
+	if err := r.ensureSynced(manager, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
@@ -160,7 +152,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if err != nil && err != services.ErrNotFound {
 			hrc := getConditionUninstallError(uninstalledResource, err.Error())
 			instance.Status.SetCondition(hrc)
-			instance.Status.ComputeActualState(&hrc, spec.TargetState)
+			instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 			r.logAndRecordFailure(instance, &hrc, err)
 
 			_ = r.updateResourceStatus(instance)
@@ -173,7 +165,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		} else {
 			hrc := getConditionUninstallSuccessful()
 			instance.Status.SetCondition(hrc)
-			instance.Status.ComputeActualState(&hrc, spec.TargetState)
+			instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 			r.logAndRecordSuccess(instance, &hrc)
 		}
 		if err := r.updateResourceStatus(instance); err != nil {
@@ -198,7 +190,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if err != nil {
 			hrc := getConditionInstallError(err.Error())
 			instance.Status.SetCondition(hrc)
-			instance.Status.ComputeActualState(&hrc, spec.TargetState)
+			instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 			r.logAndRecordFailure(instance, &hrc, err)
 
 			_ = r.updateResourceStatus(instance)
@@ -215,7 +207,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 
 		hrc := getConditionInstallSuccess(installedResource)
 		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, spec.TargetState)
+		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 		r.logAndRecordSuccess(instance, &hrc)
 
 		err = r.updateResourceStatus(instance)
@@ -230,7 +222,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		if err != nil {
 			hrc := getConditionUpdateError(updatedResource, err.Error())
 			instance.Status.SetCondition(hrc)
-			instance.Status.ComputeActualState(&hrc, spec.TargetState)
+			instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 			r.logAndRecordFailure(instance, &hrc, err)
 
 			_ = r.updateResourceStatus(instance)
@@ -247,7 +239,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 
 		hrc := getConditionUpdateSuccessful(updatedResource)
 		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, spec.TargetState)
+		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 		r.logAndRecordSuccess(instance, &hrc)
 
 		err = r.updateResourceStatus(instance)
@@ -321,6 +313,18 @@ func (r ArmadaChartReconciler) updateResourceStatus(instance *av1.ArmadaChart) e
 	}
 
 	return err
+}
+
+func (r ArmadaChartReconciler) ensureSynced(mgr services.HelmManager, instance *av1.ArmadaChart) error {
+	if err := mgr.Sync(context.TODO()); err != nil {
+		hrc := getConditionIrreconcilable(nil, err.Error())
+		instance.Status.SetCondition(hrc)
+		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		r.logAndRecordFailure(instance, &hrc, err)
+		_ = r.updateResourceStatus(instance)
+		return err
+	}
+	return nil
 }
 
 func getConditionInitialized() av1.HelmResourceCondition {
