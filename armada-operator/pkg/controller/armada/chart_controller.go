@@ -76,7 +76,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		owner := av1.NewArmadaChartVersionKind("", "")
 		racr.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
 	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
-		log.Info("ddd", rrf)
+		log.Info("UnitTests", "ReconfileFunc", rrf)
 		// JEB: This the wrapper used during the unit tests
 		// owner := av1.NewArmadaChartVersionKind("", "")
 		// rrf.inner.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
@@ -225,7 +225,7 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	if manager.IsUpdateRequired() {
 		previousResource, updatedResource, err := manager.UpdateRelease(context.TODO())
 		if previousResource != nil && updatedResource != nil {
-			log.Info(previousResource.GetName(), updatedResource.GetName())
+			log.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
 		}
 		if err != nil {
 			hrc := getConditionUpdateError(updatedResource, err.Error())

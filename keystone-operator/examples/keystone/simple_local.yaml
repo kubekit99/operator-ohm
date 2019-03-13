@@ -1,23 +1,23 @@
 ---
-apiVersion: armada.airshipit.org/v1alpha1
-kind: ArmadaChart
-metadata:
-  name: helm-toolkit
-spec:
-  chart_name: helm-toolkit
-  release: helm-toolkit
-  namespace: helm-tookit
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
-  values: {}
-  source:
-    type: local
-    location: /opt/armada/helm-charts/helm-toolkit
-    subpath: .
-    reference: master
-  dependencies: []
+#apiVersion: armada.airshipit.org/v1alpha1
+#kind: ArmadaChart
+#metadata:
+#  name: helm-toolkit
+#spec:
+#  chart_name: helm-toolkit
+#  release: helm-toolkit
+#  namespace: helm-tookit
+#  install:
+#    no_hooks: false
+#  upgrade:
+#    no_hooks: false
+#  values: {}
+#  source:
+#    type: local
+#    location: /opt/armada/helm-charts/helm-toolkit
+#    subpath: .
+#    reference: master
+#  dependencies: []
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChart

@@ -39,15 +39,6 @@ install: docker-build
 	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
 	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
 	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
-	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadarequest.yaml
-	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_helmrelease.yaml
-	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_helmrequest.yaml
-	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycleevent.yaml
-	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycle.yaml
-	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_manifest.yaml
-	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_releaseaudit.yaml
-	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_release.yaml
-	kubectl apply -f ../armada-operator/chart/templates/helm3crd_v1beta1_values.yaml
 	kubectl apply -f ../armada-operator/chart/templates/role_binding.yaml
 	kubectl apply -f ../armada-operator/chart/templates/role.yaml
 	kubectl apply -f ../armada-operator/chart/templates/service_account.yaml
@@ -58,15 +49,6 @@ purge: setup
 	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
 	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
 	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
-	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadarequest.yaml
-	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_helmrelease.yaml
-	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_helmrequest.yaml
-	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycleevent.yaml
-	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_lifecycle.yaml
-	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_manifest.yaml
-	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_releaseaudit.yaml
-	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_release.yaml
-	kubectl delete -f ../armada-operator/chart/templates/helm3crd_v1beta1_values.yaml
 	kubectl delete -f ../armada-operator/chart/templates/role_binding.yaml
 	kubectl delete -f ../armada-operator/chart/templates/role.yaml
 	kubectl delete -f ../armada-operator/chart/templates/service_account.yaml
