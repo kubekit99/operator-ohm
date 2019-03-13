@@ -50,14 +50,14 @@ func NewManagerFactory(mgr manager.Manager) helmif.HelmManagerFactory {
 	return &managerFactory{storageBackend, tillerKubeClient}
 }
 
-func (f managerFactory) NewArmadaChartTillerManager(r *av1.ArmadaChart) helmif.HelmManager {
-	return &chartmanager{
+func (f managerFactory) NewHelmReleaseTillerManager(r *av1.HelmRelease) helmif.HelmManager {
+	return &helmreleasemanager{
 		storageBackend:   f.storageBackend,
 		tillerKubeClient: f.tillerKubeClient,
-		chartLocation:    r.Spec.Source,
+		chartDir:         r.Spec.ChartDir,
 
-		tiller:      f.tillerRendererForArmadaChart(r),
-		releaseName: r.Spec.Release,
+		tiller:      f.tillerRendererForHelmRelease(r),
+		releaseName: r.Spec.ReleaseName,
 		namespace:   r.GetNamespace(),
 
 		spec:   r.Spec,
@@ -65,13 +65,13 @@ func (f managerFactory) NewArmadaChartTillerManager(r *av1.ArmadaChart) helmif.H
 	}
 }
 
-func (f managerFactory) NewArmadaChartHelm3Manager(r *av1.ArmadaChart) helmif.HelmManager {
-	return nil
+func (f managerFactory) NewHelm3Manager(r *av1.HelmRelease) helmif.HelmManager {
+	return &helm3manager{}
 }
 
 // tillerRendererForCR creates a ReleaseServer configured with a rendering engine that adds ownerrefs to rendered assets
 // based on the CR.
-func (f managerFactory) tillerRendererForArmadaChart(r *av1.ArmadaChart) *tiller.ReleaseServer {
+func (f managerFactory) tillerRendererForHelmRelease(r *av1.HelmRelease) *tiller.ReleaseServer {
 	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,

@@ -75,8 +75,6 @@ rules:
 - apiGroups:
   - armada.airshipit.org
   resources:
-  - helmreleases
-  - helmreleases/status
   - armadamanifests
   - armadamanifests/status
   - armadacharts
