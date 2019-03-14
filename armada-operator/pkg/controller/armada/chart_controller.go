@@ -120,8 +120,8 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, err
 	}
 
-	manager := r.managerFactory.NewArmadaChartTillerManager(instance)
-	log = log.WithValues("resource", manager.ReleaseName())
+	mgr := r.managerFactory.NewArmadaChartTillerManager(instance)
+	log = log.WithValues("resource", mgr.ReleaseName())
 
 	var shouldRequeue bool
 	if shouldRequeue, err = r.updateFinalizers(instance); shouldRequeue {
@@ -136,31 +136,31 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	instance.Status.SetCondition(hrc)
 	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 
-	if err := r.ensureSynced(manager, instance); err != nil {
+	if err := r.ensureSynced(mgr, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 
 	switch {
 	case instance.IsDeleted():
-		if shouldRequeue, err = r.deleteArmadaChart(manager, instance); shouldRequeue {
+		if shouldRequeue, err = r.deleteArmadaChart(mgr, instance); shouldRequeue {
 			// Need to requeue because finalizer update does not change metadata.generation
 			return reconcile.Result{Requeue: true}, err
 		}
 		return reconcile.Result{}, err
-	case !manager.IsInstalled():
-		if shouldRequeue, err = r.installArmadaChart(manager, instance); shouldRequeue {
+	case !mgr.IsInstalled():
+		if shouldRequeue, err = r.installArmadaChart(mgr, instance); shouldRequeue {
 			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 		}
 		return reconcile.Result{}, err
-	case manager.IsUpdateRequired():
-		if shouldRequeue, err = r.updateArmadaChart(manager, instance); shouldRequeue {
+	case mgr.IsUpdateRequired():
+		if shouldRequeue, err = r.updateArmadaChart(mgr, instance); shouldRequeue {
 			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 		}
 		return reconcile.Result{}, err
 	}
 
-	if err := r.reconcileArmadaChart(manager, instance); err != nil {
+	if err := r.reconcileArmadaChart(mgr, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
