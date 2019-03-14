@@ -128,18 +128,7 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	instance.Status.SetCondition(hrc)
 	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
 
-	if err := mgr.Sync(context.TODO()); err != nil {
-		hrc := av1.HelmResourceCondition{
-			Type:    av1.ConditionIrreconcilable,
-			Status:  av1.ConditionStatusTrue,
-			Reason:  av1.ReasonReconcileError,
-			Message: err.Error(),
-		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
-		r.logAndRecordFailure(instance, &hrc, err)
-
-		_ = r.updateResourceStatus(instance)
+	if err := r.ensureSynced(mgr, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
@@ -298,6 +287,25 @@ func (r ChartGroupReconciler) updateResourceStatus(instance *av1.ArmadaChartGrou
 	}
 
 	return err
+}
+
+// ensureSynced checks that the ArmadaManager is in sync with the cluster
+func (r ChartGroupReconciler) ensureSynced(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) error {
+	if err := mgr.Sync(context.TODO()); err != nil {
+		hrc := av1.HelmResourceCondition{
+			Type:    av1.ConditionIrreconcilable,
+			Status:  av1.ConditionStatusTrue,
+			Reason:  av1.ReasonReconcileError,
+			Message: err.Error(),
+		}
+		instance.Status.SetCondition(hrc)
+		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		r.logAndRecordFailure(instance, &hrc, err)
+
+		_ = r.updateResourceStatus(instance)
+		return err
+	}
+	return nil
 }
 
 // updateFinalizers asserts that the finalizers match what is expected based on
