@@ -152,28 +152,8 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
-	expectedResource, err := mgr.ReconcileResource(context.TODO())
-	if err != nil {
-		hrc := av1.HelmResourceCondition{
-			Type:         av1.ConditionIrreconcilable,
-			Status:       av1.ConditionStatusTrue,
-			Reason:       av1.ReasonReconcileError,
-			Message:      err.Error(),
-			ResourceName: expectedResource.GetName(),
-		}
-		instance.Status.SetCondition(hrc)
-		r.logAndRecordFailure(instance, &hrc, err)
-
-		_ = r.updateResourceStatus(instance)
+	if err := r.reconcileArmadaChartGroup(mgr, instance); err != nil {
 		return reconcile.Result{}, err
-	}
-	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-
-	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
-			return reconcile.Result{}, err
-		}
 	}
 
 	log.Info("Reconciled resource")
@@ -389,4 +369,32 @@ func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaManager,
 
 	err = r.updateResourceStatus(instance)
 	return true, err
+}
+
+// reconcileArmadaChartGroup reconciles the release with the cluster
+func (r ChartGroupReconciler) reconcileArmadaChartGroup(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) error {
+	expectedResource, err := mgr.ReconcileResource(context.TODO())
+	if err != nil {
+		hrc := av1.HelmResourceCondition{
+			Type:         av1.ConditionIrreconcilable,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonReconcileError,
+			Message:      err.Error(),
+			ResourceName: expectedResource.GetName(),
+		}
+		instance.Status.SetCondition(hrc)
+		r.logAndRecordFailure(instance, &hrc, err)
+
+		_ = r.updateResourceStatus(instance)
+		return err
+	}
+	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
+
+	if r.depResourceWatchUpdater != nil {
+		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
+			log.Error(err, "Failed to run update resource dependant resources")
+			return err
+		}
+	}
+	return nil
 }
