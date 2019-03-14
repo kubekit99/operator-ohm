@@ -230,6 +230,17 @@ func (r ChartGroupReconciler) updateFinalizers(instance *av1.ArmadaChartGroup) (
 	return false, nil
 }
 
+// updateDependentResources updates all resources which are dependent on this one
+func (r ChartGroupReconciler) updateDependentResources(instance *av1.ArmadaChartGroup) error {
+	if r.depResourceWatchUpdater != nil {
+		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
+			log.Error(err, "Failed to run update resource dependant resources")
+			return err
+		}
+	}
+	return nil
+}
+
 // deleteArmadaChartGroup deletes an instance of an ArmadaChartGroup. It returns true if the reconciler should be re-enqueueed
 func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) (bool, error) {
 	pendingFinalizers := instance.GetFinalizers()
@@ -304,11 +315,8 @@ func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaManager
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
-			return false, err
-		}
+	if err := r.updateDependentResources(instance); err != nil {
+		return false, err
 	}
 
 	hrc := av1.HelmResourceCondition{
@@ -349,11 +357,8 @@ func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaManager,
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
-			return false, err
-		}
+	if err := r.updateDependentResources(instance); err != nil {
+		return false, err
 	}
 
 	hrc := av1.HelmResourceCondition{
@@ -389,12 +394,6 @@ func (r ChartGroupReconciler) reconcileArmadaChartGroup(mgr armadaif.ArmadaManag
 		return err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-
-	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
-			return err
-		}
-	}
-	return nil
+	err = r.updateDependentResources(instance)
+	return err
 }
