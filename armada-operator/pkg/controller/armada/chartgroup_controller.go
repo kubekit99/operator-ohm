@@ -115,13 +115,8 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 
 	log = log.WithValues("resource", mgr.ResourceName())
 
-	deleted := instance.GetDeletionTimestamp() != nil
-	pendingFinalizers := instance.GetFinalizers()
-	if !deleted && !contains(pendingFinalizers, finalizerArmadaChartGroup) {
-		finalizers := append(pendingFinalizers, finalizerArmadaChartGroup)
-		instance.SetFinalizers(finalizers)
-		err = r.updateResource(instance)
-
+	var shouldRequeue bool
+	if shouldRequeue, err = r.updateFinalizers(instance); shouldRequeue {
 		// Need to requeue because finalizer update does not change metadata.generation
 		return reconcile.Result{Requeue: true}, err
 	}
@@ -149,57 +144,12 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 
-	if deleted {
-		if !contains(pendingFinalizers, finalizerArmadaChartGroup) {
-			log.Info("Resource is terminated, skipping reconciliation")
-			return reconcile.Result{}, nil
+	if instance.IsDeleted() {
+		if shouldRequeue, err = r.deleteArmadaChartGroup(mgr, instance); shouldRequeue {
+			// Need to requeue because finalizer update does not change metadata.generation
+			return reconcile.Result{Requeue: true}, err
 		}
-
-		uninstalledResource, err := mgr.UninstallResource(context.TODO())
-		if err != nil && err != armadaif.ErrNotFound {
-			hrc := av1.HelmResourceCondition{
-				Type:         av1.ConditionFailed,
-				Status:       av1.ConditionStatusTrue,
-				Reason:       av1.ReasonUninstallError,
-				Message:      err.Error(),
-				ResourceName: uninstalledResource.GetName(),
-			}
-			instance.Status.SetCondition(hrc)
-			instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
-			r.logAndRecordFailure(instance, &hrc, err)
-
-			_ = r.updateResourceStatus(instance)
-			return reconcile.Result{}, err
-		}
-		instance.Status.RemoveCondition(av1.ConditionFailed)
-
-		if err == armadaif.ErrNotFound {
-			log.Info("Resource not found, removing finalizer")
-		} else {
-			hrc := av1.HelmResourceCondition{
-				Type:   av1.ConditionDeployed,
-				Status: av1.ConditionStatusFalse,
-				Reason: av1.ReasonUninstallSuccessful,
-			}
-			instance.Status.SetCondition(hrc)
-			instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
-			r.logAndRecordSuccess(instance, &hrc)
-		}
-		if err := r.updateResourceStatus(instance); err != nil {
-			return reconcile.Result{}, err
-		}
-
-		finalizers := []string{}
-		for _, pendingFinalizer := range pendingFinalizers {
-			if pendingFinalizer != finalizerArmadaChartGroup {
-				finalizers = append(finalizers, pendingFinalizer)
-			}
-		}
-		instance.SetFinalizers(finalizers)
-		err = r.updateResource(instance)
-
-		// Need to requeue because finalizer update does not change metadata.generation
-		return reconcile.Result{Requeue: true}, err
+		return reconcile.Result{}, err
 	}
 
 	if !mgr.IsInstalled() {
@@ -348,4 +298,74 @@ func (r ChartGroupReconciler) updateResourceStatus(instance *av1.ArmadaChartGrou
 	}
 
 	return err
+}
+
+// updateFinalizers asserts that the finalizers match what is expected based on
+// whether the instance is currently being deleted or not. It returns true if
+// the finalizers were changed, false otherwise
+func (r ChartGroupReconciler) updateFinalizers(instance *av1.ArmadaChartGroup) (bool, error) {
+	pendingFinalizers := instance.GetFinalizers()
+	if !instance.IsDeleted() && !contains(pendingFinalizers, finalizerArmadaChartGroup) {
+		finalizers := append(pendingFinalizers, finalizerArmadaChartGroup)
+		instance.SetFinalizers(finalizers)
+		err := r.updateResource(instance)
+
+		return true, err
+	}
+	return false, nil
+}
+
+// deleteArmadaChartGroup deletes an instance of an ArmadaChartGroup. It returns true if the reconciler should be re-enqueueed
+func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) (bool, error) {
+	pendingFinalizers := instance.GetFinalizers()
+	if !contains(pendingFinalizers, finalizerArmadaChartGroup) {
+		log.Info("Resource is terminated, skipping reconciliation")
+		return false, nil
+	}
+
+	uninstalledResource, err := mgr.UninstallResource(context.TODO())
+	if err != nil && err != armadaif.ErrNotFound {
+		hrc := av1.HelmResourceCondition{
+			Type:         av1.ConditionFailed,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonUninstallError,
+			Message:      err.Error(),
+			ResourceName: uninstalledResource.GetName(),
+		}
+		instance.Status.SetCondition(hrc)
+		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		r.logAndRecordFailure(instance, &hrc, err)
+
+		_ = r.updateResourceStatus(instance)
+		return false, err
+	}
+	instance.Status.RemoveCondition(av1.ConditionFailed)
+
+	if err == armadaif.ErrNotFound {
+		log.Info("Resource not found, removing finalizer")
+	} else {
+		hrc := av1.HelmResourceCondition{
+			Type:   av1.ConditionDeployed,
+			Status: av1.ConditionStatusFalse,
+			Reason: av1.ReasonUninstallSuccessful,
+		}
+		instance.Status.SetCondition(hrc)
+		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		r.logAndRecordSuccess(instance, &hrc)
+	}
+	if err := r.updateResourceStatus(instance); err != nil {
+		return false, err
+	}
+
+	finalizers := []string{}
+	for _, pendingFinalizer := range pendingFinalizers {
+		if pendingFinalizer != finalizerArmadaChartGroup {
+			finalizers = append(finalizers, pendingFinalizer)
+		}
+	}
+	instance.SetFinalizers(finalizers)
+	err = r.updateResource(instance)
+
+	// Need to requeue because finalizer update does not change metadata.generation
+	return true, err
 }

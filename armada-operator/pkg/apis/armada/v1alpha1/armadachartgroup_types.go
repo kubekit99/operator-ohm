@@ -196,3 +196,8 @@ func NewArmadaChartGroupListVersionKind(namespace string, name string) *unstruct
 	u.SetName(name)
 	return u
 }
+
+// IsDeleted returns true if the chart group has been deleted
+func (obj *ArmadaChartGroup) IsDeleted() bool {
+	return obj.GetDeletionTimestamp() != nil
+}
