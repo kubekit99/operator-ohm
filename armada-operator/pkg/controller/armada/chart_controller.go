@@ -38,15 +38,16 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-// Add creates a new ArmadaChart Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
+// AddArmadaChartController creates a new ArmadaChart Controller and adds it to
+// the Manager. The Manager will set fields on the Controller and Start it when
+// the Manager is Started.
 func AddArmadaChartController(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	r := &ArmadaChartReconciler{
+	r := &ChartReconciler{
 		client:         mgr.GetClient(),
 		scheme:         mgr.GetScheme(),
 		recorder:       mgr.GetRecorder("act-recorder"),
@@ -72,7 +73,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to secondary resource Pods and requeue the owner ArmadaChart
-	if racr, isArmadaChartReconciler := r.(*ArmadaChartReconciler); isArmadaChartReconciler {
+	if racr, isChartReconciler := r.(*ChartReconciler); isChartReconciler {
 		owner := av1.NewArmadaChartVersionKind("", "")
 		racr.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
 	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
@@ -85,10 +86,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ArmadaChartReconciler{}
+var _ reconcile.Reconciler = &ChartReconciler{}
 
-// ArmadaChartReconciler reconciles custom resources as Helm releases.
-type ArmadaChartReconciler struct {
+// ChartReconciler reconciles custom resources as Helm releases.
+type ChartReconciler struct {
 	client                  client.Client
 	scheme                  *runtime.Scheme
 	recorder                record.EventRecorder
@@ -101,14 +102,13 @@ const (
 	finalizerArmadaChart = "uninstall-helm-release"
 )
 
-// Reconcile reads that state of the cluster for a ArmadaChart object and makes changes based on the state read
-// and what is in the ArmadaChart.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+// Reconcile reads that state of the cluster for an ArmadaChart object and
+// makes changes based on the state read and what is in the ArmadaChart.Spec
+//
+// Note: The Controller will requeue the Request to be processed again if the
+// returned error is non-nil or Result.Requeue is true, otherwise upon
+// completion it will remove the work from the queue.
+func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	log := log.WithValues(
 		"namespace", request.Namespace,
 		"name", request.Name,
@@ -169,7 +169,9 @@ func (r *ArmadaChartReconciler) Reconcile(request reconcile.Request) (reconcile.
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }
 
-func (r *ArmadaChartReconciler) getArmadaChartInstance(request reconcile.Request) (*av1.ArmadaChart, error) {
+// getArmadaChartInstance gets an instance of the ArmadaChart which has the
+// name and namespace specified in the request
+func (r *ChartReconciler) getArmadaChartInstance(request reconcile.Request) (*av1.ArmadaChart, error) {
 	instance := &av1.ArmadaChart{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
@@ -181,24 +183,25 @@ func (r *ArmadaChartReconciler) getArmadaChartInstance(request reconcile.Request
 	return instance, nil
 }
 
-// Add a success event to the recorder
-func (r ArmadaChartReconciler) logAndRecordFailure(instance *av1.ArmadaChart, hrc *av1.HelmResourceCondition, err error) {
+// logAndRecordFailure adds a failure event to the recorder
+func (r ChartReconciler) logAndRecordFailure(instance *av1.ArmadaChart, hrc *av1.HelmResourceCondition, err error) {
 	log.Error(err, fmt.Sprintf("%s", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
 }
 
-func (r ArmadaChartReconciler) logAndRecordSuccess(instance *av1.ArmadaChart, hrc *av1.HelmResourceCondition) {
+// logAndRecordSuccess adds a success event to the recorder
+func (r ChartReconciler) logAndRecordSuccess(instance *av1.ArmadaChart, hrc *av1.HelmResourceCondition) {
 	log.Info(fmt.Sprintf("%s", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
 }
 
-// Update the Resource object
-func (r ArmadaChartReconciler) updateResource(o *av1.ArmadaChart) error {
-	return r.client.Update(context.TODO(), o)
+// updateResource updates the Resource object in the cluster
+func (r ChartReconciler) updateResource(instance *av1.ArmadaChart) error {
+	return r.client.Update(context.TODO(), instance)
 }
 
-// Update the Status field in the CRD
-func (r ArmadaChartReconciler) updateResourceStatus(instance *av1.ArmadaChart) error {
+// updateResourceStatus updates the the Status field of the Resource object in the cluster
+func (r ChartReconciler) updateResourceStatus(instance *av1.ArmadaChart) error {
 	reqLogger := log.WithValues("ArmadaChart.Namespace", instance.Namespace, "ArmadaChart.Name", instance.Name)
 
 	helper := av1.HelmResourceConditionListHelper{Items: instance.Status.Conditions}
@@ -215,7 +218,8 @@ func (r ArmadaChartReconciler) updateResourceStatus(instance *av1.ArmadaChart) e
 	return err
 }
 
-func (r ArmadaChartReconciler) ensureSynced(mgr services.HelmManager, instance *av1.ArmadaChart) error {
+// ensureSynced checks that the HelmManager is in sync with the cluster
+func (r ChartReconciler) ensureSynced(mgr services.HelmManager, instance *av1.ArmadaChart) error {
 	if err := mgr.Sync(context.TODO()); err != nil {
 		hrc := av1.HelmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
@@ -232,7 +236,10 @@ func (r ArmadaChartReconciler) ensureSynced(mgr services.HelmManager, instance *
 	return nil
 }
 
-func (r ArmadaChartReconciler) updateFinalizers(instance *av1.ArmadaChart) (bool, error) {
+// updateFinalizers asserts that the finalizers match what is expected based on
+// whether the instance is currently being deleted or not. It returns true if
+// the finalizers were changed, false otherwise
+func (r ChartReconciler) updateFinalizers(instance *av1.ArmadaChart) (bool, error) {
 	pendingFinalizers := instance.GetFinalizers()
 	if !instance.IsDeleted() && !contains(pendingFinalizers, finalizerArmadaChart) {
 		finalizers := append(pendingFinalizers, finalizerArmadaChart)
@@ -244,7 +251,8 @@ func (r ArmadaChartReconciler) updateFinalizers(instance *av1.ArmadaChart) (bool
 	return false, nil
 }
 
-func (r ArmadaChartReconciler) updateDependentResources(resource *release.Release) error {
+// updateDependentResources updates all resources which are dependent on this one
+func (r ChartReconciler) updateDependentResources(resource *release.Release) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(resource)); err != nil {
 			log.Error(err, "Failed to run update resource dependant resources")
@@ -254,7 +262,8 @@ func (r ArmadaChartReconciler) updateDependentResources(resource *release.Releas
 	return nil
 }
 
-func (r ArmadaChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+// deleteArmadaChart deletes an instance of an ArmadaChart. It returns true if the reconciler should be re-enqueueed
+func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
 	pendingFinalizers := instance.GetFinalizers()
 	if !contains(pendingFinalizers, finalizerArmadaChart) {
 		log.Info("Resource is terminated, skipping reconciliation")
@@ -307,8 +316,8 @@ func (r ArmadaChartReconciler) deleteArmadaChart(mgr services.HelmManager, insta
 	return true, err
 }
 
-// installArmadaChart attempts to install instance. It returns true if the reconciler needs to be requeued
-func (r ArmadaChartReconciler) installArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+// installArmadaChart attempts to install instance. It returns true if the reconciler should be re-enqueueed
+func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
 	installedResource, err := mgr.InstallRelease(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -346,8 +355,8 @@ func (r ArmadaChartReconciler) installArmadaChart(mgr services.HelmManager, inst
 	return true, err
 }
 
-// updateArmadaChart attempts to update instance. It returns true if the reconciler needs to be requeued
-func (r ArmadaChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+// updateArmadaChart attempts to update instance. It returns true if the reconciler should be re-enqueueed
+func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
 	previousResource, updatedResource, err := mgr.UpdateRelease(context.TODO())
 	if previousResource != nil && updatedResource != nil {
 		log.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
@@ -389,7 +398,8 @@ func (r ArmadaChartReconciler) updateArmadaChart(mgr services.HelmManager, insta
 	return true, err
 }
 
-func (r ArmadaChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) error {
+// reconcileArmadaChart reconciles the release with the cluster
+func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) error {
 	expectedResource, err := mgr.ReconcileRelease(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
