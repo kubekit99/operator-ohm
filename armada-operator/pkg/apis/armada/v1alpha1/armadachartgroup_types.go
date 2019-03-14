@@ -109,8 +109,8 @@ func (s *ArmadaChartGroupStatus) RemoveCondition(conditionType HelmResourceCondi
 	return s
 }
 
-// Return the list of dependant resources to watch
-func (obj *ArmadaChartGroup) GetDependantResources() []unstructured.Unstructured {
+// Return the list of dependent resources to watch
+func (obj *ArmadaChartGroup) GetDependentResources() []unstructured.Unstructured {
 	var res = make([]unstructured.Unstructured, 0)
 	for _, chartname := range obj.Spec.Charts {
 		u := NewArmadaChartVersionKind(obj.GetNamespace(), chartname)
@@ -195,4 +195,9 @@ func NewArmadaChartGroupListVersionKind(namespace string, name string) *unstruct
 	u.SetNamespace(namespace)
 	u.SetName(name)
 	return u
+}
+
+// IsDeleted returns true if the chart group has been deleted
+func (obj *ArmadaChartGroup) IsDeleted() bool {
+	return obj.GetDeletionTimestamp() != nil
 }

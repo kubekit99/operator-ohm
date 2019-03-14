@@ -31,10 +31,10 @@ import (
 	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-type DependantResourceWatchUpdater func([]unstructured.Unstructured) error
+type DependentResourceWatchUpdater func([]unstructured.Unstructured) error
 
-// BuildDependantResourcesWatchUpdater builds a function that adds watches for resources in released Helm charts.
-func BuildDependantResourceWatchUpdater(mgr manager.Manager, owner *unstructured.Unstructured, c controller.Controller) DependantResourceWatchUpdater {
+// BuildDependentResourcesWatchUpdater builds a function that adds watches for resources in released Helm charts.
+func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured.Unstructured, c controller.Controller) DependentResourceWatchUpdater {
 
 	dependentPredicate := crtpredicate.Funcs{
 		// We don't need to reconcile dependent resource creation events
