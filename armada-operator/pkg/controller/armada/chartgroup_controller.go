@@ -149,47 +149,10 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	if mgr.IsUpdateRequired() {
-		previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
-		if previousResource != nil && updatedResource != nil {
-			log.Info(previousResource.GetName(), updatedResource.GetName())
+		if shouldRequeue, err = r.updateArmadaChartGroup(mgr, instance); shouldRequeue {
+			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 		}
-		if err != nil {
-			hrc := av1.HelmResourceCondition{
-				Type:         av1.ConditionFailed,
-				Status:       av1.ConditionStatusTrue,
-				Reason:       av1.ReasonUpdateError,
-				Message:      err.Error(),
-				ResourceName: updatedResource.GetName(),
-			}
-			instance.Status.SetCondition(hrc)
-			instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
-			r.logAndRecordFailure(instance, &hrc, err)
-
-			_ = r.updateResourceStatus(instance)
-			return reconcile.Result{}, err
-		}
-		instance.Status.RemoveCondition(av1.ConditionFailed)
-
-		if r.depResourceWatchUpdater != nil {
-			if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
-				log.Error(err, "Failed to run update resource dependant resources")
-				return reconcile.Result{}, err
-			}
-		}
-
-		hrc := av1.HelmResourceCondition{
-			Type:         av1.ConditionDeployed,
-			Status:       av1.ConditionStatusTrue,
-			Reason:       av1.ReasonUpdateSuccessful,
-			Message:      "HardcodedMessage",
-			ResourceName: updatedResource.GetName(),
-		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
-		r.logAndRecordSuccess(instance, &hrc)
-
-		err = r.updateResourceStatus(instance)
-		return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
+		return reconcile.Result{}, err
 	}
 
 	expectedResource, err := mgr.ReconcileResource(context.TODO())
@@ -377,6 +340,51 @@ func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaManager
 		Reason:       av1.ReasonInstallSuccessful,
 		Message:      "",
 		ResourceName: installedResource.GetName(),
+	}
+	instance.Status.SetCondition(hrc)
+	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+	r.logAndRecordSuccess(instance, &hrc)
+
+	err = r.updateResourceStatus(instance)
+	return true, err
+}
+
+// updateArmadaChartGroup attempts to update instance. It returns true if the reconciler should be re-enqueueed
+func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) (bool, error) {
+	previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
+	if previousResource != nil && updatedResource != nil {
+		log.Info(previousResource.GetName(), updatedResource.GetName())
+	}
+	if err != nil {
+		hrc := av1.HelmResourceCondition{
+			Type:         av1.ConditionFailed,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonUpdateError,
+			Message:      err.Error(),
+			ResourceName: updatedResource.GetName(),
+		}
+		instance.Status.SetCondition(hrc)
+		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		r.logAndRecordFailure(instance, &hrc, err)
+
+		_ = r.updateResourceStatus(instance)
+		return false, err
+	}
+	instance.Status.RemoveCondition(av1.ConditionFailed)
+
+	if r.depResourceWatchUpdater != nil {
+		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
+			log.Error(err, "Failed to run update resource dependant resources")
+			return false, err
+		}
+	}
+
+	hrc := av1.HelmResourceCondition{
+		Type:         av1.ConditionDeployed,
+		Status:       av1.ConditionStatusTrue,
+		Reason:       av1.ReasonUpdateSuccessful,
+		Message:      "HardcodedMessage",
+		ResourceName: updatedResource.GetName(),
 	}
 	instance.Status.SetCondition(hrc)
 	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
