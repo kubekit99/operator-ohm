@@ -64,7 +64,7 @@ func AddArmadaChartGroupController(mgr manager.Manager) error {
 	// Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner ArmadaChartGroup
 	owner := av1.NewArmadaChartGroupVersionKind("", "")
-	r.depResourceWatchUpdater = armadaif.BuildDependantResourceWatchUpdater(mgr, owner, c)
+	r.depResourceWatchUpdater = armadaif.BuildDependentResourceWatchUpdater(mgr, owner, c)
 
 	return nil
 }
@@ -80,7 +80,7 @@ type ChartGroupReconciler struct {
 	recorder                record.EventRecorder
 	managerFactory          armadaif.ArmadaManagerFactory
 	reconcilePeriod         time.Duration
-	depResourceWatchUpdater armadaif.DependantResourceWatchUpdater
+	depResourceWatchUpdater armadaif.DependentResourceWatchUpdater
 }
 
 const (
@@ -233,8 +233,8 @@ func (r ChartGroupReconciler) updateFinalizers(instance *av1.ArmadaChartGroup) (
 // updateDependentResources updates all resources which are dependent on this one
 func (r ChartGroupReconciler) updateDependentResources(instance *av1.ArmadaChartGroup) error {
 	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(instance.GetDependantResources()); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
+		if err := r.depResourceWatchUpdater(instance.GetDependentResources()); err != nil {
+			log.Error(err, "Failed to run update resource dependent resources")
 			return err
 		}
 	}

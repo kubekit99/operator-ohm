@@ -129,8 +129,8 @@ func (s *ArmadaChartStatus) RemoveCondition(conditionType HelmResourceConditionT
 	return s
 }
 
-// Return the list of dependant resources to watch
-func (obj *ArmadaChart) GetDependantResources() []unstructured.Unstructured {
+// Return the list of dependent resources to watch
+func (obj *ArmadaChart) GetDependentResources() []unstructured.Unstructured {
 	var res = make([]unstructured.Unstructured, 0)
 	return res
 }

@@ -67,7 +67,7 @@ func add(mgr manager.Manager) error {
 
 	// Watch for changes to secondary resource Pods and requeue the owner HelmRelease
 	owner := av1.NewHelmReleaseVersionKind("", "")
-	r.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
+	r.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c)
 
 	return nil
 }
@@ -81,7 +81,7 @@ type HelmOperatorReconciler struct {
 	recorder                record.EventRecorder
 	managerFactory          services.HelmManagerFactory
 	reconcilePeriod         time.Duration
-	depResourceWatchUpdater services.DependantResourceWatchUpdater
+	depResourceWatchUpdater services.DependentResourceWatchUpdater
 }
 
 const (
@@ -225,8 +225,8 @@ func (r *HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile
 		status.RemoveCondition(av1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.depResourceWatchUpdater != nil {
-			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(installedResource)); err != nil {
-				log.Error(err, "Failed to run update resource dependant resources")
+			if err := r.depResourceWatchUpdater(helmmgr.GetDependentResources(installedResource)); err != nil {
+				log.Error(err, "Failed to run update resource dependent resources")
 				return reconcile.Result{}, err
 			}
 		}
@@ -270,8 +270,8 @@ func (r *HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile
 		status.RemoveCondition(av1.ConditionFailed)
 
 		if spec.WatchHelmDependentResources && r.depResourceWatchUpdater != nil {
-			if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(updatedResource)); err != nil {
-				log.Error(err, "Failed to run update resource dependant resources")
+			if err := r.depResourceWatchUpdater(helmmgr.GetDependentResources(updatedResource)); err != nil {
+				log.Error(err, "Failed to run update resource dependent resources")
 				return reconcile.Result{}, err
 			}
 		}
@@ -310,8 +310,8 @@ func (r *HelmOperatorReconciler) Reconcile(request reconcile.Request) (reconcile
 	status.RemoveCondition(av1.ConditionIrreconcilable)
 
 	if spec.WatchHelmDependentResources && r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(expectedResource)); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
+		if err := r.depResourceWatchUpdater(helmmgr.GetDependentResources(expectedResource)); err != nil {
+			log.Error(err, "Failed to run update resource dependent resources")
 			return reconcile.Result{}, err
 		}
 	}

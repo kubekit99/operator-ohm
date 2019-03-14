@@ -26,9 +26,9 @@ import (
 	rpb "k8s.io/helm/pkg/proto/hapi/release"
 )
 
-// GetDependantResource extracts the list of dependant resources
+// GetDependentResource extracts the list of dependent resources
 // from the Helm Manifest in order to add Watch on those components.
-func GetDependantResources(release *rpb.Release) []unstructured.Unstructured {
+func GetDependentResources(release *rpb.Release) []unstructured.Unstructured {
 
 	var res = make([]unstructured.Unstructured, 0)
 	dec := yaml.NewDecoder(bytes.NewBufferString(release.GetManifest()))

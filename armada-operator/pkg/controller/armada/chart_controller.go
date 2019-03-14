@@ -75,12 +75,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to secondary resource Pods and requeue the owner ArmadaChart
 	if racr, isChartReconciler := r.(*ChartReconciler); isChartReconciler {
 		owner := av1.NewArmadaChartVersionKind("", "")
-		racr.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
+		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c)
 	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
 		log.Info("UnitTests", "ReconfileFunc", rrf)
 		// JEB: This the wrapper used during the unit tests
 		// owner := av1.NewArmadaChartVersionKind("", "")
-		// rrf.inner.depResourceWatchUpdater = services.BuildDependantResourceWatchUpdater(mgr, owner, c)
+		// rrf.inner.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c)
 	}
 
 	return nil
@@ -95,7 +95,7 @@ type ChartReconciler struct {
 	recorder                record.EventRecorder
 	managerFactory          services.HelmManagerFactory
 	reconcilePeriod         time.Duration
-	depResourceWatchUpdater services.DependantResourceWatchUpdater
+	depResourceWatchUpdater services.DependentResourceWatchUpdater
 }
 
 const (
@@ -254,8 +254,8 @@ func (r ChartReconciler) updateFinalizers(instance *av1.ArmadaChart) (bool, erro
 // updateDependentResources updates all resources which are dependent on this one
 func (r ChartReconciler) updateDependentResources(resource *release.Release) error {
 	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(helmmgr.GetDependantResources(resource)); err != nil {
-			log.Error(err, "Failed to run update resource dependant resources")
+		if err := r.depResourceWatchUpdater(helmmgr.GetDependentResources(resource)); err != nil {
+			log.Error(err, "Failed to run update resource dependent resources")
 			return err
 		}
 	}
