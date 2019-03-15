@@ -191,3 +191,18 @@ func NewArmadaManifestListVersionKind(namespace string, name string) *unstructur
 	u.SetName(name)
 	return u
 }
+
+// IsDeleted returns true if the manifest has been deleted
+func (obj *ArmadaManifest) IsDeleted() bool {
+	return obj.GetDeletionTimestamp() != nil
+}
+
+// IsEnabled returns true if the manifest if managed by the reconcilier
+func (obj *ArmadaManifest) IsEnabled() bool {
+	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
+}
+
+// IsDisabled returns true if the manifest is not managed by the reconcilier
+func (obj *ArmadaManifest) IsDisabled() bool {
+	return !obj.IsEnabled()
+}

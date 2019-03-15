@@ -217,3 +217,13 @@ func NewArmadaChartListVersionKind(namespace string, name string) *unstructured.
 func (obj *ArmadaChart) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
+
+// IsEnabled returns true if the chart if managed by the reconcilier
+func (obj *ArmadaChart) IsEnabled() bool {
+	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
+}
+
+// IsDisabled returns true if the chart is not managed by the reconcilier
+func (obj *ArmadaChart) IsDisabled() bool {
+	return !obj.IsEnabled()
+}
