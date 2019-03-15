@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: wf-blog-group
+spec:
+  entrypoint: wf-blog-group
+  serviceAccountName: wf-chartgroup-sa
+  templates:
+  - name: wf-blog-group
+    steps:
+    - - name: enable-blog-1
+        template: enable-blog-1-template
+    - - name: blog-1-ready
+        template: blog-1-ready-template
+    - - name: enable-blog-2
+        template: enable-blog-2-template
+    - - name: blog-2-ready
+        template: blog-2-ready-template
+
+  - name: enable-blog-1-template
+    resource:
+      action: patch
+      successCondition: status.succeeded == 1
+      failureCondition: status.succeeded == 0
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: blog-1
+        spec:
+          admin_state: enabled
+
+  - name: blog-1-ready-template
+    resource:
+      action: get
+      successCondition: status.succeeded == 1
+      failureCondition: status.succeeded == 0
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: blog-1
+
+  - name: enable-blog-2-template
+    resource:
+      action: patch
+      successCondition: status.succeeded == 1
+      failureCondition: status.succeeded == 0
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: blog-2
+        spec:
+          admin_state: enabled
+
+  - name: blog-2-ready-template
+    resource:
+      action: get
+      successCondition: status.succeeded == 1
+      failureCondition: status.succeeded == 0
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: blog-2

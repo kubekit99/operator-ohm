@@ -7,4 +7,5 @@ spec:
   release_prefix: armada
   chart_groups:
     - blog-group
-  target_state: initialized
+  target_state: deployed
+  admin_state: enabled

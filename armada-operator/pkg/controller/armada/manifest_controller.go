@@ -112,6 +112,14 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
+	// AdminState POC begin
+	// We will have to enhance the placement of this test to account
+	// for kubectl apply where more than just the AdminState is changed
+	if disabled := r.isReconcileDisabled(instance); disabled {
+		return reconcile.Result{}, nil
+	}
+	// AdminState POC end
+
 	manager := r.managerFactory.NewArmadaManifestManager(instance)
 	spec := instance.Spec
 	status := &instance.Status
@@ -350,4 +358,30 @@ func (r ArmadaManifestReconciler) updateResourceStatus(instance *av1.ArmadaManif
 	}
 
 	return err
+}
+
+// isReconcileDisabled
+func (r ArmadaManifestReconciler) isReconcileDisabled(instance *av1.ArmadaManifest) bool {
+	// JEB: Not sure if we need to add this new ConditionEnabled
+	// or we can just used the ConditionInitialized
+	if instance.IsDisabled() {
+		hrc := av1.HelmResourceCondition{
+			Type:   av1.ConditionEnabled,
+			Status: av1.ConditionStatusFalse,
+			Reason: "Manifest is disabled",
+		}
+		r.logAndRecordSuccess(instance, &hrc)
+		instance.Status.SetCondition(hrc)
+		_ = r.updateResourceStatus(instance, &instance.Status)
+		return true
+	} else {
+		hrc := av1.HelmResourceCondition{
+			Type:   av1.ConditionEnabled,
+			Status: av1.ConditionStatusTrue,
+			Reason: "Manifest is enabled",
+		}
+		r.logAndRecordSuccess(instance, &hrc)
+		instance.Status.SetCondition(hrc)
+		return false
+	}
 }

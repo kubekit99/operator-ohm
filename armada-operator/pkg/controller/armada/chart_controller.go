@@ -120,6 +120,14 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
+	// AdminState POC begin
+	// We will have to enhance the placement of this test to account
+	// for kubectl apply where more than just the AdminState is changed
+	if disabled := r.isReconcileDisabled(instance); disabled {
+		return reconcile.Result{}, nil
+	}
+	// AdminState POC end
+
 	mgr := r.managerFactory.NewArmadaChartTillerManager(instance)
 	log = log.WithValues("resource", mgr.ReleaseName())
 
@@ -133,8 +141,7 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		Type:   av1.ConditionInitialized,
 		Status: av1.ConditionStatusTrue,
 	}
-	instance.Status.SetCondition(hrc)
-	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 
 	if err := r.ensureSynced(mgr, instance); err != nil {
 		return reconcile.Result{}, err
@@ -227,8 +234,7 @@ func (r ChartReconciler) ensureSynced(mgr services.HelmManager, instance *av1.Ar
 			Reason:  av1.ReasonReconcileError,
 			Message: err.Error(),
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 		_ = r.updateResourceStatus(instance)
 		return err
@@ -279,8 +285,7 @@ func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *a
 			Message:      err.Error(),
 			ResourceName: uninstalledResource.GetName(),
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance)
@@ -296,8 +301,7 @@ func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *a
 			Status: av1.ConditionStatusFalse,
 			Reason: av1.ReasonUninstallSuccessful,
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordSuccess(instance, &hrc)
 	}
 	if err := r.updateResourceStatus(instance); err != nil {
@@ -326,8 +330,7 @@ func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *
 			Reason:  av1.ReasonInstallError,
 			Message: err.Error(),
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance)
@@ -347,8 +350,7 @@ func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *
 		ResourceName:    installedResource.GetName(),
 		ResourceVersion: installedResource.GetVersion(),
 	}
-	instance.Status.SetCondition(hrc)
-	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
 
 	err = r.updateResourceStatus(instance)
@@ -369,8 +371,7 @@ func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *a
 			Message:      err.Error(),
 			ResourceName: updatedResource.GetName(),
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance)
@@ -390,8 +391,7 @@ func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *a
 		ResourceName:    updatedResource.GetName(),
 		ResourceVersion: updatedResource.GetVersion(),
 	}
-	instance.Status.SetCondition(hrc)
-	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
 
 	err = r.updateResourceStatus(instance)
@@ -409,7 +409,7 @@ func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance
 			Message:      err.Error(),
 			ResourceName: expectedResource.GetName(),
 		}
-		instance.Status.SetCondition(hrc)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance)
@@ -418,4 +418,30 @@ func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 	err = r.updateDependentResources(expectedResource)
 	return err
+}
+
+// isReconcileDisabled
+func (r ChartReconciler) isReconcileDisabled(instance *av1.ArmadaChart) bool {
+	// JEB: Not sure if we need to add this new ConditionEnabled
+	// or we can just used the ConditionInitialized
+	if instance.IsDisabled() {
+		hrc := av1.HelmResourceCondition{
+			Type:   av1.ConditionEnabled,
+			Status: av1.ConditionStatusFalse,
+			Reason: "Chart is disabled",
+		}
+		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
+		_ = r.updateResourceStatus(instance)
+		return true
+	} else {
+		hrc := av1.HelmResourceCondition{
+			Type:   av1.ConditionEnabled,
+			Status: av1.ConditionStatusTrue,
+			Reason: "Chart is enabled",
+		}
+		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
+		return false
+	}
 }

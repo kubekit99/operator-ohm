@@ -111,8 +111,15 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
-	mgr := r.managerFactory.NewArmadaChartGroupManager(instance)
+	// AdminState POC begin
+	// We will have to enhance the placement of this test to account
+	// for kubectl apply where more than just the AdminState is changed
+	if disabled := r.isReconcileDisabled(instance); disabled {
+		return reconcile.Result{}, nil
+	}
+	// AdminState POC end
 
+	mgr := r.managerFactory.NewArmadaChartGroupManager(instance)
 	log = log.WithValues("resource", mgr.ResourceName())
 
 	var shouldRequeue bool
@@ -396,4 +403,30 @@ func (r ChartGroupReconciler) reconcileArmadaChartGroup(mgr armadaif.ArmadaManag
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 	err = r.updateDependentResources(instance)
 	return err
+}
+
+// isReconcileDisabled
+func (r ChartGroupReconciler) isReconcileDisabled(instance *av1.ArmadaChartGroup) bool {
+	// JEB: Not sure if we need to add this new ConditionEnabled
+	// or we can just used the ConditionInitialized
+	if instance.IsDisabled() {
+		hrc := av1.HelmResourceCondition{
+			Type:   av1.ConditionEnabled,
+			Status: av1.ConditionStatusFalse,
+			Reason: "ChartGroup is disabled",
+		}
+		r.logAndRecordSuccess(instance, &hrc)
+		instance.Status.SetCondition(hrc)
+		_ = r.updateResourceStatus(instance)
+		return true
+	} else {
+		hrc := av1.HelmResourceCondition{
+			Type:   av1.ConditionEnabled,
+			Status: av1.ConditionStatusTrue,
+			Reason: "ChartGroup is enabled",
+		}
+		r.logAndRecordSuccess(instance, &hrc)
+		instance.Status.SetCondition(hrc)
+		return false
+	}
 }

@@ -20,4 +20,4 @@ spec:
     reference: master
   dependencies: []
   target_state: deployed
-  admin_state: enabled
+  admin_state: disabled

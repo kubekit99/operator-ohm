@@ -87,6 +87,8 @@ const (
 	StatePendingBackup HelmResourceState = "pending-backup"
 	// StatePendingRestore indicates that an data restore operation is underway.
 	StatePendingRestore HelmResourceState = "pending-restore"
+	// StatePendingRestore indicates that an data restore operation is underway.
+	StatePendingInitialization HelmResourceState = "pending-initialization"
 )
 
 const (
@@ -95,16 +97,19 @@ const (
 	ConditionStatusFalse   HelmResourceConditionStatus = "False"
 	ConditionStatusUnknown HelmResourceConditionStatus = "Unknown"
 
-	// ConditionType:w
+	// ConditionType
 	ConditionIrreconcilable HelmResourceConditionType = "Irreconcilable"
 	ConditionFailed         HelmResourceConditionType = "Failed"
 	ConditionInitialized    HelmResourceConditionType = "Initialized"
+	ConditionEnabled        HelmResourceConditionType = "Enabled"
 	ConditionDownloaded     HelmResourceConditionType = "Downloaded"
 	ConditionDeployed       HelmResourceConditionType = "Deployed"
-	ConditionBackedUp       HelmResourceConditionType = "BackedUp"
-	ConditionRestored       HelmResourceConditionType = "Restored"
-	ConditionUpgraded       HelmResourceConditionType = "Upgraded"
-	ConditionRolledBack     HelmResourceConditionType = "RolledBack"
+
+	// JEB: Not sure we will ever be able to use those conditions
+	ConditionBackedUp   HelmResourceConditionType = "BackedUp"
+	ConditionRestored   HelmResourceConditionType = "Restored"
+	ConditionUpgraded   HelmResourceConditionType = "Upgraded"
+	ConditionRolledBack HelmResourceConditionType = "RolledBack"
 
 	// Successful Conditions Reasons
 	ReasonInstallSuccessful   HelmResourceConditionReason = "InstallSuccessful"
@@ -225,4 +230,63 @@ func (s *HelmResourceConditionListHelper) FindCondition(conditionType HelmResour
 		}
 	}
 	return found
+}
+
+type HelmResourceStatusHelper struct {
+	Cond             *HelmResourceCondition
+	TargetState      HelmResourceState
+	CurrentSucceeded bool
+	CurrentReason    string
+	CurrentState     HelmResourceState
+}
+
+func (s *HelmResourceStatusHelper) ComputeActualState() (HelmResourceState, bool, string) {
+	computedState := s.CurrentState
+	computedReason := s.CurrentReason
+	computedSucceeded := s.CurrentSucceeded
+
+	// TODO(Ian): finish this
+	if s.Cond.Status == ConditionStatusTrue {
+		if s.Cond.Type == ConditionInitialized {
+			// Since that condition is set almost systematically
+			// let's do not recompute the state.
+			if (s.CurrentState == "") || (s.CurrentState == StateUnknown) {
+				computedState = StateInitialized
+				computedSucceeded = (computedState == s.TargetState)
+				computedReason = ""
+			}
+		} else if s.Cond.Type == ConditionDeployed {
+			computedState = StateDeployed
+			computedSucceeded = (computedState == s.TargetState)
+			computedReason = ""
+		} else if s.Cond.Type == ConditionEnabled {
+			if (s.CurrentState == "") || (s.CurrentState == StateUnknown) {
+				computedState = StatePendingInitialization
+				computedSucceeded = (computedState == s.TargetState)
+				computedReason = ""
+			}
+		} else if s.Cond.Type == ConditionIrreconcilable {
+			computedState = StateFailed
+			computedSucceeded = false
+			computedReason = s.Cond.Reason.String()
+		} else {
+			computedSucceeded = (computedState == s.TargetState)
+			computedReason = ""
+		}
+	} else {
+		if s.Cond.Type == ConditionDeployed {
+			computedState = StateUninstalled
+			computedSucceeded = (computedState == s.TargetState)
+			computedReason = ""
+		} else if s.Cond.Type == ConditionEnabled {
+			computedState = StateUnknown
+			computedSucceeded = true
+			computedReason = "Disabled Resource always is always successful"
+		} else {
+			computedSucceeded = (computedState == s.TargetState)
+			computedReason = ""
+		}
+	}
+
+	return computedState, computedSucceeded, computedReason
 }

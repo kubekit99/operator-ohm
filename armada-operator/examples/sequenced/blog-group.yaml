@@ -5,7 +5,7 @@ metadata:
   name: blog-group
 spec:
   description: Deploys Simple Service
-  sequenced: False
+  sequenced: True
   chart_group:
     - blog-1
     - blog-2
