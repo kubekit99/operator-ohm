@@ -84,7 +84,7 @@ type ArmadaManifestReconciler struct {
 }
 
 const (
-	finalizerArmadaManifest = "uninstall-pod"
+	finalizerArmadaManifest = "uninstall-amf"
 )
 
 // Reconcile reads that state of the cluster for a ArmadaManifest object and makes changes based on the state read
@@ -141,8 +141,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 		Type:   av1.ConditionInitialized,
 		Status: av1.ConditionStatusTrue,
 	}
-	status.SetCondition(hrc)
-	status.ComputeActualState(&hrc, spec.TargetState)
+	status.SetCondition(hrc, spec.TargetState)
 
 	if err := manager.Sync(context.TODO()); err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -151,8 +150,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 			Reason:  av1.ReasonReconcileError,
 			Message: err.Error(),
 		}
-		status.SetCondition(hrc)
-		status.ComputeActualState(&hrc, spec.TargetState)
+		status.SetCondition(hrc, spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance, status)
@@ -175,8 +173,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 				Message:      err.Error(),
 				ResourceName: uninstalledResource.GetName(),
 			}
-			status.SetCondition(hrc)
-			status.ComputeActualState(&hrc, spec.TargetState)
+			status.SetCondition(hrc, spec.TargetState)
 			r.logAndRecordFailure(instance, &hrc, err)
 
 			_ = r.updateResourceStatus(instance, status)
@@ -192,8 +189,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 				Status: av1.ConditionStatusFalse,
 				Reason: av1.ReasonUninstallSuccessful,
 			}
-			status.SetCondition(hrc)
-			status.ComputeActualState(&hrc, spec.TargetState)
+			status.SetCondition(hrc, spec.TargetState)
 			r.logAndRecordSuccess(instance, &hrc)
 		}
 		if err := r.updateResourceStatus(instance, status); err != nil {
@@ -222,8 +218,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 				Reason:  av1.ReasonInstallError,
 				Message: err.Error(),
 			}
-			status.SetCondition(hrc)
-			status.ComputeActualState(&hrc, spec.TargetState)
+			status.SetCondition(hrc, spec.TargetState)
 			r.logAndRecordFailure(instance, &hrc, err)
 
 			_ = r.updateResourceStatus(instance, status)
@@ -245,8 +240,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 			Message:      "",
 			ResourceName: installedResource.GetName(),
 		}
-		status.SetCondition(hrc)
-		status.ComputeActualState(&hrc, spec.TargetState)
+		status.SetCondition(hrc, spec.TargetState)
 		r.logAndRecordSuccess(instance, &hrc)
 
 		err = r.updateResourceStatus(instance, status)
@@ -266,8 +260,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 				Message:      err.Error(),
 				ResourceName: updatedResource.GetName(),
 			}
-			status.SetCondition(hrc)
-			status.ComputeActualState(&hrc, spec.TargetState)
+			status.SetCondition(hrc, spec.TargetState)
 			r.logAndRecordFailure(instance, &hrc, err)
 
 			_ = r.updateResourceStatus(instance, status)
@@ -289,8 +282,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 			Message:      "HardcodedMessage",
 			ResourceName: updatedResource.GetName(),
 		}
-		status.SetCondition(hrc)
-		status.ComputeActualState(&hrc, spec.TargetState)
+		status.SetCondition(hrc, spec.TargetState)
 		r.logAndRecordSuccess(instance, &hrc)
 
 		err = r.updateResourceStatus(instance, status)
@@ -306,7 +298,7 @@ func (r *ArmadaManifestReconciler) Reconcile(request reconcile.Request) (reconci
 			Message:      err.Error(),
 			ResourceName: expectedResource.GetName(),
 		}
-		status.SetCondition(hrc)
+		status.SetCondition(hrc, spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance, status)
@@ -370,8 +362,8 @@ func (r ArmadaManifestReconciler) isReconcileDisabled(instance *av1.ArmadaManife
 			Status: av1.ConditionStatusFalse,
 			Reason: "Manifest is disabled",
 		}
-		r.logAndRecordSuccess(instance, &hrc)
-		instance.Status.SetCondition(hrc)
+		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		_ = r.updateResourceStatus(instance, &instance.Status)
 		return true
 	} else {
@@ -380,8 +372,8 @@ func (r ArmadaManifestReconciler) isReconcileDisabled(instance *av1.ArmadaManife
 			Status: av1.ConditionStatusTrue,
 			Reason: "Manifest is enabled",
 		}
-		r.logAndRecordSuccess(instance, &hrc)
-		instance.Status.SetCondition(hrc)
+		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		return false
 	}
 }

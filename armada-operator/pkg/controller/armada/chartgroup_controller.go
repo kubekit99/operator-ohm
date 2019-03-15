@@ -84,7 +84,7 @@ type ChartGroupReconciler struct {
 }
 
 const (
-	finalizerArmadaChartGroup = "uninstall-pod"
+	finalizerArmadaChartGroup = "uninstall-acg"
 )
 
 // Reconcile reads that state of the cluster for a ArmadaChartGroup object and
@@ -132,8 +132,7 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		Type:   av1.ConditionInitialized,
 		Status: av1.ConditionStatusTrue,
 	}
-	instance.Status.SetCondition(hrc)
-	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 
 	if err := r.ensureSynced(mgr, instance); err != nil {
 		return reconcile.Result{}, err
@@ -212,8 +211,7 @@ func (r ChartGroupReconciler) ensureSynced(mgr armadaif.ArmadaManager, instance 
 			Reason:  av1.ReasonReconcileError,
 			Message: err.Error(),
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance)
@@ -265,8 +263,7 @@ func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaManager,
 			Message:      err.Error(),
 			ResourceName: uninstalledResource.GetName(),
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance)
@@ -282,8 +279,7 @@ func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaManager,
 			Status: av1.ConditionStatusFalse,
 			Reason: av1.ReasonUninstallSuccessful,
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordSuccess(instance, &hrc)
 	}
 	if err := r.updateResourceStatus(instance); err != nil {
@@ -313,8 +309,7 @@ func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaManager
 			Reason:  av1.ReasonInstallError,
 			Message: err.Error(),
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance)
@@ -333,8 +328,7 @@ func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaManager
 		Message:      "",
 		ResourceName: installedResource.GetName(),
 	}
-	instance.Status.SetCondition(hrc)
-	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
 
 	err = r.updateResourceStatus(instance)
@@ -355,8 +349,7 @@ func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaManager,
 			Message:      err.Error(),
 			ResourceName: updatedResource.GetName(),
 		}
-		instance.Status.SetCondition(hrc)
-		instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance)
@@ -375,8 +368,7 @@ func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaManager,
 		Message:      "HardcodedMessage",
 		ResourceName: updatedResource.GetName(),
 	}
-	instance.Status.SetCondition(hrc)
-	instance.Status.ComputeActualState(&hrc, instance.Spec.TargetState)
+	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
 
 	err = r.updateResourceStatus(instance)
@@ -394,7 +386,7 @@ func (r ChartGroupReconciler) reconcileArmadaChartGroup(mgr armadaif.ArmadaManag
 			Message:      err.Error(),
 			ResourceName: expectedResource.GetName(),
 		}
-		instance.Status.SetCondition(hrc)
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
 
 		_ = r.updateResourceStatus(instance)
@@ -415,8 +407,8 @@ func (r ChartGroupReconciler) isReconcileDisabled(instance *av1.ArmadaChartGroup
 			Status: av1.ConditionStatusFalse,
 			Reason: "ChartGroup is disabled",
 		}
-		r.logAndRecordSuccess(instance, &hrc)
-		instance.Status.SetCondition(hrc)
+		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		_ = r.updateResourceStatus(instance)
 		return true
 	} else {
@@ -425,8 +417,8 @@ func (r ChartGroupReconciler) isReconcileDisabled(instance *av1.ArmadaChartGroup
 			Status: av1.ConditionStatusTrue,
 			Reason: "ChartGroup is enabled",
 		}
-		r.logAndRecordSuccess(instance, &hrc)
-		instance.Status.SetCondition(hrc)
+		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		return false
 	}
 }

@@ -12,7 +12,7 @@ setup:
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
-	# dep ensure
+	# JEB: dep ensure
 
 clean:
 	rm -fr vendor
@@ -35,7 +35,7 @@ fmt: setup
 
 # Run go vet against code
 vet: setup
-	go vet ./pkg/... ./cmd/...
+	go vet -composites=false ./pkg/... ./cmd/...
 
 # Generate code
 generate: setup
@@ -45,7 +45,9 @@ generate: setup
 
 # Build the docker image
 docker-build: fmt vet
-	operator-sdk build ${IMG}
+	# JEB: operator-sdk build ${IMG}
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o build/_output/bin/armada-operator -gcflags all=-trimpath=${GOPATH} -asmflags all=-trimpath=${GOPATH} ./cmd/...
+	docker build . -f build/Dockerfile -t ${IMG}
 	docker tag ${IMG} ${DHUBREPO}:latest
 
 # Push the docker image

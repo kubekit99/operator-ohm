@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/helm/pkg/proto/hapi/release"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -258,9 +257,9 @@ func (r ChartReconciler) updateFinalizers(instance *av1.ArmadaChart) (bool, erro
 }
 
 // updateDependentResources updates all resources which are dependent on this one
-func (r ChartReconciler) updateDependentResources(resource *release.Release) error {
+func (r ChartReconciler) updateDependentResources(resource *services.HelmRelease) error {
 	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(helmmgr.GetDependentResources(resource)); err != nil {
+		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
 			log.Error(err, "Failed to run update resource dependent resources")
 			return err
 		}

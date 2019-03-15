@@ -12,13 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// JEB: This file has been created by concatenation of the content of
-// https://github.com/helm/helm/tree/dev-v3/pkg/hapi/release
-// and https://github.com/helm/helm/tree/dev-v3/pkg/chart
-// The content was then modified manually.
-// This file will be deleted once we figure out what we really want
-// to put in our CRDs.
-
 package v1alpha1
 
 import (

@@ -76,20 +76,23 @@ func init() {
 	SchemeBuilder.Register(&ArmadaManifest{}, &ArmadaManifestList{})
 }
 
-// Synthesis the actual state based on the conditions
-func (s *ArmadaManifestStatus) ComputeActualState(condition *HelmResourceCondition, targetState HelmResourceState) {
-	s.ActualState = targetState
-	s.Succeeded = (s.ActualState == targetState)
-	s.Reason = ""
-}
-
 // SetCondition sets a condition on the status object. If the condition already
 // exists, it will be replaced. SetCondition does not update the resource in
 // the cluster.
-func (s *ArmadaManifestStatus) SetCondition(condition HelmResourceCondition) *ArmadaManifestStatus {
+func (s *ArmadaManifestStatus) SetCondition(cond HelmResourceCondition, tgt HelmResourceState) *ArmadaManifestStatus {
 
-	helper := HelmResourceConditionListHelper{Items: s.Conditions}
-	s.Conditions = helper.SetCondition(condition)
+	// Add the condition to the list
+	chelper := HelmResourceConditionListHelper{Items: s.Conditions}
+	s.Conditions = chelper.SetCondition(cond)
+
+	// Recompute the state
+	shelper := HelmResourceStatusHelper{
+		Cond:             &cond,
+		TargetState:      tgt,
+		CurrentState:     s.ActualState,
+		CurrentSucceeded: s.Succeeded,
+		CurrentReason:    s.Reason}
+	s.ActualState, s.Succeeded, s.Reason = shelper.ComputeActualState()
 	return s
 }
 

@@ -16,8 +16,6 @@ package services
 
 import (
 	"context"
-
-	rpb "k8s.io/helm/pkg/proto/hapi/release"
 )
 
 // Manager manages a Helm release. It can install, update, reconcile,
@@ -27,8 +25,8 @@ type HelmManager interface {
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallRelease(context.Context) (*rpb.Release, error)
-	UpdateRelease(context.Context) (*rpb.Release, *rpb.Release, error)
-	ReconcileRelease(context.Context) (*rpb.Release, error)
-	UninstallRelease(context.Context) (*rpb.Release, error)
+	InstallRelease(context.Context) (*HelmRelease, error)
+	UpdateRelease(context.Context) (*HelmRelease, *HelmRelease, error)
+	ReconcileRelease(context.Context) (*HelmRelease, error)
+	UninstallRelease(context.Context) (*HelmRelease, error)
 }

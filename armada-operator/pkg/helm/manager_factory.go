@@ -77,7 +77,7 @@ func (f managerFactory) tillerRendererForArmadaChart(r *av1.ArmadaChart) *tiller
 		*controllerRef,
 	}
 	baseEngine := helmengine.New()
-	e := helmif.NewOwnerRefEngine(baseEngine, ownerRefs)
+	e := NewOwnerRefEngine(baseEngine, ownerRefs)
 	var ey environment.EngineYard = map[string]environment.Engine{
 		environment.GoTplEngine: e,
 	}
