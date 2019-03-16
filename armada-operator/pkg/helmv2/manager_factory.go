@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helm
+// +build v2
+
+package helmv2
 
 import (
 	"os"
@@ -29,64 +31,60 @@ import (
 	"k8s.io/helm/pkg/storage"
 	"k8s.io/helm/pkg/storage/driver"
 	"k8s.io/helm/pkg/tiller"
-	"k8s.io/helm/pkg/tiller/environment"
+	tillerenv "k8s.io/helm/pkg/tiller/environment"
 )
 
 type managerFactory struct {
 	storageBackend   *storage.Storage
-	tillerKubeClient *kube.Client
+	helmKubeClient *kube.Client
 }
 
 // NewManagerFactory returns a new Helm manager factory capable of installing and uninstalling releases.
 func NewManagerFactory(mgr manager.Manager) helmif.HelmManagerFactory {
 	// Create Tiller's storage backend and kubernetes client
 	storageBackend := storage.Init(driver.NewMemory())
-	tillerKubeClient, err := NewFromManager(mgr)
+	helmKubeClient, err := NewFromManager(mgr)
 	if err != nil {
-		log.Error(err, "Failed to create new Tiller client.", storageBackend, tillerKubeClient)
+		log.Error(err, "Failed to create new Tiller client.", storageBackend, helmKubeClient)
 		os.Exit(1)
 	}
 
-	return &managerFactory{storageBackend, tillerKubeClient}
+	return &managerFactory{storageBackend, helmKubeClient}
 }
 
-func (f managerFactory) NewArmadaChartTillerManager(r *av1.ArmadaChart) helmif.HelmManager {
+func (f managerFactory) NewArmadaChartManager(r *av1.ArmadaChart) helmif.HelmManager {
 	return &chartmanager{
-		storageBackend:   f.storageBackend,
-		tillerKubeClient: f.tillerKubeClient,
-		chartLocation:    r.Spec.Source,
+		storageBackend: f.storageBackend,
+		helmKubeClient: f.helmKubeClient,
+		chartLocation:  r.Spec.Source,
 
-		tiller:      f.tillerRendererForArmadaChart(r),
-		releaseName: r.Spec.Release,
-		namespace:   r.GetNamespace(),
+		releaseManager: f.helmRendererForArmadaChart(r),
+		releaseName:    r.Spec.Release,
+		namespace:      r.GetNamespace(),
 
-		spec:   r.Spec,
-		status: &r.Status,
+		spec:           r.Spec,
+		status:         &r.Status,
 	}
 }
 
-func (f managerFactory) NewArmadaChartHelm3Manager(r *av1.ArmadaChart) helmif.HelmManager {
-	return nil
-}
-
-// tillerRendererForCR creates a ReleaseServer configured with a rendering engine that adds ownerrefs to rendered assets
+// helmRendererForCR creates a ReleaseServer configured with a rendering engine that adds ownerrefs to rendered assets
 // based on the CR.
-func (f managerFactory) tillerRendererForArmadaChart(r *av1.ArmadaChart) *tiller.ReleaseServer {
+func (f managerFactory) helmRendererForArmadaChart(r *av1.ArmadaChart) *tiller.ReleaseServer {
 	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
 	baseEngine := helmengine.New()
 	e := NewOwnerRefEngine(baseEngine, ownerRefs)
-	var ey environment.EngineYard = map[string]environment.Engine{
-		environment.GoTplEngine: e,
+	var ey tillerenv.EngineYard = map[string]tillerenv.Engine{
+		tillerenv.GoTplEngine: e,
 	}
-	env := &environment.Environment{
+	env := &tillerenv.Environment{
 		EngineYard: ey,
 		Releases:   f.storageBackend,
-		KubeClient: f.tillerKubeClient,
+		KubeClient: f.helmKubeClient,
 	}
-	kubeconfig, _ := f.tillerKubeClient.ToRESTConfig()
+	kubeconfig, _ := f.helmKubeClient.ToRESTConfig()
 	cs := clientset.NewForConfigOrDie(kubeconfig)
 
 	return tiller.NewReleaseServer(env, cs, false)

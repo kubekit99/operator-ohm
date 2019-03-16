@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package services
+// +build v2
+
+package helmv2
 
 import (
-	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-// ManagerFactory creates Managers that are specific to custom resources. It is
-// used by the HelmOperatorReconciler during resource reconciliation, and it
-// improves decoupling between reconciliation logic and the Helm backend
-// components used to manage releases.
-type HelmManagerFactory interface {
-	NewArmadaChartManager(r *av1.ArmadaChart) HelmManager
-}
+var log = logf.Log.WithName("helm")

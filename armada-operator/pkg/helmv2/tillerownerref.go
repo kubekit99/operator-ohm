@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helm
+// +build v2
+
+package helmv2
 
 import (
 	"bytes"
@@ -24,22 +26,22 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/helm/pkg/chartutil"
-	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/releaseutil"
-	"k8s.io/helm/pkg/tiller/environment"
+	cpb "k8s.io/helm/pkg/proto/hapi/chart"
+	tillerenv "k8s.io/helm/pkg/tiller/environment"
 )
 
 // OwnerRefEngine wraps a tiller Render engine, adding ownerrefs to rendered assets
 type OwnerRefEngine struct {
-	environment.Engine
+	tillerenv.Engine
 	refs []metav1.OwnerReference
 }
 
 // assert interface
-var _ environment.Engine = &OwnerRefEngine{}
+var _ tillerenv.Engine = &OwnerRefEngine{}
 
 // Render proxies to the wrapped Render engine and then adds ownerRefs to each rendered file
-func (o *OwnerRefEngine) Render(chart *chart.Chart, values chartutil.Values) (map[string]string, error) {
+func (o *OwnerRefEngine) Render(chart *cpb.Chart, values chartutil.Values) (map[string]string, error) {
 	rendered, err := o.Engine.Render(chart, values)
 	if err != nil {
 		return nil, err
@@ -103,7 +105,7 @@ func (o *OwnerRefEngine) addOwnerRefs(fileContents string) (string, error) {
 }
 
 // NewOwnerRefEngine creates a new OwnerRef engine with a set of metav1.OwnerReferences to be added to assets
-func NewOwnerRefEngine(baseEngine environment.Engine, refs []metav1.OwnerReference) environment.Engine {
+func NewOwnerRefEngine(baseEngine tillerenv.Engine, refs []metav1.OwnerReference) tillerenv.Engine {
 	return &OwnerRefEngine{
 		Engine: baseEngine,
 		refs:   refs,

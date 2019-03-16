@@ -21,7 +21,7 @@ release_group: null
 
 images:
   tags:
-    operator: kubekit99/armada-operator-dev:v0.0.1
+    operator: kubekit99/armada-operator-dev:latest
   pull_policy: "IfNotPresent"
 
 labels: null

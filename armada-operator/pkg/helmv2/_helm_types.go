@@ -19,7 +19,7 @@
 // This file will be deleted once we figure out what we really want
 // to put in our CRDs.
 
-package v1alpha1
+package v2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

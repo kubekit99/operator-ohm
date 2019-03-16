@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helm
+// +build v2
+
+package helmv2
 
 import (
 	"archive/tar"
@@ -33,19 +35,19 @@ import (
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/kube"
+	"k8s.io/helm/pkg/storage"
 	cpb "k8s.io/helm/pkg/proto/hapi/chart"
 	rpb "k8s.io/helm/pkg/proto/hapi/release"
-	"k8s.io/helm/pkg/proto/hapi/services"
-	"k8s.io/helm/pkg/storage"
+	svc "k8s.io/helm/pkg/proto/hapi/services"
 	"k8s.io/helm/pkg/tiller"
 )
 
 type chartmanager struct {
 	storageBackend   *storage.Storage
-	tillerKubeClient *kube.Client
+	helmKubeClient   *kube.Client
 	chartLocation    *av1.ArmadaChartSource
 
-	tiller      *tiller.ReleaseServer
+	releaseManager   *tiller.ReleaseServer
 	releaseName string
 	namespace   string
 
@@ -118,7 +120,7 @@ func (m *chartmanager) Sync(ctx context.Context) error {
 	m.isInstalled = true
 
 	// Get the next candidate release to determine if an update is necessary.
-	candidateRelease, err := m.getCandidateRelease(ctx, m.tiller, m.releaseName, chart, config)
+	candidateRelease, err := m.getCandidateRelease(ctx, m.releaseManager, m.releaseName, chart, config)
 	if err != nil {
 		return fmt.Errorf("failed to get candidate release: %s", err)
 	}
@@ -194,7 +196,7 @@ func (m chartmanager) getDeployedRelease() (*rpb.Release, error) {
 }
 
 func (m chartmanager) getCandidateRelease(ctx context.Context, tiller *tiller.ReleaseServer, name string, chart *cpb.Chart, config *cpb.Config) (*rpb.Release, error) {
-	dryRunReq := &services.UpdateReleaseRequest{
+	dryRunReq := &svc.UpdateReleaseRequest{
 		Name:   name,
 		Chart:  chart,
 		Values: config,
@@ -209,26 +211,26 @@ func (m chartmanager) getCandidateRelease(ctx context.Context, tiller *tiller.Re
 
 // InstallRelease performs a Helm release install.
 func (m chartmanager) InstallRelease(ctx context.Context) (*helmif.HelmRelease, error) {
-	installedRelease, err := installRelease(ctx, m.tiller, m.namespace, m.releaseName, m.chart, m.config)
+	installedRelease, err := installRelease(ctx, m.releaseManager, m.namespace, m.releaseName, m.chart, m.config)
 	return &helmif.HelmRelease{installedRelease}, err
 }
 
 // UpdateRelease performs a Helm release update.
 func (m chartmanager) UpdateRelease(ctx context.Context) (*helmif.HelmRelease, *helmif.HelmRelease, error) {
-	updatedRelease, err := updateRelease(ctx, m.tiller, m.releaseName, m.chart, m.config)
+	updatedRelease, err := updateRelease(ctx, m.releaseManager, m.releaseName, m.chart, m.config)
 	return m.deployedRelease, &helmif.HelmRelease{updatedRelease}, err
 }
 
 // ReconcileRelease creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m chartmanager) ReconcileRelease(ctx context.Context) (*helmif.HelmRelease, error) {
-	err := reconcileRelease(ctx, m.tillerKubeClient, m.namespace, m.deployedRelease.GetManifest())
+	err := reconcileRelease(ctx, m.helmKubeClient, m.namespace, m.deployedRelease.GetManifest())
 	return m.deployedRelease, err
 }
 
 // UninstallRelease performs a Helm release uninstall.
 func (m chartmanager) UninstallRelease(ctx context.Context) (*helmif.HelmRelease, error) {
-	uninstalledRelease, err := uninstallRelease(ctx, m.storageBackend, m.tiller, m.releaseName)
+	uninstalledRelease, err := uninstallRelease(ctx, m.storageBackend, m.releaseManager, m.releaseName)
 	return &helmif.HelmRelease{uninstalledRelease}, err
 }
 

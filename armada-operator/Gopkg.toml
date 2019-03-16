@@ -13,6 +13,16 @@ required = [
   "sigs.k8s.io/controller-tools/cmd/controller-gen", # for crd/rbac generation
 ]
 
+ignored = [
+  # "github.com/kubekit99/operator-ohm/armada-operator/pkg/helmv2",
+  "github.com/kubekit99/operator-ohm/armada-operator/pkg/helmv3",
+  "helm.sh/helm/pkg/kube",
+  "helm.sh/helm/pkg/storage",
+  "helm.sh/helm/pkg/storage/driver",
+  "helm.sh/helm/pkg/release",
+  "helm.sh/helm/pkg/chart",
+]
+
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]
 name = "gopkg.in/fsnotify.v1"
@@ -78,6 +88,9 @@ version="v1.4.7"
 [[constraint]]
   name = "k8s.io/helm"
   version = "=v2.13.0"
+  # name = "helm.sh/helm"
+  # source = "https://github.com/helm/helm.git"
+  # branch = "dev-v3"
 
 # We need overrides for the following imports because dep can't resolve them
 # correctly. The easiest way to get this right is to use the versions that

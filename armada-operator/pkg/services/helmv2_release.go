@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build v2
+
 package services
 
 import (
@@ -26,6 +28,10 @@ import (
 
 type HelmRelease struct {
 	*rpb.Release
+}
+
+func (r *HelmRelease) GetNotes() string {
+	return r.GetInfo().GetStatus().GetNotes()
 }
 
 // GetDependentResource extracts the list of dependent resources

@@ -127,7 +127,7 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 	}
 	// AdminState POC end
 
-	mgr := r.managerFactory.NewArmadaChartTillerManager(instance)
+	mgr := r.managerFactory.NewArmadaChartManager(instance)
 	log = log.WithValues("resource", mgr.ReleaseName())
 
 	var shouldRequeue bool
@@ -345,7 +345,7 @@ func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *
 		Type:            av1.ConditionDeployed,
 		Status:          av1.ConditionStatusTrue,
 		Reason:          av1.ReasonInstallSuccessful,
-		Message:         installedResource.GetInfo().GetStatus().GetNotes(),
+		Message:         installedResource.GetNotes(),
 		ResourceName:    installedResource.GetName(),
 		ResourceVersion: installedResource.GetVersion(),
 	}
@@ -386,7 +386,7 @@ func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *a
 		Type:            av1.ConditionDeployed,
 		Status:          av1.ConditionStatusTrue,
 		Reason:          av1.ReasonUpdateSuccessful,
-		Message:         updatedResource.GetInfo().GetStatus().GetNotes(),
+		Message:         updatedResource.GetNotes(),
 		ResourceName:    updatedResource.GetName(),
 		ResourceVersion: updatedResource.GetVersion(),
 	}

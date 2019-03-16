@@ -45,12 +45,12 @@
   version = "v1.4.2"
 
 [[projects]]
-  digest = "1:b3bf7ebdab400adfa4d81687848571417ded5618231ef58124adf5544cab5e59"
+  digest = "1:876a1121171c083c4e3a4789683d02a40c0f644c8190da521d15b59799f556d6"
   name = "github.com/Masterminds/sprig"
   packages = ["."]
   pruneopts = "NT"
-  revision = "b1fe2752acccf8c3d7f8a1e7c75c7ae7d83a1975"
-  version = "v2.18.0"
+  revision = "9f8fceff796fb9f4e992cd2bece016be0121ab74"
+  version = "2.19.0"
 
 [[projects]]
   digest = "1:0a111edd8693fd977f42a0c4f199a0efb13c20aec9da99ad8830c7bb6a87e8d6"
@@ -427,12 +427,12 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:4059c14e87a2de3a434430340521b5feece186c1469eff0834c29a63870de3ed"
+  digest = "1:58999a98719fddbac6303cb17e8d85b945f60b72f48e3a2df6b950b97fa926f1"
   name = "github.com/konsorten/go-windows-terminal-sequences"
   packages = ["."]
   pruneopts = "NT"
-  revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
-  version = "v1.0.1"
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
 
 [[projects]]
   branch = "master"
@@ -679,12 +679,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:1f84287a4ca2c8f729d8155ba4c45915f5854ebbd214e406070779753da68422"
+  digest = "1:c8a0dfc6208c2af75549dbd7a0c4446cc214b7a049a872858a8ec6f58e4fd082"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = "NT"
-  revision = "e1e72e9de974bd926e5c56f83753fba2df402ce5"
-  version = "v1.3.0"
+  revision = "dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4"
+  version = "v1.4.0"
 
 [[projects]]
   digest = "1:1bc08ec221c4fb25e6f2c019b23fe989fb44573c696983d8e403a3b76cc378e1"
@@ -899,14 +899,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:949aff46f74b2c42e66d11367a3527314dc10227359f7d9b6a3f026a44869ecc"
+  digest = "1:55bb14837ea007976ffabd659bbcfad80078fd1cfe18e8bb3fed777d6b2ce032"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "NT"
-  revision = "082222b4a5c572e33e82ee9162d1352c7cf38682"
+  revision = "5fe7a883aa19554f42890211544aa549836af7b7"
 
 [[projects]]
-  digest = "1:864b8b2ca144da1f18e3379338e2688c7735f60fbc2f0e4f7b9cc348f1c08eed"
+  digest = "1:4b343441fcc81c724f265a35bdfcd6d9a7c9c5df041c60061cba2de640c20220"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -942,8 +942,8 @@
     "tap",
   ]
   pruneopts = "NT"
-  revision = "a02b0774206b209466313a0b525d2c738fe407eb"
-  version = "v1.18.0"
+  revision = "2fdaae294f38ed9a121193c51ec99fecd3b13eb7"
+  version = "v1.19.0"
 
 [[projects]]
   digest = "1:1b91ae0dc69a41d4c2ed23ea5cffb721ea63f5037ca4b81e6d6771fbb8f45129"
@@ -963,7 +963,7 @@
   version = "v0.9.1"
 
 [[projects]]
-  digest = "1:9ad4e5aeb49336a62876470ef1578ec750628b422f4c41aa698bbe52856e5b13"
+  digest = "1:fcbb6505b63ce17674bd859a957b36aaf6f9f8647495e40df6e1641513458dd7"
   name = "gopkg.in/square/go-jose.v2"
   packages = [
     ".",
@@ -972,8 +972,8 @@
     "jwt",
   ]
   pruneopts = "NT"
-  revision = "e94fb177d3668d35ab39c61cbb2f311550557e83"
-  version = "v2.2.2"
+  revision = "628223f44a71f715d2881ea69afc795a1e9c01be"
+  version = "v2.3.0"
 
 [[projects]]
   branch = "v1"
@@ -1448,7 +1448,7 @@
     "pointer",
   ]
   pruneopts = "NT"
-  revision = "c2654d5206da6b7b6ace12841e8f359bb89b443c"
+  revision = "21c4ce38f2a793ec01e925ddc31216500183b773"
 
 [[projects]]
   digest = "1:06035489efbd51ccface65fc878ceeb849aba05b2f9443c8993f363fc96e80ac"

@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helm
+// +build v3
+
+package helmv3
 
 import (
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -20,8 +22,9 @@ import (
 	"k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/helm/pkg/kube"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"helm.sh/helm/pkg/kube"
 )
 
 // NewFromManager returns a Kubernetes client that can be used with

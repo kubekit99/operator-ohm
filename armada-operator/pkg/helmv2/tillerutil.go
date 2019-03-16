@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package helm
+// +build v2
+
+package helmv2
 
 import (
 	"bytes"
@@ -31,10 +33,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/kube"
+	"k8s.io/helm/pkg/storage"
 	cpb "k8s.io/helm/pkg/proto/hapi/chart"
 	rpb "k8s.io/helm/pkg/proto/hapi/release"
-	"k8s.io/helm/pkg/proto/hapi/services"
-	"k8s.io/helm/pkg/storage"
+	svc "k8s.io/helm/pkg/proto/hapi/services"
 	"k8s.io/helm/pkg/tiller"
 
 	"github.com/mattbaird/jsonpatch"
@@ -59,23 +61,23 @@ func processRequirements(chart *cpb.Chart, values *cpb.Config) error {
 	return nil
 }
 
-func installRelease(ctx context.Context, tiller *tiller.ReleaseServer, namespace, name string, chart *cpb.Chart, config *cpb.Config) (*rpb.Release, error) {
-	installReq := &services.InstallReleaseRequest{
+func installRelease(ctx context.Context, releaseServer *tiller.ReleaseServer, namespace, name string, chart *cpb.Chart, config *cpb.Config) (*rpb.Release, error) {
+	installReq := &svc.InstallReleaseRequest{
 		Namespace: namespace,
 		Name:      name,
 		Chart:     chart,
 		Values:    config,
 	}
 
-	releaseResponse, err := tiller.InstallRelease(ctx, installReq)
+	releaseResponse, err := releaseServer.InstallRelease(ctx, installReq)
 	if err != nil {
 		// Workaround for helm/helm#3338
 		if releaseResponse.GetRelease() != nil {
-			uninstallReq := &services.UninstallReleaseRequest{
+			uninstallReq := &svc.UninstallReleaseRequest{
 				Name:  releaseResponse.GetRelease().GetName(),
 				Purge: true,
 			}
-			_, uninstallErr := tiller.UninstallRelease(ctx, uninstallReq)
+			_, uninstallErr := releaseServer.UninstallRelease(ctx, uninstallReq)
 			if uninstallErr != nil {
 				return nil, fmt.Errorf("failed to roll back failed installation: %s: %s", uninstallErr, err)
 			}
@@ -85,22 +87,22 @@ func installRelease(ctx context.Context, tiller *tiller.ReleaseServer, namespace
 	return releaseResponse.GetRelease(), nil
 }
 
-func updateRelease(ctx context.Context, tiller *tiller.ReleaseServer, name string, chart *cpb.Chart, config *cpb.Config) (*rpb.Release, error) {
-	updateReq := &services.UpdateReleaseRequest{
+func updateRelease(ctx context.Context, releaseServer *tiller.ReleaseServer, name string, chart *cpb.Chart, config *cpb.Config) (*rpb.Release, error) {
+	updateReq := &svc.UpdateReleaseRequest{
 		Name:   name,
 		Chart:  chart,
 		Values: config,
 	}
 
-	releaseResponse, err := tiller.UpdateRelease(ctx, updateReq)
+	releaseResponse, err := releaseServer.UpdateRelease(ctx, updateReq)
 	if err != nil {
 		// Workaround for helm/helm#3338
 		if releaseResponse.GetRelease() != nil {
-			rollbackReq := &services.RollbackReleaseRequest{
+			rollbackReq := &svc.RollbackReleaseRequest{
 				Name:  name,
 				Force: true,
 			}
-			_, rollbackErr := tiller.RollbackRelease(ctx, rollbackReq)
+			_, rollbackErr := releaseServer.RollbackRelease(ctx, rollbackReq)
 			if rollbackErr != nil {
 				return nil, fmt.Errorf("failed to roll back failed update: %s: %s", rollbackErr, err)
 			}
@@ -188,7 +190,7 @@ func generatePatch(existing, expected runtime.Object) ([]byte, error) {
 	return json.Marshal(patchOps)
 }
 
-func uninstallRelease(ctx context.Context, storageBackend *storage.Storage, tiller *tiller.ReleaseServer, releaseName string) (*rpb.Release, error) {
+func uninstallRelease(ctx context.Context, storageBackend *storage.Storage, releaseServer *tiller.ReleaseServer, releaseName string) (*rpb.Release, error) {
 	// Get history of this release
 	h, err := storageBackend.History(releaseName)
 	if err != nil {
@@ -201,7 +203,7 @@ func uninstallRelease(ctx context.Context, storageBackend *storage.Storage, till
 		return nil, helmif.ErrNotFound
 	}
 
-	uninstallResponse, err := tiller.UninstallRelease(ctx, &services.UninstallReleaseRequest{
+	uninstallResponse, err := releaseServer.UninstallRelease(ctx, &svc.UninstallReleaseRequest{
 		Name:  releaseName,
 		Purge: true,
 	})
