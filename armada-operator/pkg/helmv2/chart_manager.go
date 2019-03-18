@@ -209,13 +209,14 @@ func (m chartmanager) getCandidateRelease(ctx context.Context, tiller *tiller.Re
 	return dryRunResponse.GetRelease(), nil
 }
 
-// InstallRelease performs a Helm release install.
+// InstallRelease performs a "helm install" equivalent
 func (m chartmanager) InstallRelease(ctx context.Context) (*helmif.HelmRelease, error) {
 	installedRelease, err := installRelease(ctx, m.releaseManager, m.namespace, m.releaseName, m.chart, m.config)
 	return &helmif.HelmRelease{installedRelease}, err
 }
 
-// UpdateRelease performs a Helm release update.
+// InstallRelease performs a "helm upgrade" equivalent
+// Most likely the Values field in the ArmadaChart or the Version of the Chart may have change.
 func (m chartmanager) UpdateRelease(ctx context.Context) (*helmif.HelmRelease, *helmif.HelmRelease, error) {
 	updatedRelease, err := updateRelease(ctx, m.releaseManager, m.releaseName, m.chart, m.config)
 	return m.deployedRelease, &helmif.HelmRelease{updatedRelease}, err
@@ -228,12 +229,13 @@ func (m chartmanager) ReconcileRelease(ctx context.Context) (*helmif.HelmRelease
 	return m.deployedRelease, err
 }
 
-// UninstallRelease performs a Helm release uninstall.
+// UninstallRelease performs a "helm delete" equivalent
 func (m chartmanager) UninstallRelease(ctx context.Context) (*helmif.HelmRelease, error) {
 	uninstalledRelease, err := uninstallRelease(ctx, m.storageBackend, m.releaseManager, m.releaseName)
 	return &helmif.HelmRelease{uninstalledRelease}, err
 }
 
+// Downloads the chart local in case the Chart has not been bundled with the operator
 func (m chartmanager) getChart() (*cpb.Chart, error) {
 	var pathToChart string
 	var err error
@@ -263,6 +265,7 @@ func (m chartmanager) getChart() (*cpb.Chart, error) {
 	return chart, nil
 }
 
+// Downloads the chart from git.
 func (m *chartmanager) gitClone() (string, error) {
 	// TODO(Ian): Finish this method
 	repoURL := m.chartLocation.Location
@@ -272,6 +275,7 @@ func (m *chartmanager) gitClone() (string, error) {
 	return "", nil
 }
 
+// Downloads the char tarball from the URL.
 func (m *chartmanager) getTarball() (string, error) {
 	tarballPath, err := m.downloadTarball(false)
 	if err != nil {
@@ -300,7 +304,7 @@ func (m *chartmanager) downloadTarball(verify bool) (string, error) {
 	return file.Name(), nil
 }
 
-// extractTarball Extracts a tarball to /tmp and returns the path
+// extractTarball extracts a tarball to /tmp and returns the path
 func extractTarball(tarballPath string) (string, error) {
 	if _, err := os.Stat(tarballPath); err != nil {
 		if os.IsNotExist(err) {

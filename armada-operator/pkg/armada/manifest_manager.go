@@ -50,11 +50,12 @@ func (m manifestmanager) IsUpdateRequired() bool {
 	return m.isUpdateRequired
 }
 
-// Sync detects which ArmadaChartGroup are already present for that ArmadaManifest
+// Sync detects which ArmadaChartGroup listed this ArmadaManifest are already present in
+// the K8s cluster.
 func (m *manifestmanager) Sync(ctx context.Context) error {
 	m.deployedResource = &av1.ArmadaChartGroupList{Items: make([]av1.ArmadaChartGroup, 0)}
 	errs := make([]error, 0)
-	targetResourceList := m.newResourceForCR()
+	targetResourceList := m.expectedChartGroupList()
 	for _, existingResource := range (*targetResourceList).Items {
 		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.Name, Namespace: existingResource.Namespace}, &existingResource)
 		if err != nil {
@@ -86,9 +87,11 @@ func (m *manifestmanager) Sync(ctx context.Context) error {
 
 }
 
+// InstallResource currently create dummy ChartGroups in the K8s cluster if those are not found.
+// This is probably not the behavior we want to maitain in the long run.
 func (m manifestmanager) InstallResource(ctx context.Context) (*unstructured.Unstructured, error) {
 	errs := make([]error, 0)
-	toInstallList := m.newResourceForCR()
+	toInstallList := m.expectedChartGroupList()
 	for _, toInstall := range (*toInstallList).Items {
 		err := m.kubeClient.Create(context.TODO(), &toInstall)
 		if err != nil {
@@ -102,10 +105,11 @@ func (m manifestmanager) InstallResource(ctx context.Context) (*unstructured.Uns
 	return toInstallList.FromArmadaChartGroupList(), nil
 }
 
-// UpdateResource performs a Helm release update.
+// UpdateResource performs an update of an ArmadaManifest.
+// Currently either the list of ChartGroupss or the "prefix" attribute may have changed.
 func (m manifestmanager) UpdateResource(ctx context.Context) (*unstructured.Unstructured, *unstructured.Unstructured, error) {
 	errs := make([]error, 0)
-	toUpdateList := m.newResourceForCR()
+	toUpdateList := m.expectedChartGroupList()
 	for _, toUpdate := range (*toUpdateList).Items {
 		err := m.kubeClient.Update(context.TODO(), &toUpdate)
 		if err != nil {
@@ -127,14 +131,15 @@ func (m manifestmanager) UpdateResource(ctx context.Context) (*unstructured.Unst
 // ReconcileResource creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m manifestmanager) ReconcileResource(ctx context.Context) (*unstructured.Unstructured, error) {
-	toReconcile := m.newResourceForCR()
+	toReconcile := m.expectedChartGroupList()
 	return toReconcile.FromArmadaChartGroupList(), nil
 }
 
-// UninstallResource performs a Helm release uninstall.
+// UninstallResource currently delete ChartGroups matching the manifest.
+// This is probably not the behavior we want to maitain in the long run.
 func (m manifestmanager) UninstallResource(ctx context.Context) (*unstructured.Unstructured, error) {
 	errs := make([]error, 0)
-	toDeleteList := m.newResourceForCR()
+	toDeleteList := m.expectedChartGroupList()
 	for _, toDelete := range (*toDeleteList).Items {
 		err := m.kubeClient.Delete(context.TODO(), &toDelete)
 		if err != nil {
@@ -153,8 +158,8 @@ func (m manifestmanager) UninstallResource(ctx context.Context) (*unstructured.U
 	return toDeleteList.FromArmadaChartGroupList(), nil
 }
 
-// newResourceForCR returns a dummy ArmadaChart the same name/namespace as the cr
-func (m manifestmanager) newResourceForCR() *av1.ArmadaChartGroupList {
+// expectedChartGroupList returns a dummy list of ArmadaChartGroup the same name/namespace as the cr
+func (m manifestmanager) expectedChartGroupList() *av1.ArmadaChartGroupList {
 	labels := map[string]string{
 		"app": m.resourceName,
 	}
@@ -178,6 +183,7 @@ func (m manifestmanager) newResourceForCR() *av1.ArmadaChartGroupList {
 					Sequenced:   false,
 					TestCharts:  false,
 					TargetState: av1.StateInitialized,
+					AdminState:  av1.StateDisabled,
 				},
 			},
 		)
