@@ -108,14 +108,11 @@ const (
 // returned error is non-nil or Result.Requeue is true, otherwise upon
 // completion it will remove the work from the queue.
 func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	log := log.WithValues(
-		"namespace", request.Namespace,
-		"name", request.Name,
-	)
+	reclog := log.WithValues("namespace", request.Namespace, "act", request.Name)
 
 	instance, err := r.getArmadaChartInstance(request)
 	if err != nil {
-		log.Error(err, "Failed to lookup resource")
+		reclog.Error(err, "Failed to lookup resource")
 		return reconcile.Result{}, err
 	}
 
@@ -128,7 +125,7 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 	// AdminState POC end
 
 	mgr := r.managerFactory.NewArmadaChartManager(instance)
-	log = log.WithValues("resource", mgr.ReleaseName())
+	reclog = reclog.WithValues("resource", mgr.ReleaseName())
 
 	var shouldRequeue bool
 	if shouldRequeue, err = r.updateFinalizers(instance); shouldRequeue {
@@ -170,7 +167,7 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
-	log.Info("Reconciled resource")
+	reclog.Info("Reconciled ArmadaChart")
 	err = r.updateResourceStatus(instance)
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }
@@ -191,13 +188,15 @@ func (r *ChartReconciler) getArmadaChartInstance(request reconcile.Request) (*av
 
 // logAndRecordFailure adds a failure event to the recorder
 func (r ChartReconciler) logAndRecordFailure(instance *av1.ArmadaChart, hrc *av1.HelmResourceCondition, err error) {
-	log.Error(err, fmt.Sprintf("%s", hrc.Type.String()))
+	reclog := log.WithValues("namespace", instance.Namespace, "act", instance.Name)
+	reclog.Error(err, fmt.Sprintf("%s", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
 }
 
 // logAndRecordSuccess adds a success event to the recorder
 func (r ChartReconciler) logAndRecordSuccess(instance *av1.ArmadaChart, hrc *av1.HelmResourceCondition) {
-	log.Info(fmt.Sprintf("%s", hrc.Type.String()))
+	reclog := log.WithValues("namespace", instance.Namespace, "act", instance.Name)
+	reclog.Info(fmt.Sprintf("%s", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
 }
 
@@ -208,7 +207,7 @@ func (r ChartReconciler) updateResource(instance *av1.ArmadaChart) error {
 
 // updateResourceStatus updates the the Status field of the Resource object in the cluster
 func (r ChartReconciler) updateResourceStatus(instance *av1.ArmadaChart) error {
-	reqLogger := log.WithValues("ArmadaChart.Namespace", instance.Namespace, "ArmadaChart.Name", instance.Name)
+	reclog := log.WithValues("namespace", instance.Namespace, "act", instance.Name)
 
 	helper := av1.HelmResourceConditionListHelper{Items: instance.Status.Conditions}
 	instance.Status.Conditions = helper.InitIfEmpty()
@@ -217,7 +216,7 @@ func (r ChartReconciler) updateResourceStatus(instance *av1.ArmadaChart) error {
 	// JEB: Look for kubebuilder subresources in the _types.go
 	err := r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
-		reqLogger.Error(err, "Failure to update status. Ignoring")
+		reclog.Error(err, "Failure to update status. Ignoring")
 		err = nil
 	}
 
@@ -256,11 +255,10 @@ func (r ChartReconciler) updateFinalizers(instance *av1.ArmadaChart) (bool, erro
 	return false, nil
 }
 
-// updateDependentResources updates all resources which are dependent on this one
-func (r ChartReconciler) updateDependentResources(resource *services.HelmRelease) error {
+// watchDependentResources updates all resources which are dependent on this one
+func (r ChartReconciler) watchDependentResources(resource *services.HelmRelease) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
-			log.Error(err, "Failed to run update resource dependent resources")
 			return err
 		}
 	}
@@ -269,9 +267,10 @@ func (r ChartReconciler) updateDependentResources(resource *services.HelmRelease
 
 // deleteArmadaChart deletes an instance of an ArmadaChart. It returns true if the reconciler should be re-enqueueed
 func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+	reclog := log.WithValues("namespace", instance.Namespace, "act", instance.Name)
 	pendingFinalizers := instance.GetFinalizers()
 	if !contains(pendingFinalizers, finalizerArmadaChart) {
-		log.Info("Resource is terminated, skipping reconciliation")
+		reclog.Info("ArmadaChart is terminated, skipping reconciliation")
 		return false, nil
 	}
 
@@ -293,7 +292,7 @@ func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *a
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
 	if err == services.ErrNotFound {
-		log.Info("Resource not found, removing finalizer")
+		reclog.Info("Resource not found, removing finalizer")
 	} else {
 		hrc := av1.HelmResourceCondition{
 			Type:   av1.ConditionDeployed,
@@ -321,6 +320,7 @@ func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *a
 
 // installArmadaChart attempts to install instance. It returns true if the reconciler should be re-enqueueed
 func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+	reclog := log.WithValues("namespace", instance.Namespace, "act", instance.Name)
 	installedResource, err := mgr.InstallRelease(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -337,7 +337,8 @@ func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if err := r.updateDependentResources(installedResource); err != nil {
+	if err := r.watchDependentResources(installedResource); err != nil {
+		reclog.Error(err, "Failed to update watch on dependent resources")
 		return false, err
 	}
 
@@ -358,9 +359,10 @@ func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *
 
 // updateArmadaChart attempts to update instance. It returns true if the reconciler should be re-enqueueed
 func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+	reclog := log.WithValues("namespace", instance.Namespace, "act", instance.Name)
 	previousResource, updatedResource, err := mgr.UpdateRelease(context.TODO())
 	if previousResource != nil && updatedResource != nil {
-		log.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
+		reclog.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
 	}
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -378,7 +380,8 @@ func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *a
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if err := r.updateDependentResources(updatedResource); err != nil {
+	if err := r.watchDependentResources(updatedResource); err != nil {
+		reclog.Error(err, "Failed to update watch on dependent resources")
 		return false, err
 	}
 
@@ -399,6 +402,7 @@ func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *a
 
 // reconcileArmadaChart reconciles the release with the cluster
 func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) error {
+	reclog := log.WithValues("namespace", instance.Namespace, "act", instance.Name)
 	expectedResource, err := mgr.ReconcileRelease(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -415,8 +419,11 @@ func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance
 		return err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-	err = r.updateDependentResources(expectedResource)
-	return err
+	if err := r.watchDependentResources(expectedResource); err != nil {
+		reclog.Error(err, "Failed to update watch on dependent resources")
+		return err
+	}
+	return nil
 }
 
 // isReconcileDisabled

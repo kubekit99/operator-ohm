@@ -157,7 +157,7 @@ func (r *ManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	reclog.Info("Reconciled Manifest")
+	reclog.Info("Reconciled ArmadaManifest")
 	err = r.updateResourceStatus(instance)
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }

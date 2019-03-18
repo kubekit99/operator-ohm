@@ -157,7 +157,7 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
-	reclog.Info("Reconciled ChartGroup")
+	reclog.Info("Reconciled ArmadaChartGroup")
 	err = r.updateResourceStatus(instance)
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }

@@ -42,7 +42,7 @@ func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured
 		// reconciliation. Another reconcile would be redundant.
 		CreateFunc: func(e event.CreateEvent) bool {
 			o := e.Object.(*unstructured.Unstructured)
-			log.Info("Skipping reconciliation for dependent resource creation", "name", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			log.Info("CreateEvent. Skipping", "owner", owner.GetName(), "resource", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
 			return false
 		},
 
@@ -50,7 +50,7 @@ func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured
 		// recreated.
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			o := e.Object.(*unstructured.Unstructured)
-			log.Info("Reconciling due to dependent resource deletion", "name", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			log.Info("DeleteEvent. Reconciling", "owner", owner.GetName(), "resource", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
 			return true
 		},
 
@@ -70,7 +70,7 @@ func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured
 			if reflect.DeepEqual(old.Object, new.Object) {
 				return false
 			}
-			log.Info("Reconciling due to dependent resource update", "name", new.GetName(), "namespace", new.GetNamespace(), "apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
+			log.Info("UpdateEvent. Reconciling", "owner", owner.GetName(), "resource", new.GetName(), "namespace", new.GetNamespace(), "apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
 			return true
 		},
 	}
@@ -80,6 +80,7 @@ func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured
 	watchUpdater := func(dependent []unstructured.Unstructured) error {
 		for _, u := range dependent {
 			gvk := u.GroupVersionKind()
+			wlog := log.WithValues("owner", owner.GetName(), "resourceType", gvk.GroupVersion(), "resourceKind", gvk.Kind)
 			m.RLock()
 			_, ok := watches[gvk]
 			m.RUnlock()
@@ -90,12 +91,12 @@ func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured
 			restMapper := mgr.GetRESTMapper()
 			depMapping, err := restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 			if err != nil {
-				log.Error(err, "Step 1")
+				wlog.Error(err, "GetRESTMapper")
 				return err
 			}
 			ownerMapping, err := restMapper.RESTMapping(owner.GroupVersionKind().GroupKind(), owner.GroupVersionKind().Version)
 			if err != nil {
-				log.Error(err, "Step 2")
+				wlog.Error(err, "Build RESTMapping")
 				return err
 			}
 
@@ -106,21 +107,20 @@ func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured
 				m.Lock()
 				watches[gvk] = struct{}{}
 				m.Unlock()
-				log.Info("Cannot watch cluster-scoped dependent resource for namespace-scoped owner. Changes to this dependent resource type will not be reconciled",
-					"ownerApiVersion", gvk.GroupVersion(), "kind", gvk.Kind)
+				wlog.Info("Cannot watch cluster-scoped")
 				continue
 			}
 
 			err = c.Watch(&source.Kind{Type: &u}, &crthandler.EnqueueRequestForOwner{OwnerType: owner}, dependentPredicate)
 			if err != nil {
-				log.Error(err, "Step 3")
+				wlog.Error(err, "Add Watch to Controller")
 				return err
 			}
 
 			m.Lock()
 			watches[gvk] = struct{}{}
 			m.Unlock()
-			log.Info("Watching dependent resource", "ownerApiVersion", gvk.GroupVersion(), "kind", gvk.Kind)
+			wlog.Info("Watching dependent resource")
 		}
 
 		return nil
