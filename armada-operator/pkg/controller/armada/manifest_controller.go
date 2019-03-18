@@ -17,6 +17,7 @@ package armada
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
@@ -25,14 +26,17 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"k8s.io/client-go/tools/record"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	crthandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -56,15 +60,72 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 	}
 
 	// Watch for changes to primary resource ArmadaManifest
-	err = c.Watch(&source.Kind{Type: &av1.ArmadaManifest{}}, &handler.EnqueueRequestForObject{})
+	// EnqueueRequestForObject enqueues a Request containing the Name and Namespace of the object
+	// that is the source of the Event. (e.g. the created / deleted / updated objects Name and Namespace).
+	err = c.Watch(&source.Kind{Type: &av1.ArmadaManifest{}}, &crthandler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
-	// Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner ArmadaManifest
-	owner := av1.NewArmadaManifestVersionKind("", "")
-	r.depResourceWatchUpdater = armadaif.BuildDependentResourceWatchUpdater(mgr, owner, c)
+	dependentPredicate := crtpredicate.Funcs{
+		// We don't need to reconcile dependent resource creation events
+		// because dependent resources are only ever created during
+		// reconciliation. Another reconcile would be redundant.
+		CreateFunc: func(e event.CreateEvent) bool {
+			o := e.Object.(*unstructured.Unstructured)
+			log.Info("CreateEvent. Skipping", "ArmadaChartGroup", o.GetName(), "namespace", o.GetNamespace())
+			return false
+		},
+
+		// Reconcile when a dependent resource is deleted so that it can be
+		// recreated.
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			o := e.Object.(*unstructured.Unstructured)
+			log.Info("DeleteEvent. Reconciling", "ArmadaChartGroup", o.GetName(), "namespace", o.GetNamespace())
+			return true
+		},
+
+		// Reconcile when a dependent resource is updated, so that it can
+		// be patched back to the resource managed by the Helm release, if
+		// necessary. Ignore updates that only change the status and
+		// resourceVersion.
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			old := e.ObjectOld.(*unstructured.Unstructured).DeepCopy()
+			new := e.ObjectNew.(*unstructured.Unstructured).DeepCopy()
+
+			delete(old.Object, "status")
+			delete(new.Object, "status")
+			old.SetResourceVersion("")
+			new.SetResourceVersion("")
+
+			if reflect.DeepEqual(old.Object, new.Object) {
+				return false
+			}
+			log.Info("UpdateEvent. Reconciling", "ArmadaChartGroup", new.GetName(), "namespace", new.GetNamespace())
+			return true
+		},
+	}
+
+	// Watch for changes to ArmadaChartGroup and requeue the owner ArmadaManifest
+	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
+	// that created the object that was the source of the Event
+	// IsController if set will only look at the first OwnerReference with Controller: true.
+	acg := av1.NewArmadaChartGroupVersionKind("", "")
+	err = c.Watch(&source.Kind{Type: acg},
+		&crthandler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &av1.ArmadaManifest{},
+		},
+		dependentPredicate)
+	if err != nil {
+		return err
+	}
+
+	// JEB: Will see later if we need to put the ownership between the backup/restore and the Manifest
+	// err = c.Watch(&source.Kind{Type: &av1.ArmadaBackup{}}, &crthandler.EnqueueRequestForOwner{OwnerType: owner},
+	// 	dependentPredicate)
+	// err = c.Watch(&source.Kind{Type: &av1.ArmadaRestore{}}, &crthandler.EnqueueRequestForOwner{OwnerType: owner},
+	// 	dependentPredicate)
 
 	return nil
 }
@@ -75,12 +136,11 @@ var _ reconcile.Reconciler = &ManifestReconciler{}
 type ManifestReconciler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client                  client.Client
-	scheme                  *runtime.Scheme
-	recorder                record.EventRecorder
-	managerFactory          armadaif.ArmadaManagerFactory
-	reconcilePeriod         time.Duration
-	depResourceWatchUpdater armadaif.DependentResourceWatchUpdater
+	client          client.Client
+	scheme          *runtime.Scheme
+	recorder        record.EventRecorder
+	managerFactory  armadaif.ArmadaManagerFactory
+	reconcilePeriod time.Duration
 }
 
 const (
@@ -235,13 +295,11 @@ func (r ManifestReconciler) updateFinalizers(instance *av1.ArmadaManifest) (bool
 
 // watchArmadaChartGroups updates all resources which are dependent on this one
 func (r ManifestReconciler) watchArmadaChartGroups(instance *av1.ArmadaManifest) error {
-	if r.depResourceWatchUpdater != nil {
-		if err := r.depResourceWatchUpdater(instance.GetDependentResources()); err != nil {
-			reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
-			reclog.Error(err, "Failed to update watches for dependent ChartGroups")
-			return err
-		}
-	}
+	// if err := r.depResourceWatchUpdater(instance.GetDependentResources()); err != nil {
+	// 	reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	// 	reclog.Error(err, "Failed to update watches for dependent ChartGroups")
+	// 	return err
+	// }
 	return nil
 }
 
@@ -378,7 +436,7 @@ func (r ManifestReconciler) updateArmadaManifest(mgr armadaif.ArmadaManager, ins
 
 // reconcileArmadaManifest reconciles the release with the cluster
 func (r ManifestReconciler) reconcileArmadaManifest(mgr armadaif.ArmadaManager, instance *av1.ArmadaManifest) error {
-	// JEB: We need to give ownership of the ArmadaChart to this ArmadaManifest
+	// JEB: We need to give ownership of the ArmadaChartGroup to this ArmadaManifest
 	// if err := controllerutil.SetControllerReference(instance, expectedResource, r.scheme); err != nil {
 	//	return reconcile.Result{}, err
 	// }

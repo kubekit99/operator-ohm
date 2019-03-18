@@ -59,6 +59,12 @@ type ArmadaChartSpec struct {
 	AdminState ArmadaAdminState `json:"admin_state"`
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`
+
+	// revisionHistoryLimit is the maximum number of revisions that will
+	// be maintained in the ArmadaChart's revision history. The revision history
+	// consists of all revisions not represented by a currently applied
+	// ArmadaChartSpec version. The default value is 10.
+	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
 }
 
 // ArmadaChartStatus defines the observed state of ArmadaChart

@@ -66,20 +66,25 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource ArmadaChart
+	// EnqueueRequestForObject enqueues a Request containing the Name and Namespace of the object
+	// that is the source of the Event. (e.g. the created / deleted / updated objects Name and Namespace).
 	err = c.Watch(&source.Kind{Type: &av1.ArmadaChart{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to secondary resource Pods and requeue the owner ArmadaChart
+	// Watch for changes to secondary resource (described in the helm chart) and requeue the owner ArmadaChart
+	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
+	// that created the object that was the source of the Event
 	if racr, isChartReconciler := r.(*ChartReconciler); isChartReconciler {
+		// The enqueueRequestForOwner is not actually done here since we don't know yet the
+		// content of the release. The tools wait for the helm chart to be parse. The chart_manager
+		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
 		owner := av1.NewArmadaChartVersionKind("", "")
 		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c)
 	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
+		// Unit test issue
 		log.Info("UnitTests", "ReconfileFunc", rrf)
-		// JEB: This the wrapper used during the unit tests
-		// owner := av1.NewArmadaChartVersionKind("", "")
-		// rrf.inner.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c)
 	}
 
 	return nil

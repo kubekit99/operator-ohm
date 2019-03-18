@@ -62,6 +62,13 @@ spec:
               description: name of the release (Armada will prepend with ``release-prefix``
                 during processing)
               type: string
+            revisionHistoryLimit:
+              description: revisionHistoryLimit is the maximum number of revisions
+                that will be maintained in the ArmadaChart's revision history. The
+                revision history consists of all revisions not represented by a currently
+                applied ArmadaChartSpec version. The default value is 10.
+              format: int32
+              type: integer
             source:
               description: provide a path to a ``git repo``, ``local dir``, or ``tarball
                 url`` chart
