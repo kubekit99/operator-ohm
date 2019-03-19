@@ -71,34 +71,20 @@ type ArmadaChartSpec struct {
 // ======= ArmadaChartStatus Definition =======
 // ArmadaChartStatus defines the observed state of ArmadaChart
 type ArmadaChartStatus struct {
-	// Succeeded indicates if the release is in the expected state
-	Succeeded bool `json:"succeeded"`
-	// Reason indicates the reason for any related failures.
-	Reason string `json:"reason,omitempty"`
-	// Actual state of the Helm Custom Resources
-	ActualState HelmResourceState `json:"actual_state"`
-	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
-	Conditions []HelmResourceCondition `json:"conditions,omitempty"`
+	ArmadaStatus
 }
 
 // SetCondition sets a condition on the status object. If the condition already
 // exists, it will be replaced. SetCondition does not update the resource in
 // the cluster.
-func (s *ArmadaChartStatus) SetCondition(cond HelmResourceCondition, tgt HelmResourceState) *ArmadaChartStatus {
+func (s *ArmadaChartStatus) SetCondition(cond HelmResourceCondition, tgt HelmResourceState) {
 
 	// Add the condition to the list
 	chelper := HelmResourceConditionListHelper{Items: s.Conditions}
 	s.Conditions = chelper.SetCondition(cond)
 
 	// Recompute the state
-	shelper := HelmResourceStatusHelper{
-		Cond:             &cond,
-		TargetState:      tgt,
-		CurrentState:     s.ActualState,
-		CurrentSucceeded: s.Succeeded,
-		CurrentReason:    s.Reason}
-	s.ActualState, s.Succeeded, s.Reason = shelper.ComputeActualState()
-	return s
+	s.ComputeActualState(cond, tgt)
 }
 
 // RemoveCondition removes the condition with the passed condition type from
