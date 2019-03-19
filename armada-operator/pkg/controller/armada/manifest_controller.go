@@ -431,17 +431,17 @@ func (r ManifestReconciler) updateArmadaManifest(mgr armadaif.ArmadaManifestMana
 	reclog := amflog.WithValues("namespace", instance.Namespace, "amf", instance.Name)
 	reclog.Info("Updating")
 
-	previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
-	if previousResource != nil && updatedResource != nil {
-		reclog.Info("ChartGroups are different", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
-	}
+	_, updatedResource, err := mgr.UpdateResource(context.TODO())
+
+	// TODO(jeb): Behavior is flacky here. err != nil means updatedResource is nil
+	// Watch for panic exception if UpdateResource behavior is modified
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
 			Type:         av1.ConditionFailed,
 			Status:       av1.ConditionStatusTrue,
 			Reason:       av1.ReasonUpdateError,
 			Message:      err.Error(),
-			ResourceName: updatedResource.GetName(),
+			ResourceName: "",
 		}
 		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
