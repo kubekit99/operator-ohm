@@ -28,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/client-go/tools/record"
 
@@ -303,11 +304,26 @@ func (r ChartGroupReconciler) updateFinalizers(instance *av1.ArmadaChartGroup) (
 // watchArmadaCharts updates all resources which are dependent on this one
 func (r ChartGroupReconciler) watchArmadaCharts(instance *av1.ArmadaChartGroup, toWatchList *av1.ArmadaCharts) error {
 	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog.Info("Adding Watch")
 
 	errs := make([]error, 0)
 	for _, toWatch := range (*toWatchList).List.Items {
-		if err := controllerutil.SetControllerReference(instance, toWatch.FromArmadaChart(), r.scheme); err != nil {
-			reclog.Error(err, "Can't get ownership of ArmadaChart", "name", toWatch.Spec.ChartName)
+		found := toWatch.FromArmadaChart()
+		err := r.client.Get(context.TODO(), types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, found)
+		if err == nil {
+			if err1 := controllerutil.SetControllerReference(instance, found, r.scheme); err1 != nil {
+				reclog.Error(err1, "Can't get ownership of ArmadaChart", "name", found.GetName())
+				errs = append(errs, err1)
+				continue
+			}
+			if err2 := r.client.Update(context.TODO(), found); err2 != nil {
+				reclog.Error(err2, "Can't get ownership of ArmadaChart", "name", found.GetName())
+				errs = append(errs, err2)
+				continue
+			}
+			reclog.Info("Added ownership of ArmadaChart", "name", found.GetName())
+		} else {
+			reclog.Error(err, "Can't get ownership of ArmadaChart", "name", found.GetName())
 			errs = append(errs, err)
 		}
 	}

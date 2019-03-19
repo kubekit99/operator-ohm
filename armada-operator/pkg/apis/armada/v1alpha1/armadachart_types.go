@@ -139,14 +139,19 @@ func ToArmadaChart(u *unstructured.Unstructured) *ArmadaChart {
 	var obj *ArmadaChart
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &obj)
 	if err != nil {
-		return &ArmadaChart{}
+		return &ArmadaChart{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      u.GetName(),
+				Namespace: u.GetNamespace(),
+			},
+		}
 	}
 	return obj
 }
 
 // Convert a typed ArmadaChart into an unstructured.Unstructured
 func (obj *ArmadaChart) FromArmadaChart() *unstructured.Unstructured {
-	u := NewArmadaChartVersionKind("", "")
+	u := NewArmadaChartVersionKind(obj.ObjectMeta.Namespace, obj.ObjectMeta.Name)
 	tmp, err := runtime.DefaultUnstructuredConverter.ToUnstructured(*obj)
 	if err != nil {
 		return u
