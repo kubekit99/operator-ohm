@@ -259,8 +259,8 @@ func (r ChartGroupReconciler) updateResourceStatus(instance *av1.ArmadaChartGrou
 	return err
 }
 
-// ensureSynced checks that the ArmadaManager is in sync with the cluster
-func (r ChartGroupReconciler) ensureSynced(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) error {
+// ensureSynced checks that the ArmadaChartGroupManager is in sync with the cluster
+func (r ChartGroupReconciler) ensureSynced(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) error {
 	if err := mgr.Sync(context.TODO()); err != nil {
 		hrc := av1.HelmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
@@ -304,7 +304,7 @@ func (r ChartGroupReconciler) watchArmadaCharts(instance *av1.ArmadaChartGroup) 
 }
 
 // deleteArmadaChartGroup deletes an instance of an ArmadaChartGroup. It returns true if the reconciler should be re-enqueueed
-func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) (bool, error) {
+func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) (bool, error) {
 	reclog := log.WithValues("namespace", instance.Namespace, "acg", instance.Name)
 	pendingFinalizers := instance.GetFinalizers()
 	if !contains(pendingFinalizers, finalizerArmadaChartGroup) {
@@ -358,7 +358,7 @@ func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaManager,
 }
 
 // installArmadaChartGroup attempts to install instance. It returns true if the reconciler should be re-enqueueed
-func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) (bool, error) {
+func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) (bool, error) {
 	installedResource, err := mgr.InstallResource(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -394,7 +394,7 @@ func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaManager
 }
 
 // updateArmadaChartGroup attempts to update instance. It returns true if the reconciler should be re-enqueueed
-func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) (bool, error) {
+func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) (bool, error) {
 	reclog := log.WithValues("namespace", instance.Namespace, "acg", instance.Name)
 	previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
 	if previousResource != nil && updatedResource != nil {
@@ -435,7 +435,7 @@ func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaManager,
 }
 
 // reconcileArmadaChartGroup reconciles the release with the cluster
-func (r ChartGroupReconciler) reconcileArmadaChartGroup(mgr armadaif.ArmadaManager, instance *av1.ArmadaChartGroup) error {
+func (r ChartGroupReconciler) reconcileArmadaChartGroup(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) error {
 	// JEB: We need to give ownership of the ArmadaChart to this ArmadaChartGroup
 	// if err := controllerutil.SetControllerReference(instance, expectedResource, r.scheme); err != nil {
 	//	return reconcile.Result{}, err

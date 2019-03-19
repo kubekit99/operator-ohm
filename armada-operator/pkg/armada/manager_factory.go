@@ -31,7 +31,7 @@ func NewManagerFactory(mgr manager.Manager) armadaif.ArmadaManagerFactory {
 	return &managerFactory{kubeClient: mgr.GetClient()}
 }
 
-func (f managerFactory) NewArmadaChartGroupManager(r *av1.ArmadaChartGroup) armadaif.ArmadaManager {
+func (f managerFactory) NewArmadaChartGroupManager(r *av1.ArmadaChartGroup) armadaif.ArmadaChartGroupManager {
 	return &chartgroupmanager{
 		kubeClient:   f.kubeClient,
 		resourceName: r.GetName(),
@@ -41,7 +41,7 @@ func (f managerFactory) NewArmadaChartGroupManager(r *av1.ArmadaChartGroup) arma
 	}
 }
 
-func (f managerFactory) NewArmadaManifestManager(r *av1.ArmadaManifest) armadaif.ArmadaManager {
+func (f managerFactory) NewArmadaManifestManager(r *av1.ArmadaManifest) armadaif.ArmadaManifestManager {
 	return &manifestmanager{
 		kubeClient:   f.kubeClient,
 		resourceName: r.GetName(),

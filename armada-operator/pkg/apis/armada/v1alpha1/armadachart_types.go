@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// ======= ArmadaChartSpec Definition =======
 // ArmadaChartSpec defines the desired state of ArmadaChart
 type ArmadaChartSpec struct {
 	// name for the chart
@@ -67,6 +68,7 @@ type ArmadaChartSpec struct {
 	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
 }
 
+// ======= ArmadaChartStatus Definition =======
 // ArmadaChartStatus defines the observed state of ArmadaChart
 type ArmadaChartStatus struct {
 	// Succeeded indicates if the release is in the expected state
@@ -77,34 +79,6 @@ type ArmadaChartStatus struct {
 	ActualState HelmResourceState `json:"actual_state"`
 	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
 	Conditions []HelmResourceCondition `json:"conditions,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ArmadaChart is the Schema for the armadacharts API
-// +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
-// +kubebuilder:resource:path=armadacharts,shortName=act
-// +kubebuilder:printcolumn:name="succeeded",type="boolean",JSONPath=".status.succeeded",description="success"
-type ArmadaChart struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   ArmadaChartSpec   `json:"spec,omitempty"`
-	Status ArmadaChartStatus `json:"status,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ArmadaChartList contains a list of ArmadaChart
-type ArmadaChartList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ArmadaChart `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&ArmadaChart{}, &ArmadaChartList{})
 }
 
 // SetCondition sets a condition on the status object. If the condition already
@@ -136,6 +110,22 @@ func (s *ArmadaChartStatus) RemoveCondition(conditionType HelmResourceConditionT
 	helper := HelmResourceConditionListHelper{Items: s.Conditions}
 	s.Conditions = helper.RemoveCondition(conditionType)
 	return s
+}
+
+// ======= ArmadaChartList Definition =======
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ArmadaChart is the Schema for the armadacharts API
+// +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=armadacharts,shortName=act
+// +kubebuilder:printcolumn:name="succeeded",type="boolean",JSONPath=".status.succeeded",description="success"
+type ArmadaChart struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   ArmadaChartSpec   `json:"spec,omitempty"`
+	Status ArmadaChartStatus `json:"status,omitempty"`
 }
 
 // Return the list of dependent resources to watch
@@ -173,6 +163,21 @@ func (obj *ArmadaChart) Equivalent(other *ArmadaChart) bool {
 	return reflect.DeepEqual(obj.Spec, other.Spec)
 }
 
+// IsDeleted returns true if the chart has been deleted
+func (obj *ArmadaChart) IsDeleted() bool {
+	return obj.GetDeletionTimestamp() != nil
+}
+
+// IsEnabled returns true if the chart if managed by the reconcilier
+func (obj *ArmadaChart) IsEnabled() bool {
+	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
+}
+
+// IsDisabled returns true if the chart is not managed by the reconcilier
+func (obj *ArmadaChart) IsDisabled() bool {
+	return !obj.IsEnabled()
+}
+
 // Returns a GKV for ArmadaChart
 func NewArmadaChartVersionKind(namespace string, name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
@@ -181,6 +186,16 @@ func NewArmadaChartVersionKind(namespace string, name string) *unstructured.Unst
 	u.SetNamespace(namespace)
 	u.SetName(name)
 	return u
+}
+
+// ======= ArmadaChartList Definition =======
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ArmadaChartList contains a list of ArmadaChart
+type ArmadaChartList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ArmadaChart `json:"items"`
 }
 
 // Convert an unstructured.Unstructured into a typed ArmadaChartList
@@ -222,17 +237,32 @@ func NewArmadaChartListVersionKind(namespace string, name string) *unstructured.
 	return u
 }
 
-// IsDeleted returns true if the chart has been deleted
-func (obj *ArmadaChart) IsDeleted() bool {
-	return obj.GetDeletionTimestamp() != nil
+// ======= ArmadaCharts Definition =======
+// ArmadaCharts is a wrapper around ArmadaChartList used for interface definitions
+type ArmadaCharts struct {
+	List *ArmadaChartList
+	Name string
 }
 
-// IsEnabled returns true if the chart if managed by the reconcilier
-func (obj *ArmadaChart) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
+// Instantiate new ArmadaCharts
+func NewArmadaCharts(name string) *ArmadaCharts {
+	var emptyList = &ArmadaChartList{
+		Items: make([]ArmadaChart, 0),
+	}
+	var res = ArmadaCharts{
+		Name: name,
+		List: emptyList,
+	}
+
+	return &res
 }
 
-// IsDisabled returns true if the chart is not managed by the reconcilier
-func (obj *ArmadaChart) IsDisabled() bool {
-	return !obj.IsEnabled()
+// Convert the Name of an ArmadaCharts
+func (obj *ArmadaCharts) GetName() string {
+	return obj.Name
+}
+
+// ======= Schema Registration =======
+func init() {
+	SchemeBuilder.Register(&ArmadaChart{}, &ArmadaChartList{})
 }

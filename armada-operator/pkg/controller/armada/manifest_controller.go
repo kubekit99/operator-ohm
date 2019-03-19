@@ -259,8 +259,8 @@ func (r ManifestReconciler) updateResourceStatus(instance *av1.ArmadaManifest) e
 	return err
 }
 
-// ensureSynced checks that the ArmadaManager is in sync with the cluster
-func (r ManifestReconciler) ensureSynced(mgr armadaif.ArmadaManager, instance *av1.ArmadaManifest) error {
+// ensureSynced checks that the ArmadaManifestManager is in sync with the cluster
+func (r ManifestReconciler) ensureSynced(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) error {
 	if err := mgr.Sync(context.TODO()); err != nil {
 		hrc := av1.HelmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
@@ -304,7 +304,7 @@ func (r ManifestReconciler) watchArmadaChartGroups(instance *av1.ArmadaManifest)
 }
 
 // deleteArmadaManifest deletes an instance of an ArmadaManifest. It returns true if the reconciler should be re-enqueueed
-func (r ManifestReconciler) deleteArmadaManifest(mgr armadaif.ArmadaManager, instance *av1.ArmadaManifest) (bool, error) {
+func (r ManifestReconciler) deleteArmadaManifest(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) (bool, error) {
 	reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
 	pendingFinalizers := instance.GetFinalizers()
 	if !contains(pendingFinalizers, finalizerArmadaManifest) {
@@ -358,7 +358,7 @@ func (r ManifestReconciler) deleteArmadaManifest(mgr armadaif.ArmadaManager, ins
 }
 
 // installArmadaManifest attempts to install instance. It returns true if the reconciler should be re-enqueueed
-func (r ManifestReconciler) installArmadaManifest(mgr armadaif.ArmadaManager, instance *av1.ArmadaManifest) (bool, error) {
+func (r ManifestReconciler) installArmadaManifest(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) (bool, error) {
 	installedResource, err := mgr.InstallResource(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -394,7 +394,7 @@ func (r ManifestReconciler) installArmadaManifest(mgr armadaif.ArmadaManager, in
 }
 
 // updateArmadaManifest attempts to update instance. It returns true if the reconciler should be re-enqueueed
-func (r ManifestReconciler) updateArmadaManifest(mgr armadaif.ArmadaManager, instance *av1.ArmadaManifest) (bool, error) {
+func (r ManifestReconciler) updateArmadaManifest(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) (bool, error) {
 	reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
 	previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
 	if previousResource != nil && updatedResource != nil {
@@ -435,7 +435,7 @@ func (r ManifestReconciler) updateArmadaManifest(mgr armadaif.ArmadaManager, ins
 }
 
 // reconcileArmadaManifest reconciles the release with the cluster
-func (r ManifestReconciler) reconcileArmadaManifest(mgr armadaif.ArmadaManager, instance *av1.ArmadaManifest) error {
+func (r ManifestReconciler) reconcileArmadaManifest(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) error {
 	// JEB: We need to give ownership of the ArmadaChartGroup to this ArmadaManifest
 	// if err := controllerutil.SetControllerReference(instance, expectedResource, r.scheme); err != nil {
 	//	return reconcile.Result{}, err

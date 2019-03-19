@@ -16,18 +16,31 @@ package services
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 )
 
-// Manager manages a Armada release. It can install, update, reconcile,
-// and uninstall a release.
-type ArmadaManager interface {
+// ArmdaChartGroupManager manages a Armada Chart Group. It can install, update, reconcile,
+// and uninstall a list of Armada Charts` .
+type ArmadaChartGroupManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*unstructured.Unstructured, error)
-	UpdateResource(context.Context) (*unstructured.Unstructured, *unstructured.Unstructured, error)
-	ReconcileResource(context.Context) (*unstructured.Unstructured, error)
-	UninstallResource(context.Context) (*unstructured.Unstructured, error)
+	InstallResource(context.Context) (*av1.ArmadaCharts, error)
+	UpdateResource(context.Context) (*av1.ArmadaCharts, *av1.ArmadaCharts, error)
+	ReconcileResource(context.Context) (*av1.ArmadaCharts, error)
+	UninstallResource(context.Context) (*av1.ArmadaCharts, error)
+}
+
+// ArmdaManifestManager manages a Armada Chart Group. It can install, update, reconcile,
+// and uninstall a list of Armada Charts` .
+type ArmadaManifestManager interface {
+	ResourceName() string
+	IsInstalled() bool
+	IsUpdateRequired() bool
+	Sync(context.Context) error
+	InstallResource(context.Context) (*av1.ArmadaChartGroups, error)
+	UpdateResource(context.Context) (*av1.ArmadaChartGroups, *av1.ArmadaChartGroups, error)
+	ReconcileResource(context.Context) (*av1.ArmadaChartGroups, error)
+	UninstallResource(context.Context) (*av1.ArmadaChartGroups, error)
 }

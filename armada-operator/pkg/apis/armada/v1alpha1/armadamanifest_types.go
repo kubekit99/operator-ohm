@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// ======= ArmadaManifestSpec Definition =======
 // ArmadaManifestSpec defines the desired state of ArmadaManifest
 type ArmadaManifestSpec struct {
 
@@ -41,6 +42,7 @@ type ArmadaManifestSpec struct {
 	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
 }
 
+// ======= ArmadaManifestStatus Definition =======
 // ArmadaManifestStatus defines the observed state of ArmadaManifest
 type ArmadaManifestStatus struct {
 	// Succeeded indicates if the release is in the expected state
@@ -51,34 +53,6 @@ type ArmadaManifestStatus struct {
 	ActualState HelmResourceState `json:"actual_state"`
 	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
 	Conditions []HelmResourceCondition `json:"conditions,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ArmadaManifest is the Schema for the armadamanifests API
-// +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
-// +kubebuilder:resource:path=armadamanifests,shortName=amf
-// +kubebuilder:printcolumn:name="succeeded",type="boolean",JSONPath=".status.succeeded",description="success"
-type ArmadaManifest struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   ArmadaManifestSpec   `json:"spec,omitempty"`
-	Status ArmadaManifestStatus `json:"status,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ArmadaManifestList contains a list of ArmadaManifest
-type ArmadaManifestList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ArmadaManifest `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&ArmadaManifest{}, &ArmadaManifestList{})
 }
 
 // SetCondition sets a condition on the status object. If the condition already
@@ -110,6 +84,22 @@ func (s *ArmadaManifestStatus) RemoveCondition(conditionType HelmResourceConditi
 	helper := HelmResourceConditionListHelper{Items: s.Conditions}
 	s.Conditions = helper.RemoveCondition(conditionType)
 	return s
+}
+
+// ======= ArmadaManifest Definition =======
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ArmadaManifest is the Schema for the armadamanifests API
+// +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=armadamanifests,shortName=amf
+// +kubebuilder:printcolumn:name="succeeded",type="boolean",JSONPath=".status.succeeded",description="success"
+type ArmadaManifest struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   ArmadaManifestSpec   `json:"spec,omitempty"`
+	Status ArmadaManifestStatus `json:"status,omitempty"`
 }
 
 // Return the list of dependent resources to watch
@@ -151,6 +141,21 @@ func (obj *ArmadaManifest) Equivalent(other *ArmadaManifest) bool {
 	return reflect.DeepEqual(obj.Spec.ChartGroups, other.Spec.ChartGroups)
 }
 
+// IsDeleted returns true if the manifest has been deleted
+func (obj *ArmadaManifest) IsDeleted() bool {
+	return obj.GetDeletionTimestamp() != nil
+}
+
+// IsEnabled returns true if the manifest if managed by the reconcilier
+func (obj *ArmadaManifest) IsEnabled() bool {
+	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
+}
+
+// IsDisabled returns true if the manifest is not managed by the reconcilier
+func (obj *ArmadaManifest) IsDisabled() bool {
+	return !obj.IsEnabled()
+}
+
 // Returns a GKV for ArmadaManifest
 func NewArmadaManifestVersionKind(namespace string, name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
@@ -159,6 +164,16 @@ func NewArmadaManifestVersionKind(namespace string, name string) *unstructured.U
 	u.SetNamespace(namespace)
 	u.SetName(name)
 	return u
+}
+
+// ======= ArmadaManifestList Definition =======
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ArmadaManifestList contains a list of ArmadaManifest
+type ArmadaManifestList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ArmadaManifest `json:"items"`
 }
 
 // Convert an unstructured.Unstructured into a typed ArmadaManifestList
@@ -200,17 +215,7 @@ func NewArmadaManifestListVersionKind(namespace string, name string) *unstructur
 	return u
 }
 
-// IsDeleted returns true if the manifest has been deleted
-func (obj *ArmadaManifest) IsDeleted() bool {
-	return obj.GetDeletionTimestamp() != nil
-}
-
-// IsEnabled returns true if the manifest if managed by the reconcilier
-func (obj *ArmadaManifest) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
-}
-
-// IsDisabled returns true if the manifest is not managed by the reconcilier
-func (obj *ArmadaManifest) IsDisabled() bool {
-	return !obj.IsEnabled()
+// ======= Schema Registration =======
+func init() {
+	SchemeBuilder.Register(&ArmadaManifest{}, &ArmadaManifestList{})
 }
