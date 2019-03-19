@@ -145,6 +145,17 @@ type HelmResourceConditionListHelper struct {
 	Items []HelmResourceCondition `json:"items"`
 }
 
+type ArmadaStatus struct {
+	// Succeeded indicates if the release is in the expected state
+	Succeeded bool `json:"succeeded"`
+	// Reason indicates the reason for any related failures.
+	Reason string `json:"reason,omitempty"`
+	// Actual state of the Helm Custom Resources
+	ActualState HelmResourceState `json:"actual_state"`
+	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
+	Conditions []HelmResourceCondition `json:"conditions,omitempty"`
+}
+
 // SetCondition sets a condition on the status object. If the condition already
 // exists, it will be replaced. SetCondition does not update the resource in
 // the cluster.
@@ -225,61 +236,47 @@ func (s *HelmResourceConditionListHelper) FindCondition(conditionType HelmResour
 	return found
 }
 
-type HelmResourceStatusHelper struct {
-	Cond             *HelmResourceCondition
-	TargetState      HelmResourceState
-	CurrentSucceeded bool
-	CurrentReason    string
-	CurrentState     HelmResourceState
-}
-
-func (s *HelmResourceStatusHelper) ComputeActualState() (HelmResourceState, bool, string) {
-	computedState := s.CurrentState
-	computedReason := s.CurrentReason
-	computedSucceeded := s.CurrentSucceeded
-
+func (s *ArmadaStatus) ComputeActualState(cond HelmResourceCondition, target HelmResourceState) {
 	// TODO(Ian): finish this
-	if s.Cond.Status == ConditionStatusTrue {
-		if s.Cond.Type == ConditionInitialized {
+	if cond.Status == ConditionStatusTrue {
+		if cond.Type == ConditionInitialized {
 			// Since that condition is set almost systematically
 			// let's do not recompute the state.
-			if (s.CurrentState == "") || (s.CurrentState == StateUnknown) {
-				computedState = StateInitialized
-				computedSucceeded = (computedState == s.TargetState)
-				computedReason = ""
+			if (s.ActualState == "") || (s.ActualState == StateUnknown) {
+				s.ActualState = StateInitialized
+				s.Succeeded = (s.ActualState == target)
+				s.Reason = ""
 			}
-		} else if s.Cond.Type == ConditionDeployed {
-			computedState = StateDeployed
-			computedSucceeded = (computedState == s.TargetState)
-			computedReason = ""
-		} else if s.Cond.Type == ConditionEnabled {
-			if (s.CurrentState == "") || (s.CurrentState == StateUnknown) {
-				computedState = StatePendingInitialization
-				computedSucceeded = (computedState == s.TargetState)
-				computedReason = ""
+		} else if cond.Type == ConditionDeployed {
+			s.ActualState = StateDeployed
+			s.Succeeded = (s.ActualState == target)
+			s.Reason = ""
+		} else if cond.Type == ConditionEnabled {
+			if (s.ActualState == "") || (s.ActualState == StateUnknown) {
+				s.ActualState = StatePendingInitialization
+				s.Succeeded = (s.ActualState == target)
+				s.Reason = ""
 			}
-		} else if s.Cond.Type == ConditionIrreconcilable {
-			computedState = StateFailed
-			computedSucceeded = false
-			computedReason = s.Cond.Reason.String()
+		} else if cond.Type == ConditionIrreconcilable {
+			s.ActualState = StateFailed
+			s.Succeeded = false
+			s.Reason = cond.Reason.String()
 		} else {
-			computedSucceeded = (computedState == s.TargetState)
-			computedReason = ""
+			s.Succeeded = (s.ActualState == target)
+			s.Reason = ""
 		}
 	} else {
-		if s.Cond.Type == ConditionDeployed {
-			computedState = StateUninstalled
-			computedSucceeded = (computedState == s.TargetState)
-			computedReason = ""
-		} else if s.Cond.Type == ConditionEnabled {
-			computedState = StateUnknown
-			computedSucceeded = true
-			computedReason = "Disabled Resource always is always successful"
+		if cond.Type == ConditionDeployed {
+			s.ActualState = StateUninstalled
+			s.Succeeded = (s.ActualState == target)
+			s.Reason = ""
+		} else if cond.Type == ConditionEnabled {
+			s.ActualState = StateUnknown
+			s.Succeeded = true
+			s.Reason = "Disabled Resource is always successful"
 		} else {
-			computedSucceeded = (computedState == s.TargetState)
-			computedReason = ""
+			s.Succeeded = (s.ActualState == target)
+			s.Reason = ""
 		}
 	}
-
-	return computedState, computedSucceeded, computedReason
 }
