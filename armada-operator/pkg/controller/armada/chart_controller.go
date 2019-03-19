@@ -17,25 +17,32 @@ package armada
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	helmmgr "github.com/kubekit99/operator-ohm/armada-operator/pkg/helm"
 	services "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+
 	"k8s.io/client-go/tools/record"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	crthandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
+
+var actlog = logf.Log.WithName("act-controller")
 
 // AddArmadaChartController creates a new ArmadaChart Controller and adds it to
 // the Manager. The Manager will set fields on the Controller and Start it when
@@ -66,20 +73,70 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource ArmadaChart
-	err = c.Watch(&source.Kind{Type: &av1.ArmadaChart{}}, &handler.EnqueueRequestForObject{})
+	// EnqueueRequestForObject enqueues a Request containing the Name and Namespace of the object
+	// that is the source of the Event. (e.g. the created / deleted / updated objects Name and Namespace).
+	err = c.Watch(&source.Kind{Type: &av1.ArmadaChart{}}, &crthandler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to secondary resource Pods and requeue the owner ArmadaChart
+	dependentPredicate := crtpredicate.Funcs{
+		// We don't need to reconcile dependent resource creation events
+		// because dependent resources are only ever created during
+		// reconciliation. Another reconcile would be redundant.
+		CreateFunc: func(e event.CreateEvent) bool {
+			o := e.Object.(*unstructured.Unstructured)
+			actlog.Info("CreateEvent. Filtering", "resource", o.GetName(), "namespace", o.GetNamespace(),
+				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			return false
+		},
+
+		// Reconcile when a dependent resource is deleted so that it can be
+		// recreated.
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			o := e.Object.(*unstructured.Unstructured)
+			actlog.Info("DeleteEvent. Triggering", "resource", o.GetName(), "namespace", o.GetNamespace(),
+				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			return true
+		},
+
+		// Reconcile when a dependent resource is updated, so that it can
+		// be patched back to the resource managed by the Helm release, if
+		// necessary. Ignore updates that only change the status and
+		// resourceVersion.
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			old := e.ObjectOld.(*unstructured.Unstructured).DeepCopy()
+			new := e.ObjectNew.(*unstructured.Unstructured).DeepCopy()
+
+			delete(old.Object, "status")
+			delete(new.Object, "status")
+			old.SetResourceVersion("")
+			new.SetResourceVersion("")
+
+			if reflect.DeepEqual(old.Object, new.Object) {
+				actlog.Info("UpdateEvent. Filtering", "resource", new.GetName(), "namespace", new.GetNamespace(),
+					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
+				return false
+			} else {
+				actlog.Info("UpdateEvent. Triggering", "resource", new.GetName(), "namespace", new.GetNamespace(),
+					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
+				return true
+			}
+		},
+	}
+
+	// Watch for changes to secondary resource (described in the helm chart) and requeue the owner ArmadaChart
+	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
+	// that created the object that was the source of the Event
 	if racr, isChartReconciler := r.(*ChartReconciler); isChartReconciler {
+		// The enqueueRequestForOwner is not actually done here since we don't know yet the
+		// content of the release. The tools wait for the helm chart to be parse. The chart_manager
+		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
 		owner := av1.NewArmadaChartVersionKind("", "")
-		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c)
+		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c, dependentPredicate)
 	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
+		// Unit test issue
 		log.Info("UnitTests", "ReconfileFunc", rrf)
-		// JEB: This the wrapper used during the unit tests
-		// owner := av1.NewArmadaChartVersionKind("", "")
-		// rrf.inner.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c)
 	}
 
 	return nil
@@ -108,14 +165,20 @@ const (
 // returned error is non-nil or Result.Requeue is true, otherwise upon
 // completion it will remove the work from the queue.
 func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	log := log.WithValues(
-		"namespace", request.Namespace,
-		"name", request.Name,
-	)
+	reclog := actlog.WithValues("namespace", request.Namespace, "act", request.Name)
+	instance := &av1.ArmadaChart{}
+	instance.SetNamespace(request.Namespace)
+	instance.SetName(request.Name)
 
-	instance, err := r.getArmadaChartInstance(request)
+	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if apierrors.IsNotFound(err) {
+		// We are working asynchronously. By the time we receive the event,
+		// the object is already gone
+		return reconcile.Result{}, nil
+	}
+
 	if err != nil {
-		log.Error(err, "Failed to lookup resource")
+		reclog.Error(err, "Failed to lookup ArmadaChart")
 		return reconcile.Result{}, err
 	}
 
@@ -128,7 +191,7 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 	// AdminState POC end
 
 	mgr := r.managerFactory.NewArmadaChartManager(instance)
-	log = log.WithValues("resource", mgr.ReleaseName())
+	reclog = reclog.WithValues("release", mgr.ReleaseName())
 
 	var shouldRequeue bool
 	if shouldRequeue, err = r.updateFinalizers(instance); shouldRequeue {
@@ -170,34 +233,22 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
-	log.Info("Reconciled resource")
+	reclog.Info("Reconciled ArmadaChart")
 	err = r.updateResourceStatus(instance)
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }
 
-// getArmadaChartInstance gets an instance of the ArmadaChart which has the
-// name and namespace specified in the request
-func (r *ChartReconciler) getArmadaChartInstance(request reconcile.Request) (*av1.ArmadaChart, error) {
-	instance := &av1.ArmadaChart{}
-	instance.SetNamespace(request.Namespace)
-	instance.SetName(request.Name)
-
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
-	if apierrors.IsNotFound(err) {
-		return &av1.ArmadaChart{}, err
-	}
-	return instance, nil
-}
-
 // logAndRecordFailure adds a failure event to the recorder
 func (r ChartReconciler) logAndRecordFailure(instance *av1.ArmadaChart, hrc *av1.HelmResourceCondition, err error) {
-	log.Error(err, fmt.Sprintf("%s", hrc.Type.String()))
+	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
+	reclog.Error(err, fmt.Sprintf("%s. ErrorCondition", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
 }
 
 // logAndRecordSuccess adds a success event to the recorder
 func (r ChartReconciler) logAndRecordSuccess(instance *av1.ArmadaChart, hrc *av1.HelmResourceCondition) {
-	log.Info(fmt.Sprintf("%s", hrc.Type.String()))
+	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
+	reclog.Info(fmt.Sprintf("%s. SuccessCondition", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
 }
 
@@ -208,7 +259,7 @@ func (r ChartReconciler) updateResource(instance *av1.ArmadaChart) error {
 
 // updateResourceStatus updates the the Status field of the Resource object in the cluster
 func (r ChartReconciler) updateResourceStatus(instance *av1.ArmadaChart) error {
-	reqLogger := log.WithValues("ArmadaChart.Namespace", instance.Namespace, "ArmadaChart.Name", instance.Name)
+	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
 
 	helper := av1.HelmResourceConditionListHelper{Items: instance.Status.Conditions}
 	instance.Status.Conditions = helper.InitIfEmpty()
@@ -217,7 +268,7 @@ func (r ChartReconciler) updateResourceStatus(instance *av1.ArmadaChart) error {
 	// JEB: Look for kubebuilder subresources in the _types.go
 	err := r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
-		reqLogger.Error(err, "Failure to update status. Ignoring")
+		reclog.Error(err, "Failure to update status. Ignoring")
 		err = nil
 	}
 
@@ -256,11 +307,10 @@ func (r ChartReconciler) updateFinalizers(instance *av1.ArmadaChart) (bool, erro
 	return false, nil
 }
 
-// updateDependentResources updates all resources which are dependent on this one
-func (r ChartReconciler) updateDependentResources(resource *services.HelmRelease) error {
+// watchDependentResources updates all resources which are dependent on this one
+func (r ChartReconciler) watchDependentResources(resource *services.HelmRelease) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
-			log.Error(err, "Failed to run update resource dependent resources")
 			return err
 		}
 	}
@@ -269,9 +319,12 @@ func (r ChartReconciler) updateDependentResources(resource *services.HelmRelease
 
 // deleteArmadaChart deletes an instance of an ArmadaChart. It returns true if the reconciler should be re-enqueueed
 func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
+	reclog.Info("Deleting")
+
 	pendingFinalizers := instance.GetFinalizers()
 	if !contains(pendingFinalizers, finalizerArmadaChart) {
-		log.Info("Resource is terminated, skipping reconciliation")
+		reclog.Info("ArmadaChart is terminated, skipping reconciliation")
 		return false, nil
 	}
 
@@ -293,7 +346,7 @@ func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *a
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
 	if err == services.ErrNotFound {
-		log.Info("Resource not found, removing finalizer")
+		reclog.Info("Release already uninstalled, Removing finalizer")
 	} else {
 		hrc := av1.HelmResourceCondition{
 			Type:   av1.ConditionDeployed,
@@ -321,6 +374,9 @@ func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *a
 
 // installArmadaChart attempts to install instance. It returns true if the reconciler should be re-enqueueed
 func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
+	reclog.Info("Installing`")
+
 	installedResource, err := mgr.InstallRelease(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -337,7 +393,8 @@ func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if err := r.updateDependentResources(installedResource); err != nil {
+	if err := r.watchDependentResources(installedResource); err != nil {
+		reclog.Error(err, "Failed to update watch on dependent resources")
 		return false, err
 	}
 
@@ -358,9 +415,12 @@ func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *
 
 // updateArmadaChart attempts to update instance. It returns true if the reconciler should be re-enqueueed
 func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
+	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
+	reclog.Info("Updating`")
+
 	previousResource, updatedResource, err := mgr.UpdateRelease(context.TODO())
 	if previousResource != nil && updatedResource != nil {
-		log.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
+		reclog.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
 	}
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -378,7 +438,8 @@ func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *a
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if err := r.updateDependentResources(updatedResource); err != nil {
+	if err := r.watchDependentResources(updatedResource); err != nil {
+		reclog.Error(err, "Failed to update watch on dependent resources")
 		return false, err
 	}
 
@@ -399,6 +460,9 @@ func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *a
 
 // reconcileArmadaChart reconciles the release with the cluster
 func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) error {
+	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
+	reclog.Info("Reconciling ArmadaChart and HelmRelease")
+
 	expectedResource, err := mgr.ReconcileRelease(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -415,8 +479,11 @@ func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance
 		return err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-	err = r.updateDependentResources(expectedResource)
-	return err
+	if err := r.watchDependentResources(expectedResource); err != nil {
+		reclog.Error(err, "Failed to update watch on dependent resources")
+		return err
+	}
+	return nil
 }
 
 // isReconcileDisabled

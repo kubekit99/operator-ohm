@@ -15,7 +15,6 @@
 package services
 
 import (
-	"reflect"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -23,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -34,52 +32,15 @@ import (
 type DependentResourceWatchUpdater func([]unstructured.Unstructured) error
 
 // BuildDependentResourcesWatchUpdater builds a function that adds watches for resources in released Helm charts.
-func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured.Unstructured, c controller.Controller) DependentResourceWatchUpdater {
-
-	dependentPredicate := crtpredicate.Funcs{
-		// We don't need to reconcile dependent resource creation events
-		// because dependent resources are only ever created during
-		// reconciliation. Another reconcile would be redundant.
-		CreateFunc: func(e event.CreateEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			log.Info("Skipping reconciliation for dependent resource creation", "name", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
-			return false
-		},
-
-		// Reconcile when a dependent resource is deleted so that it can be
-		// recreated.
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			log.Info("Reconciling due to dependent resource deletion", "name", o.GetName(), "namespace", o.GetNamespace(), "apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
-			return true
-		},
-
-		// Reconcile when a dependent resource is updated, so that it can
-		// be patched back to the resource managed by the Helm release, if
-		// necessary. Ignore updates that only change the status and
-		// resourceVersion.
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			old := e.ObjectOld.(*unstructured.Unstructured).DeepCopy()
-			new := e.ObjectNew.(*unstructured.Unstructured).DeepCopy()
-
-			delete(old.Object, "status")
-			delete(new.Object, "status")
-			old.SetResourceVersion("")
-			new.SetResourceVersion("")
-
-			if reflect.DeepEqual(old.Object, new.Object) {
-				return false
-			}
-			log.Info("Reconciling due to dependent resource update", "name", new.GetName(), "namespace", new.GetNamespace(), "apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
-			return true
-		},
-	}
+func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured.Unstructured,
+	c controller.Controller, dependentPredicate crtpredicate.Funcs) DependentResourceWatchUpdater {
 
 	var m sync.RWMutex
 	watches := map[schema.GroupVersionKind]struct{}{}
 	watchUpdater := func(dependent []unstructured.Unstructured) error {
 		for _, u := range dependent {
 			gvk := u.GroupVersionKind()
+			wlog := log.WithValues("OwnerKind", owner.GroupVersionKind().GroupKind(), "resourceType", gvk.GroupVersion(), "resourceKind", gvk.Kind)
 			m.RLock()
 			_, ok := watches[gvk]
 			m.RUnlock()
@@ -90,12 +51,12 @@ func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured
 			restMapper := mgr.GetRESTMapper()
 			depMapping, err := restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 			if err != nil {
-				log.Error(err, "Step 1")
+				wlog.Error(err, "GetRESTMapper")
 				return err
 			}
 			ownerMapping, err := restMapper.RESTMapping(owner.GroupVersionKind().GroupKind(), owner.GroupVersionKind().Version)
 			if err != nil {
-				log.Error(err, "Step 2")
+				wlog.Error(err, "Build RESTMapping")
 				return err
 			}
 
@@ -106,21 +67,21 @@ func BuildDependentResourceWatchUpdater(mgr manager.Manager, owner *unstructured
 				m.Lock()
 				watches[gvk] = struct{}{}
 				m.Unlock()
-				log.Info("Cannot watch cluster-scoped dependent resource for namespace-scoped owner. Changes to this dependent resource type will not be reconciled",
-					"ownerApiVersion", gvk.GroupVersion(), "kind", gvk.Kind)
+				wlog.Info("Cannot watch cluster-scoped")
 				continue
 			}
 
 			err = c.Watch(&source.Kind{Type: &u}, &crthandler.EnqueueRequestForOwner{OwnerType: owner}, dependentPredicate)
 			if err != nil {
-				log.Error(err, "Step 3")
+				wlog.Error(err, "Add Watch to Controller")
 				return err
+			} else {
+				wlog.Info("Added watch")
 			}
 
 			m.Lock()
 			watches[gvk] = struct{}{}
 			m.Unlock()
-			log.Info("Watching dependent resource", "ownerApiVersion", gvk.GroupVersion(), "kind", gvk.Kind)
 		}
 
 		return nil
