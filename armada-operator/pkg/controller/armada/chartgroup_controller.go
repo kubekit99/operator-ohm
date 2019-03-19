@@ -33,13 +33,17 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	crthandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+var acglog = logf.Log.WithName("acg-controller")
 
 // AddArmadaChartGroupController creates a new ArmadaChartGroup Controller and
 // adds it to the Manager. The Manager will set fields on the Controller and
@@ -73,7 +77,7 @@ func AddArmadaChartGroupController(mgr manager.Manager) error {
 		// reconciliation. Another reconcile would be redundant.
 		CreateFunc: func(e event.CreateEvent) bool {
 			o := e.Object.(*unstructured.Unstructured)
-			log.Info("CreateEvent. Skipping", "ArmadaChart", o.GetName(), "namespace", o.GetNamespace())
+			acglog.Info("CreateEvent. Filtering", "ArmadaChart", o.GetName(), "namespace", o.GetNamespace())
 			return false
 		},
 
@@ -81,7 +85,7 @@ func AddArmadaChartGroupController(mgr manager.Manager) error {
 		// recreated.
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			o := e.Object.(*unstructured.Unstructured)
-			log.Info("DeleteEvent. Reconciling", "ArmadaChart", o.GetName(), "namespace", o.GetNamespace())
+			acglog.Info("DeleteEvent. Triggering", "ArmadaChart", o.GetName(), "namespace", o.GetNamespace())
 			return true
 		},
 
@@ -99,10 +103,12 @@ func AddArmadaChartGroupController(mgr manager.Manager) error {
 			new.SetResourceVersion("")
 
 			if reflect.DeepEqual(old.Object, new.Object) {
+				acglog.Info("UpdateEvent. Filtering", "ArmadaChart", new.GetName(), "namespace", new.GetNamespace())
 				return false
+			} else {
+				acglog.Info("UpdateEvent. Triggering", "ArmadaChart", new.GetName(), "namespace", new.GetNamespace())
+				return true
 			}
-			log.Info("UpdateEvent. Reconciling", "ArmadaChart", new.GetName(), "namespace", new.GetNamespace())
-			return true
 		},
 	}
 
@@ -154,17 +160,19 @@ const (
 // returned error is non-nil or Result.Requeue is true, otherwise upon
 // completion it will remove the work from the queue.
 func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	reclog := acglog.WithValues("namespace", request.Namespace, "acg", request.Name)
 	instance := &av1.ArmadaChartGroup{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
-	reclog := log.WithValues("namespace", instance.GetNamespace(), "acg", instance.GetName())
 
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if apierrors.IsNotFound(err) {
+		// We are working asynchronously. By the time we receive the event,
+		// the object is already gone
 		return reconcile.Result{}, nil
 	}
 	if err != nil {
-		reclog.Error(err, "Failed to lookup ChartGroup")
+		reclog.Error(err, "Failed to lookup ArmadaChartGroup")
 		return reconcile.Result{}, err
 	}
 
@@ -217,22 +225,21 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
-	reclog.Info("Reconciled ArmadaChartGroup")
 	err = r.updateResourceStatus(instance)
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }
 
 // logAndRecordFailure adds a failure event to the recorder
 func (r ChartGroupReconciler) logAndRecordFailure(instance *av1.ArmadaChartGroup, hrc *av1.HelmResourceCondition, err error) {
-	reclog := log.WithValues("namespace", instance.Namespace, "acg", instance.Name)
-	reclog.Error(err, fmt.Sprintf("%s", hrc.Type.String()))
+	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog.Error(err, fmt.Sprintf("%s. ErrorCondition", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
 }
 
 // logAndRecordSuccess adds a success event to the recorder
 func (r ChartGroupReconciler) logAndRecordSuccess(instance *av1.ArmadaChartGroup, hrc *av1.HelmResourceCondition) {
-	reclog := log.WithValues("namespace", instance.Namespace, "acg", instance.Name)
-	reclog.Info(fmt.Sprintf("%s", hrc.Type.String()))
+	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog.Info(fmt.Sprintf("%s. SuccessCondition", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
 }
 
@@ -243,7 +250,7 @@ func (r ChartGroupReconciler) updateResource(o *av1.ArmadaChartGroup) error {
 
 // updateResourceStatus updates the the Status field of the Resource object in the cluster
 func (r ChartGroupReconciler) updateResourceStatus(instance *av1.ArmadaChartGroup) error {
-	reclog := log.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
 
 	helper := av1.HelmResourceConditionListHelper{Items: instance.Status.Conditions}
 	instance.Status.Conditions = helper.InitIfEmpty()
@@ -252,8 +259,8 @@ func (r ChartGroupReconciler) updateResourceStatus(instance *av1.ArmadaChartGrou
 	// JEB: Look for kubebuilder subresources in the _types.go
 	err := r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
-		reclog.Error(err, "Failure to update ChartGroupStatus. Ignoring")
-		err = nil
+		reclog.Error(err, "Failure to update ChartGroupStatus")
+		// err = nil
 	}
 
 	return err
@@ -294,18 +301,25 @@ func (r ChartGroupReconciler) updateFinalizers(instance *av1.ArmadaChartGroup) (
 }
 
 // watchArmadaCharts updates all resources which are dependent on this one
-func (r ChartGroupReconciler) watchArmadaCharts(instance *av1.ArmadaChartGroup) error {
-	// if err := r.depResourceWatchUpdater(instance.GetDependentResources()); err != nil {
-	// 	reclog := log.WithValues("namespace", instance.Namespace, "acg", instance.Name)
-	// 	reclog.Error(err, "Failed to update watches for dependent Charts")
-	// 	return err
-	// }
+func (r ChartGroupReconciler) watchArmadaCharts(instance *av1.ArmadaChartGroup, toWatchList *av1.ArmadaCharts) error {
+	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+
+	errs := make([]error, 0)
+	for _, toWatch := range (*toWatchList).List.Items {
+		if err := controllerutil.SetControllerReference(instance, toWatch.FromArmadaChart(), r.scheme); err != nil {
+			reclog.Error(err, "Can't get ownership of ArmadaChart", "name", toWatch.Spec.ChartName)
+			errs = append(errs, err)
+		}
+	}
+
 	return nil
 }
 
 // deleteArmadaChartGroup deletes an instance of an ArmadaChartGroup. It returns true if the reconciler should be re-enqueueed
 func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) (bool, error) {
-	reclog := log.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog.Info("Deleting")
+
 	pendingFinalizers := instance.GetFinalizers()
 	if !contains(pendingFinalizers, finalizerArmadaChartGroup) {
 		reclog.Info("ChartGroup is terminated, skipping reconciliation")
@@ -330,7 +344,7 @@ func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaChartGro
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
 	if err == armadaif.ErrNotFound {
-		reclog.Info("Charts not found, removing finalizer")
+		reclog.Info("Charts are already deleted, removing finalizer")
 	} else {
 		hrc := av1.HelmResourceCondition{
 			Type:   av1.ConditionDeployed,
@@ -359,6 +373,9 @@ func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaChartGro
 
 // installArmadaChartGroup attempts to install instance. It returns true if the reconciler should be re-enqueueed
 func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) (bool, error) {
+	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog.Info("Installing")
+
 	installedResource, err := mgr.InstallResource(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -375,7 +392,7 @@ func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaChartGr
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if err := r.watchArmadaCharts(instance); err != nil {
+	if err := r.watchArmadaCharts(instance, installedResource); err != nil {
 		return false, err
 	}
 
@@ -395,7 +412,8 @@ func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaChartGr
 
 // updateArmadaChartGroup attempts to update instance. It returns true if the reconciler should be re-enqueueed
 func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) (bool, error) {
-	reclog := log.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog.Info("Updating")
 	previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
 	if previousResource != nil && updatedResource != nil {
 		reclog.Info("Charts are different", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
@@ -416,7 +434,7 @@ func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaChartGro
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if err := r.watchArmadaCharts(instance); err != nil {
+	if err := r.watchArmadaCharts(instance, updatedResource); err != nil {
 		return false, err
 	}
 
@@ -436,10 +454,8 @@ func (r ChartGroupReconciler) updateArmadaChartGroup(mgr armadaif.ArmadaChartGro
 
 // reconcileArmadaChartGroup reconciles the release with the cluster
 func (r ChartGroupReconciler) reconcileArmadaChartGroup(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) error {
-	// JEB: We need to give ownership of the ArmadaChart to this ArmadaChartGroup
-	// if err := controllerutil.SetControllerReference(instance, expectedResource, r.scheme); err != nil {
-	//	return reconcile.Result{}, err
-	// }
+	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+	reclog.Info("Reconciling ArmadaChartGroup and ArmadaChartList")
 
 	expectedResource, err := mgr.ReconcileResource(context.TODO())
 	if err != nil {
@@ -457,7 +473,7 @@ func (r ChartGroupReconciler) reconcileArmadaChartGroup(mgr armadaif.ArmadaChart
 		return err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-	err = r.watchArmadaCharts(instance)
+	err = r.watchArmadaCharts(instance, expectedResource)
 	return err
 }
 

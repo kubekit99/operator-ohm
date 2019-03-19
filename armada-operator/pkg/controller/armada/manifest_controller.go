@@ -33,13 +33,17 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	crthandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+var amflog = logf.Log.WithName("amf-controller")
 
 // AddArmadaManifestController creates a new ArmadaManifest Controller and
 // adds it to the Manager. The Manager will set fields on the Controller and
@@ -73,7 +77,7 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 		// reconciliation. Another reconcile would be redundant.
 		CreateFunc: func(e event.CreateEvent) bool {
 			o := e.Object.(*unstructured.Unstructured)
-			log.Info("CreateEvent. Skipping", "ArmadaChartGroup", o.GetName(), "namespace", o.GetNamespace())
+			amflog.Info("CreateEvent. Filtering", "ArmadaChartGroup", o.GetName(), "namespace", o.GetNamespace())
 			return false
 		},
 
@@ -81,7 +85,7 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 		// recreated.
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			o := e.Object.(*unstructured.Unstructured)
-			log.Info("DeleteEvent. Reconciling", "ArmadaChartGroup", o.GetName(), "namespace", o.GetNamespace())
+			amflog.Info("DeleteEvent. Triggering", "ArmadaChartGroup", o.GetName(), "namespace", o.GetNamespace())
 			return true
 		},
 
@@ -99,10 +103,12 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 			new.SetResourceVersion("")
 
 			if reflect.DeepEqual(old.Object, new.Object) {
+				amflog.Info("UpdateEvent. Filtering", "ArmadaChartGroup", new.GetName(), "namespace", new.GetNamespace())
 				return false
-			}
-			log.Info("UpdateEvent. Reconciling", "ArmadaChartGroup", new.GetName(), "namespace", new.GetNamespace())
+			} else {
+			amflog.Info("UpdateEvent. Triggering", "ArmadaChartGroup", new.GetName(), "namespace", new.GetNamespace())
 			return true
+			}
 		},
 	}
 
@@ -154,17 +160,19 @@ const (
 // returned error is non-nil or Result.Requeue is true, otherwise upon
 // completion it will remove the work from the queue.
 func (r *ManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	reclog := amflog.WithValues("namespace", request.Namespace, "amf", request.Name)
 	instance := &av1.ArmadaManifest{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
-	reclog := log.WithValues("namespace", instance.GetNamespace(), "amf", instance.GetName())
 
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if apierrors.IsNotFound(err) {
+		// We are working asynchronously. By the time we receive the event,
+		// the object is already gone
 		return reconcile.Result{}, nil
 	}
 	if err != nil {
-		reclog.Error(err, "Failed to lookup Manifest")
+		reclog.Error(err, "Failed to lookup ArmadaManifest")
 		return reconcile.Result{}, err
 	}
 
@@ -224,15 +232,15 @@ func (r *ManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Res
 
 // logAndRecordFailure adds a failure event to the recorder
 func (r ManifestReconciler) logAndRecordFailure(instance *av1.ArmadaManifest, hrc *av1.HelmResourceCondition, err error) {
-	reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
-	reclog.Error(err, fmt.Sprintf("%s", hrc.Type.String()))
+	reclog := amflog.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	reclog.Error(err, fmt.Sprintf("%s. ErrorCondition", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
 }
 
 // logAndRecordSuccess adds a success event to the recorder
 func (r ManifestReconciler) logAndRecordSuccess(instance *av1.ArmadaManifest, hrc *av1.HelmResourceCondition) {
-	reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
-	reclog.Info(fmt.Sprintf("%s", hrc.Type.String()))
+	reclog := amflog.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	reclog.Info(fmt.Sprintf("%s. SuccessCondition", hrc.Type.String()))
 	r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
 }
 
@@ -243,7 +251,7 @@ func (r ManifestReconciler) updateResource(o *av1.ArmadaManifest) error {
 
 // updateResourceStatus updates the the Status field of the Resource object in the cluster
 func (r ManifestReconciler) updateResourceStatus(instance *av1.ArmadaManifest) error {
-	reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	reclog := amflog.WithValues("namespace", instance.Namespace, "amf", instance.Name)
 
 	helper := av1.HelmResourceConditionListHelper{Items: instance.Status.Conditions}
 	instance.Status.Conditions = helper.InitIfEmpty()
@@ -252,8 +260,7 @@ func (r ManifestReconciler) updateResourceStatus(instance *av1.ArmadaManifest) e
 	// JEB: Look for kubebuilder subresources in the _types.go
 	err := r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
-		reclog.Error(err, "Failure to update ManifestStatus. Ignoring")
-		err = nil
+		reclog.Error(err, "Failure to update ManifestStatus")
 	}
 
 	return err
@@ -294,18 +301,25 @@ func (r ManifestReconciler) updateFinalizers(instance *av1.ArmadaManifest) (bool
 }
 
 // watchArmadaChartGroups updates all resources which are dependent on this one
-func (r ManifestReconciler) watchArmadaChartGroups(instance *av1.ArmadaManifest) error {
-	// if err := r.depResourceWatchUpdater(instance.GetDependentResources()); err != nil {
-	// 	reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
-	// 	reclog.Error(err, "Failed to update watches for dependent ChartGroups")
-	// 	return err
-	// }
+func (r ManifestReconciler) watchArmadaChartGroups(instance *av1.ArmadaManifest, toWatchList *av1.ArmadaChartGroups) error {
+	reclog := amflog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
+
+	errs := make([]error, 0)
+	for _, toWatch := range (*toWatchList).List.Items {
+		if err := controllerutil.SetControllerReference(instance, toWatch.FromArmadaChartGroup(), r.scheme); err != nil {
+			reclog.Error(err, "Can't get ownership of ArmadaChart", "name", toWatch.Spec.Name)
+			errs = append(errs, err)
+		}
+	}
+
 	return nil
 }
 
 // deleteArmadaManifest deletes an instance of an ArmadaManifest. It returns true if the reconciler should be re-enqueueed
 func (r ManifestReconciler) deleteArmadaManifest(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) (bool, error) {
-	reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	reclog := amflog.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	reclog.Info("Deleting")
+
 	pendingFinalizers := instance.GetFinalizers()
 	if !contains(pendingFinalizers, finalizerArmadaManifest) {
 		reclog.Info("Manifest is terminated, skipping reconciliation")
@@ -330,7 +344,7 @@ func (r ManifestReconciler) deleteArmadaManifest(mgr armadaif.ArmadaManifestMana
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
 	if err == armadaif.ErrNotFound {
-		reclog.Info("ChartGroups not found, removing finalizer")
+		reclog.Info("ChartGroups are already deleted, removing finalizer")
 	} else {
 		hrc := av1.HelmResourceCondition{
 			Type:   av1.ConditionDeployed,
@@ -359,6 +373,9 @@ func (r ManifestReconciler) deleteArmadaManifest(mgr armadaif.ArmadaManifestMana
 
 // installArmadaManifest attempts to install instance. It returns true if the reconciler should be re-enqueueed
 func (r ManifestReconciler) installArmadaManifest(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) (bool, error) {
+	reclog := amflog.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	reclog.Info("Installing")
+
 	installedResource, err := mgr.InstallResource(context.TODO())
 	if err != nil {
 		hrc := av1.HelmResourceCondition{
@@ -375,7 +392,7 @@ func (r ManifestReconciler) installArmadaManifest(mgr armadaif.ArmadaManifestMan
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if err := r.watchArmadaChartGroups(instance); err != nil {
+	if err := r.watchArmadaChartGroups(instance, installedResource); err != nil {
 		return false, err
 	}
 
@@ -395,7 +412,9 @@ func (r ManifestReconciler) installArmadaManifest(mgr armadaif.ArmadaManifestMan
 
 // updateArmadaManifest attempts to update instance. It returns true if the reconciler should be re-enqueueed
 func (r ManifestReconciler) updateArmadaManifest(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) (bool, error) {
-	reclog := log.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	reclog := amflog.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	reclog.Info("Updating")
+
 	previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
 	if previousResource != nil && updatedResource != nil {
 		reclog.Info("ChartGroups are different", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
@@ -416,7 +435,7 @@ func (r ManifestReconciler) updateArmadaManifest(mgr armadaif.ArmadaManifestMana
 	}
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
-	if err := r.watchArmadaChartGroups(instance); err != nil {
+	if err := r.watchArmadaChartGroups(instance, updatedResource); err != nil {
 		return false, err
 	}
 
@@ -436,10 +455,8 @@ func (r ManifestReconciler) updateArmadaManifest(mgr armadaif.ArmadaManifestMana
 
 // reconcileArmadaManifest reconciles the release with the cluster
 func (r ManifestReconciler) reconcileArmadaManifest(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) error {
-	// JEB: We need to give ownership of the ArmadaChartGroup to this ArmadaManifest
-	// if err := controllerutil.SetControllerReference(instance, expectedResource, r.scheme); err != nil {
-	//	return reconcile.Result{}, err
-	// }
+	reclog := amflog.WithValues("namespace", instance.Namespace, "amf", instance.Name)
+	reclog.Info("Reconciling ArmadaManifest and ArmadaChartGroupList")
 
 	expectedResource, err := mgr.ReconcileResource(context.TODO())
 	if err != nil {
@@ -457,7 +474,7 @@ func (r ManifestReconciler) reconcileArmadaManifest(mgr armadaif.ArmadaManifestM
 		return err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-	err = r.watchArmadaChartGroups(instance)
+	err = r.watchArmadaChartGroups(instance, expectedResource)
 	return err
 }
 
