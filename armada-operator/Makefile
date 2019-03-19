@@ -25,10 +25,10 @@ clean:
 	rm -fr config/crds
 
 # Run tests
-unittest: setup fmt vet
+unittest: setup fmt vet-v2
 	echo "sudo systemctl stop kubelet"
-	echo "docker stop $(docker ps -qa)"
-	echo "export PATH=$PATH:/usr/local/kubebuilder/bin"
+	echo -e 'docker stop $$(docker ps -qa)'
+	echo -e 'export PATH=$${PATH}:/usr/local/kubebuilder/bin'
 	mkdir -p config/crds
 	cp chart/templates/*v1alpha1* config/crds/
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
