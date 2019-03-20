@@ -106,8 +106,8 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 				amflog.Info("UpdateEvent. Filtering", "ArmadaChartGroup", new.GetName(), "namespace", new.GetNamespace())
 				return false
 			} else {
-			amflog.Info("UpdateEvent. Triggering", "ArmadaChartGroup", new.GetName(), "namespace", new.GetNamespace())
-			return true
+				amflog.Info("UpdateEvent. Triggering", "ArmadaChartGroup", new.GetName(), "namespace", new.GetNamespace())
+				return true
 			}
 		},
 	}
