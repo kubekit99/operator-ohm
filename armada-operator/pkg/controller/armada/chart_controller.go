@@ -185,7 +185,7 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 	// AdminState POC begin
 	// We will have to enhance the placement of this test to account
 	// for kubectl apply where more than just the AdminState is changed
-	if disabled := r.isReconcileDisabled(instance); disabled {
+	if r.isReconcileDisabled(instance) {
 		return reconcile.Result{}, nil
 	}
 	// AdminState POC end

@@ -35,10 +35,14 @@ const (
 // String converts a ArmadaAdminState to a printable string
 func (x ArmadaAdminState) String() string { return string(x) }
 
-// State is the status of a release/chart/chartgroup/manifest
+// HelmResourceState is the status of a release/chart/chartgroup/manifest
 type HelmResourceState string
+
 type HelmResourceConditionType string
+
+// HelmResourceConditionStatus represents the current status of a Condition
 type HelmResourceConditionStatus string
+
 type HelmResourceConditionReason string
 
 // String converts a HelmResourceState to a printable string
@@ -81,57 +85,63 @@ const (
 	StatePendingBackup HelmResourceState = "pending-backup"
 	// StatePendingRestore indicates that an data restore operation is underway.
 	StatePendingRestore HelmResourceState = "pending-restore"
-	// StatePendingRestore indicates that an data restore operation is underway.
+	// StatePendingInitialization indicates that an data initialization operation is underway.
 	StatePendingInitialization HelmResourceState = "pending-initialization"
 )
 
+// These represent acceptable values for a HelmResourceConditionStatus
 const (
-	// XXX
 	ConditionStatusTrue    HelmResourceConditionStatus = "True"
-	ConditionStatusFalse   HelmResourceConditionStatus = "False"
-	ConditionStatusUnknown HelmResourceConditionStatus = "Unknown"
+	ConditionStatusFalse                               = "False"
+	ConditionStatusUnknown                             = "Unknown"
+)
 
-	// ConditionType
+// These represent acceptable values for a HelmResourceConditionType
+const (
 	ConditionIrreconcilable HelmResourceConditionType = "Irreconcilable"
-	ConditionFailed         HelmResourceConditionType = "Failed"
-	ConditionInitialized    HelmResourceConditionType = "Initialized"
-	ConditionEnabled        HelmResourceConditionType = "Enabled"
-	ConditionDownloaded     HelmResourceConditionType = "Downloaded"
-	ConditionDeployed       HelmResourceConditionType = "Deployed"
+	ConditionFailed                                   = "Failed"
+	ConditionInitialized                              = "Initializing"
+	ConditionEnabled                                  = "Enabled"
+	ConditionDownloaded                               = "Downloaded"
+	ConditionDeployed                                 = "Deployed"
 
 	// JEB: Not sure we will ever be able to use those conditions
 	ConditionBackedUp   HelmResourceConditionType = "BackedUp"
-	ConditionRestored   HelmResourceConditionType = "Restored"
-	ConditionUpgraded   HelmResourceConditionType = "Upgraded"
-	ConditionRolledBack HelmResourceConditionType = "RolledBack"
+	ConditionRestored                             = "Restored"
+	ConditionUpgraded                             = "Upgraded"
+	ConditionRolledBack                           = "RolledBack"
+)
 
+// The following represent the more fine-grained reasons for a given condition
+const (
 	// Successful Conditions Reasons
 	ReasonInstallSuccessful   HelmResourceConditionReason = "InstallSuccessful"
-	ReasonDownloadSuccessful  HelmResourceConditionReason = "DownloadSuccessful"
-	ReasonReconcileSuccessful HelmResourceConditionReason = "ReconcileSuccessful"
-	ReasonUninstallSuccessful HelmResourceConditionReason = "UninstallSuccessful"
-	ReasonUpdateSuccessful    HelmResourceConditionReason = "UpdateSuccessful"
-
-	// Finer grain successful reason of update
-	ReasonBackupSuccessful   HelmResourceConditionReason = "BackupSuccessful"
-	ReasonRestoreSuccessful  HelmResourceConditionReason = "RestoreSuccessful"
-	ReasonUpgradeSuccessful  HelmResourceConditionReason = "UpgradeSuccessful"
-	ReasonRollbackSuccessful HelmResourceConditionReason = "RollbackSuccessful"
+	ReasonDownloadSuccessful                              = "DownloadSuccessful"
+	ReasonReconcileSuccessful                             = "ReconcileSuccessful"
+	ReasonUninstallSuccessful                             = "UninstallSuccessful"
+	ReasonUpdateSuccessful                                = "UpdateSuccessful"
+	ReasonBackupSuccessful                                = "BackupSuccessful"
+	ReasonRestoreSuccessful                               = "RestoreSuccessful"
+	ReasonUpgradeSuccessful                               = "UpgradeSuccessful"
+	ReasonRollbackSuccessful                              = "RollbackSuccessful"
 
 	// Error Condition Reasons
 	ReasonInstallError   HelmResourceConditionReason = "InstallError"
-	ReasonDownloadError  HelmResourceConditionReason = "DownloadError"
-	ReasonReconcileError HelmResourceConditionReason = "ReconcileError"
-	ReasonUninstallError HelmResourceConditionReason = "UninstallError"
-	ReasonUpdateError    HelmResourceConditionReason = "UpdateError"
-
-	// Finer grain error reason of update
-	ReasonBackupError   HelmResourceConditionReason = "BackupError"
-	ReasonRestoreError  HelmResourceConditionReason = "RestoreError"
-	ReasonUpgradeError  HelmResourceConditionReason = "UpgradeError"
-	ReasonRollbackError HelmResourceConditionReason = "RollbackError"
+	ReasonDownloadError                              = "DownloadError"
+	ReasonReconcileError                             = "ReconcileError"
+	ReasonUninstallError                             = "UninstallError"
+	ReasonUpdateError                                = "UpdateError"
+	ReasonBackupError                                = "BackupError"
+	ReasonRestoreError                               = "RestoreError"
+	ReasonUpgradeError                               = "UpgradeError"
+	ReasonRollbackError                              = "RollbackError"
 )
 
+// HelmResourceCondition represents one current condition of an Helm resource
+// A condition might not show up if it is not happening.
+// For example, if a chart is not deploying, the Deploying condition would not show up.
+// If a chart is deploying and encountered a problem that prevents the deployment,
+// the Deploying condition's status will would be False and communicate the problem back.
 type HelmResourceCondition struct {
 	Type               HelmResourceConditionType   `json:"type"`
 	Status             HelmResourceConditionStatus `json:"status"`
@@ -146,6 +156,7 @@ type HelmResourceConditionListHelper struct {
 	Items []HelmResourceCondition `json:"items"`
 }
 
+// ArmadaStatus represents the common attributes shared amongst armada resources
 type ArmadaStatus struct {
 	// Succeeded indicates if the release is in the expected state
 	Succeeded bool `json:"succeeded"`
@@ -155,6 +166,32 @@ type ArmadaStatus struct {
 	ActualState HelmResourceState `json:"actual_state"`
 	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
 	Conditions []HelmResourceCondition `json:"conditions,omitempty"`
+}
+
+// SetCondition sets a condition on the status object. If the condition already
+// exists, it will be replaced. SetCondition does not update the resource in
+// the cluster.
+func (s *ArmadaStatus) SetCondition(cond HelmResourceCondition, tgt HelmResourceState) {
+
+	// Add the condition to the list
+	chelper := HelmResourceConditionListHelper{Items: s.Conditions}
+	s.Conditions = chelper.SetCondition(cond)
+
+	// Recompute the state
+	s.ComputeActualState(cond, tgt)
+}
+
+// RemoveCondition removes the condition with the passed condition type from
+// the status object. If the condition is not already present, the returned
+// status object is returned unchanged. RemoveCondition does not update the
+// resource in the cluster.
+func (s *ArmadaStatus) RemoveCondition(conditionType HelmResourceConditionType) {
+	for i, cond := range s.Conditions {
+		if cond.Type == conditionType {
+			s.Conditions = append(s.Conditions[:i], s.Conditions[i+1:]...)
+			return
+		}
+	}
 }
 
 // SetCondition sets a condition on the status object. If the condition already
