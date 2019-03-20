@@ -100,7 +100,7 @@ const (
 const (
 	ConditionIrreconcilable HelmResourceConditionType = "Irreconcilable"
 	ConditionFailed                                   = "Failed"
-	ConditionInitialized                              = "Initialized"
+	ConditionInitialized                              = "Initializing"
 	ConditionEnabled                                  = "Enabled"
 	ConditionDownloaded                               = "Downloaded"
 	ConditionDeployed                                 = "Deployed"
@@ -110,19 +110,20 @@ const (
 	ConditionRestored                             = "Restored"
 	ConditionUpgraded                             = "Upgraded"
 	ConditionRolledBack                           = "RolledBack"
+)
 
+// The following represent the more fine-grained reasons for a given condition
+const (
 	// Successful Conditions Reasons
 	ReasonInstallSuccessful   HelmResourceConditionReason = "InstallSuccessful"
 	ReasonDownloadSuccessful                              = "DownloadSuccessful"
 	ReasonReconcileSuccessful                             = "ReconcileSuccessful"
 	ReasonUninstallSuccessful                             = "UninstallSuccessful"
 	ReasonUpdateSuccessful                                = "UpdateSuccessful"
-
-	// Finer grain successful reason of update
-	ReasonBackupSuccessful   HelmResourceConditionReason = "BackupSuccessful"
-	ReasonRestoreSuccessful                              = "RestoreSuccessful"
-	ReasonUpgradeSuccessful                              = "UpgradeSuccessful"
-	ReasonRollbackSuccessful                             = "RollbackSuccessful"
+	ReasonBackupSuccessful                                = "BackupSuccessful"
+	ReasonRestoreSuccessful                               = "RestoreSuccessful"
+	ReasonUpgradeSuccessful                               = "UpgradeSuccessful"
+	ReasonRollbackSuccessful                              = "RollbackSuccessful"
 
 	// Error Condition Reasons
 	ReasonInstallError   HelmResourceConditionReason = "InstallError"
@@ -130,12 +131,10 @@ const (
 	ReasonReconcileError                             = "ReconcileError"
 	ReasonUninstallError                             = "UninstallError"
 	ReasonUpdateError                                = "UpdateError"
-
-	// Finer grain error reason of update
-	ReasonBackupError   HelmResourceConditionReason = "BackupError"
-	ReasonRestoreError                              = "RestoreError"
-	ReasonUpgradeError                              = "UpgradeError"
-	ReasonRollbackError                             = "RollbackError"
+	ReasonBackupError                                = "BackupError"
+	ReasonRestoreError                               = "RestoreError"
+	ReasonUpgradeError                               = "UpgradeError"
+	ReasonRollbackError                              = "RollbackError"
 )
 
 // HelmResourceCondition represents one current condition of an Helm resource
