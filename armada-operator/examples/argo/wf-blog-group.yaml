@@ -20,8 +20,8 @@ spec:
   - name: enable-blog-1-template
     resource:
       action: patch
-      successCondition: status.succeeded == 1
-      failureCondition: status.succeeded == 0
+      mergeStrategy: merge
+      successCondition: status.succeeded == true
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
@@ -33,8 +33,7 @@ spec:
   - name: blog-1-ready-template
     resource:
       action: get
-      successCondition: status.succeeded == 1
-      failureCondition: status.succeeded == 0
+      successCondition: status.succeeded == true
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
@@ -44,8 +43,8 @@ spec:
   - name: enable-blog-2-template
     resource:
       action: patch
-      successCondition: status.succeeded == 1
-      failureCondition: status.succeeded == 0
+      mergeStrategy: merge
+      successCondition: status.succeeded == true
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
@@ -57,8 +56,7 @@ spec:
   - name: blog-2-ready-template
     resource:
       action: get
-      successCondition: status.succeeded == 1
-      failureCondition: status.succeeded == 0
+      successCondition: status.succeeded == true
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
