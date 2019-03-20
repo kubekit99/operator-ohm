@@ -1,11 +1,12 @@
-# operator-ohm
+# CRD/Operator POC in Openstack Airship and Openstack Helm ecosystems.
 
 Goal is to compare the behavior/usefullness of Helm CRD based operators and the
 benefits they would bring to the Airship ecosystem.
 
 ## Design documents
 
-[Operator](https://github.com/kubekit99/operator-ohm/blob/master/docs/source/operator.rst)
+[Operator](https://github.com/kubekit99/operator-ohm/blob/master/docs/source/operator.rst) contains high
+level drawing describing the strategy used to design the CRDs.
 
 ## Armada Operator POC
 
@@ -17,7 +18,7 @@ or Argo Workflows.
 This operator make extensive use of golang, the operator-framework and kubebuilder.
 This operator aims at dealing with the differences between Helm v2 and Helm v3 (no tiller, Release CRD).
 
-[Armada](https://github.com/kubekit99/operator-ohm/lob/master/armada-operator/README.md)
+[Armada](https://github.com/kubekit99/operator-ohm/blob/master/armada-operator/README.md)
 
 ### RabbitMQ operator
 
