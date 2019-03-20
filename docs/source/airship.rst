@@ -12,8 +12,8 @@ OpenStack on Kubernetes (OOK).
 
 .. image:: diagrams/architecture.png
 
-Component Projects
-==================
+Airship Component Projects
+==========================
 
 Pegleg
 ------
@@ -181,18 +181,14 @@ Berth
 runner for Kubernetes.
 
 
-Process Flows
-=============
-
-.. image:: diagrams/genesis.png
+Airship Process Flows
+=====================
 
 .. image:: diagrams/deploy_site.png
 
 
 .. toctree::
    :maxdepth: 2
-
-   airskiff
 
 .. _Barbican: https://docs.openstack.org/barbican/latest/api/
 .. _Helm Homepage: https://helm.sh/

@@ -103,14 +103,19 @@ func ToArmadaManifest(u *unstructured.Unstructured) *ArmadaManifest {
 	var obj *ArmadaManifest
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &obj)
 	if err != nil {
-		return &ArmadaManifest{}
+		return &ArmadaManifest{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      u.GetName(),
+				Namespace: u.GetNamespace(),
+			},
+		}
 	}
 	return obj
 }
 
 // Convert a typed ArmadaManifest into an unstructured.Unstructured
 func (obj *ArmadaManifest) FromArmadaManifest() *unstructured.Unstructured {
-	u := NewArmadaManifestVersionKind("", "")
+	u := NewArmadaManifestVersionKind(obj.ObjectMeta.Namespace, obj.ObjectMeta.Name)
 	tmp, err := runtime.DefaultUnstructuredConverter.ToUnstructured(*obj)
 	if err != nil {
 		return u
