@@ -45,7 +45,7 @@ type ArmadaManifestSpec struct {
 // ======= ArmadaManifestStatus Definition =======
 // ArmadaManifestStatus defines the observed state of ArmadaManifest
 type ArmadaManifestStatus struct {
-	ArmadaStatus
+	ArmadaStatus `json:",inline"`
 }
 
 // ======= ArmadaManifest Definition =======

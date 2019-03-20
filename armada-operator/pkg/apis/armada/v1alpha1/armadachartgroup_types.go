@@ -50,7 +50,7 @@ type ArmadaChartGroupSpec struct {
 // ======= ArmadaChartGroupStatus Definition =======
 // ArmadaChartGroupStatus defines the observed state of ArmadaChartGroup
 type ArmadaChartGroupStatus struct {
-	ArmadaStatus
+	ArmadaStatus `json:",inline"`
 }
 
 // ======= ArmadaChartGroup Definition =======

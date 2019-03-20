@@ -71,7 +71,7 @@ type ArmadaChartSpec struct {
 // ======= ArmadaChartStatus Definition =======
 // ArmadaChartStatus defines the observed state of ArmadaChart
 type ArmadaChartStatus struct {
-	ArmadaStatus
+	ArmadaStatus `json:",inline"`
 }
 
 // ======= ArmadaChartList Definition =======
