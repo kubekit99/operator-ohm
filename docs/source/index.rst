@@ -31,6 +31,25 @@ CRD Overview
 
    operator
 
+CRD Detailled Design
+====================
+
+.. toctree::
+   :maxdepth: 2
+
+   armadachart
+   armadachartgroup
+   armadamanifest
+   usage
+
+Help Needed
+====================
+
+.. toctree::
+   :maxdepth: 2
+
+   todo
+
 Uselful Links
 =============
 

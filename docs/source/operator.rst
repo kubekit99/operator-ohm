@@ -57,8 +57,7 @@ Upgrade/Rollback Flow
 
 1. Changing the targetVersion in the ArmadaChart triggers the Upgrade/Rollback of the HelmChart
 2. Either a ChartGroup or an Argo workflow update the targetVersion attribute of the ArmadaCharts in the proper order.
-3. the "targetVersion" attribute usage will potentially completly remove the need for the enabled/disabled state.
-Moving the "targetVersion" from 0 to 1 would indeed have the same effect than changing the admin state from disabled to enabled.
+3. the "targetVersion" attribute usage will potentially completly remove the need for the enabled/disabled state. Moving the "targetVersion" from 0 to 1 would indeed have the same effect than changing the admin state from disabled to enabled.
 
 .. image:: diagrams/armada_upgrade.png
 
@@ -82,4 +81,3 @@ Restore Flow
 
 .. toctree::
    :maxdepth: 2
-
