@@ -210,11 +210,6 @@ func (r *ManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Res
 			return reconcile.Result{Requeue: true}, err
 		}
 		return reconcile.Result{}, err
-	case !mgr.IsInstalled():
-		if shouldRequeue, err = r.installArmadaManifest(mgr, instance); shouldRequeue {
-			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
-		}
-		return reconcile.Result{}, err
 	case mgr.IsUpdateRequired():
 		if shouldRequeue, err = r.updateArmadaManifest(mgr, instance); shouldRequeue {
 			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
@@ -384,45 +379,6 @@ func (r ManifestReconciler) deleteArmadaManifest(mgr armadaif.ArmadaManifestMana
 	err = r.updateResource(instance)
 
 	// Need to requeue because finalizer update does not change metadata.generation
-	return true, err
-}
-
-// installArmadaManifest attempts to install instance. It returns true if the reconciler should be re-enqueueed
-func (r ManifestReconciler) installArmadaManifest(mgr armadaif.ArmadaManifestManager, instance *av1.ArmadaManifest) (bool, error) {
-	reclog := amflog.WithValues("namespace", instance.Namespace, "amf", instance.Name)
-	reclog.Info("Installing")
-
-	installedResource, err := mgr.InstallResource(context.TODO())
-	if err != nil {
-		hrc := av1.HelmResourceCondition{
-			Type:    av1.ConditionFailed,
-			Status:  av1.ConditionStatusTrue,
-			Reason:  av1.ReasonInstallError,
-			Message: err.Error(),
-		}
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		r.logAndRecordFailure(instance, &hrc, err)
-
-		_ = r.updateResourceStatus(instance)
-		return false, err
-	}
-	instance.Status.RemoveCondition(av1.ConditionFailed)
-
-	if err := r.watchArmadaChartGroups(instance, installedResource); err != nil {
-		return false, err
-	}
-
-	hrc := av1.HelmResourceCondition{
-		Type:         av1.ConditionDeployed,
-		Status:       av1.ConditionStatusTrue,
-		Reason:       av1.ReasonInstallSuccessful,
-		Message:      "",
-		ResourceName: installedResource.GetName(),
-	}
-	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-	r.logAndRecordSuccess(instance, &hrc)
-
-	err = r.updateResourceStatus(instance)
 	return true, err
 }
 
