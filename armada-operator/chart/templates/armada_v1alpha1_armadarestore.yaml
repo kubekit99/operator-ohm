@@ -7,10 +7,10 @@ metadata:
   name: armadarestores.armada.airshipit.org
 spec:
   additionalPrinterColumns:
-  - JSONPath: .status.succeeded
-    description: success
-    name: succeeded
-    type: boolean
+  - JSONPath: .status.actual_state
+    description: Status
+    name: Status
+    type: string
   group: armada.airshipit.org
   names:
     kind: ArmadaRestore

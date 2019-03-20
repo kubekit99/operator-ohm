@@ -55,7 +55,7 @@ type ArmadaManifestStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=armadamanifests,shortName=amf
-// +kubebuilder:printcolumn:name="succeeded",type="boolean",JSONPath=".status.succeeded",description="success"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.actual_state",description="Status"
 type ArmadaManifest struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
