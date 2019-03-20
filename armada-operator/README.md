@@ -11,106 +11,58 @@ Did not had time to sort how to completly migrate from operator-sdh to kubebuild
 Most of the scaffolding is done using the operator-sdk but once the default files are created,
 the build process mainly relies on kubebuilder
 
-## Tiller/Helm directories
+## armada-operator code directory structure
 
-###  helm v2 vs helm v3
+###  cmd
 
-To get the process doing, some of the code for HelmRelease handling is coming from the 
-operator-sdk helm-operator. That code relies on tiller component which is gone for Helm3.
-Hence the three directory helmif (Interface and Common code), helmv2 (tiller) and helmv3.
+Contains the main.go for the armada operator
 
-### HelmRelease CRDs.
+###  pkg/apis/
 
-The HelmRelease represent temporalily used until the HelmV3 Release CRD is available.
+Contains the golang definition of the CRDs. `make generate` will recreate the yaml definitions
+of the CRDs that have to be provided to kubectl in order to deploy the new CRDs.
+This current version of the operator uses "act" for shortname of ArmadaChart,
+"acg" as shortname for ArmadaChartGroup and "amf" as shortname for ArmadaManifest.
 
-### HelmRequest CRD
+The first version of the golang code has generated using tool such as "schema-generate" from
+the schema definition provided with airship-armada project.
 
-The helm-v3 proposal appendix describes in Appendix the creation of the HelmRequest CRD to
-work with a controller and the Helm code provided as a standalone library.
-- Note sure the interest of the "Get"....operations since the same result can be achieve
-using "kubectl get releases"
+###  pkg/services
 
-### Notes
+Contains the bulk of the interfaces used by the armada controller.
 
-- JEB: For testing purpose the current Docker file includes a dummy chart deliverd under armada-charts.
-This removes the needs to access external chart repository which is also an aspect of helm changing from 2 to 3.
+###  pkg/helm, pkg/helmv2 and pkg/helmv3
 
-## Armada directories
+To get the process doing, some of the code for ArmadaChart handling is coming from the 
+operator-sdk helm-operator. That code is relying on tiller component which is gone for Helm3.
+Hence the three directory helm (Interface and Common code), helmv2 (tiller) and helmv3.
 
-### Manifest, ChartGroup and Chart CRDs.
+The golang package structure is different between helmv2 and helmv3. The Armada Operator will
+most likely ultimatly have support two branches. In order to delay that milestone, the golang
+code has been instrumentated with "v2" and "v3" tags which allows to compile either the
+helm v3 version of the operator or the helm v3 version.
 
-Armada CRD are currently inspired from from the structure used by airship-armada.
+###  pkg/armada directory
 
-### ArmadaRequest CRDs.
+Mainly contain the code for ArmadaChartGroup, ArmadaManifest as will ArmadaBackupLocation handling
 
-As for Helm/Tiller, the ArmadaRequest CRD are supposed to represent the "command" oriented operations.
-Not sure of the 
+###  pkg/controller directory
 
-### Notes
+Contains the controller and the "Reconcile" functions for ArmadaChart, ArmadaChartGroup and ArmadaManifest.
+There are currently three controllers (act-controller, acg-controller and amf-controller).
 
-- JEB: Since we have multiple CRDs (Manifest, CharGroup...Chart), still have to figure out if
-we need multiple controller/reconciler each listening only on one CRD or one controller watching multiple CRDs.
+# Code changes.
 
-## Helm3CRD directories
+## Adjusting the ArmadaOperator CRDs
 
-### Release, Values, Chart... CRDs.
+Upon change of the CRD golang definition, the yaml files have to be regenerated
 
-Those CRD and Controller have been build using the helm-3-crd discussion and repository.
-
-### Notes
-
-- JEB: Can't figure out the impact of having thousands of individual LifecycleEvent CR on the performance
-and usability of the kubectl.
-
-# Creation of armada-operator
-
-## Initialising the armada-operator
-
-```bash
-operator-sdk new armada-operator --skip-git-init
-```
-
-## Coding the armada-operator
-
-```bash
-operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=HelmRelease
-operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=ArmadaManifest
-operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=ArmadaChart
-operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=ArmadaChartGroup
-operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=HelmRequest
-operator-sdk add api --api-version=armada.airshipit.org/v1alpha1 --kind=ArmadaRequest
-operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=Release
-operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=Values
-operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=Manifest
-operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=Lifecycle
-operator-sdk add api --api-version=helm3crd.airshipit.org/v1beta1 --kind=LifecycleEvent
-git add pkg/apis/armada/
-git add pkg/apis/helm3crd/
-git add pkg/apis/addtoscheme_armada_v1alpha1.go
-git add deploy/role.yaml
-```
-
-```bash
-vi pkg/apis/armada/v1alpha1/*_types.go
-operator-sdk generate k8s
-```
-
-```bash
-operator-sdk add controller --api-version=armada.airshipit.org/v1alpha1 --kind=Tiller
-operator-sdk add controller --api-version=armada.airshipit.org/v1alpha1 --kind=Armada
-operator-sdk add controller --api-version=helm3crd.airshipit.org/v1beta1 --kind=Helm3CRD
-```
-## Adjusting crds
-
-Don't understand yet how to build using operator-sdk operator with the same level of detailes than
+Note 1: Don't understand yet how to build using operator-sdk operator with the same level of detailes than
 controller-gen. Big hack that have to be included in Makefile.
 
-```bash
-go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/
-operator-sdk generate k8s
-```
-
-or
+Note 2: The generation tool seems to comply with some of OpenAPI specs. The "validation" schema added
+to in the CRD yaml definition does not contain fields using underscore. 
+Most of those fields containing underscore where defined such a way in the original airship-armada.
 
 ```bash
 make generate
@@ -118,51 +70,66 @@ make generate
 
 ## Compiling the armada-operator
 
-```
-make docker-build
-```
-
-# Deploying
-
-## Deployment of operator using helm
+To keep the directory tree ligthweight, the vendor directory is not checked in in the current repo.
+TODO: Since the operator is only using one git branch, the developer has to comment out the helmv2
+and add the helmv3 in Gopkg.toml if he wants to build the helmv3 version of the operator. This is still WIP.
 
 ```bash
-helm install --name armada-operator chart 
+dep ensure
 ```
 
-# Simple Helm Chart CRD and Controller
-
-## Trigger helm chart deployment
-
-Upon creation of the custom resource, the controller will
-- Deploy the Helm Chart described in the CRD
-- Update status of the custom resources.
-- Add events to the custom resources.
-
+To build the v2 version
 ```bash
-kubectl create -f examples/tiller/helm-testchart.yaml
-kubectl describe hrel/testchart
+make docker-build-v2
 ```
 
-## Test controller reconcilation logic (for depending resources)
-
-Upon deletion of its depending resources, the controller will recreate it,
-
+To build the v3 version
 ```bash
-kubectl describe hrel/testchart
+make docker-build-v3
 ```
 
-## Test controller reconcilation logic (for CRD)
+## Run unit test and preintegration tests.
 
-When deleting the CRD, the corresponding helm chart should be uninstalled.
+If you installed kubebuilder on your system, you will have access
+to a standalone apiserver, etcd server and kubectl.
 
+Because of a lack of time, the current makefile test statement,
+will attempt to stop your kubelet and associated container in your local
+kubernetes cluster, before starting apiserver, etcdserver.
+TODO: We still need to figure out if it necessary
+
+In order to run the unit tests and the e2e integration tests:
 ```bash
-kubectl delete -f examples/tiller/helm-testchart.yaml
+make unittest
 ```
 
-# Simple ArmadaManifest and Controller
+# Deploying the operator.
 
-## Trigger ArmadaManifest deployment
+Note the current deployment of the operator relies itself on helm.
+
+To install the helm v2 version
+```bash
+make install-v2
+```
+
+To install the helm v3 version
+```bash
+make install-v3
+```
+
+# Testing the armada-controller
+
+##  helm-charts/testchart directory
+
+For testing purpose the current Docker file includes a dummy chart deliverd under armada-charts.
+This removes the needs to access external chart repository which is also an aspect of helm changing from 2 to 3.
+
+## examples/armada
+
+In that directory, the ArmadaChart are enabled by default and the charts
+are installed as soon as the ArmadaChart CRD are created.
+
+### Deployment
 
 Upon creation of the custom resource, the controller will
 - Deploy the Armada Manifest described in the CRD
@@ -170,191 +137,67 @@ Upon creation of the custom resource, the controller will
 - Add events to the custom resources.
 
 ```bash
-kubectl create -f examples/armada/simple.yaml
+kubectl create -f examples/armada
 kubectl describe amf/simple-armada
 kubectl get amf
 kubectl get acg
 kubectl get act
 ```
 
-
-
-## Test controller reconcilation logic (for depending resources)
+### Test controller reconcilation logic (for depending resources)
 
 Upon deletion of its depending resources, the controller will recreate it,
 
 ```bash
-kubectl describe amf/simple-armada
+kubectl delete deployment.apps/blog-2-testchart
+kubectl get all
+kubectl describe act blog-2
 ```
 
-## Test controller reconcilation logic (for CRD)
+### Test controller reconcilation logic (for CRD)
 
 When deleting the CRD, the corresponding Armada Manifest should be uninstalled.
 
 ```bash
-kubectl delete act/blog-1
-kubectl delete acg/blog-group
-kubectl delete amf/simple-armada
-kubectl delete -f examples/armada/simple.yaml
+kubectl delete -f simple/armada
 ```
 
+## examples/stepbystep
 
-# Simple Helm3CRD Release and Controller
+This directory contains invidual act,acg and amf files which allow the "step" by "step" testing of the deployment.
 
-## Trigger helm chart deployment
+## examples/argo
 
-Upon creation of the custom resource, the controller will
-- Deploy the Helm Chart described in the CRD
-- Update status of the custom resources.
-- Add events to the custom resources.
+In that directory, the ArmadaChart (act) are disabled by default and the charts not installed
+automatically when the act CR are created.
+This example assumes that the argo controller has been installed. When the "argo worflow"
+CR is created, the "argo controller" is waked up and it orchestrates the enablement of the ArmadaChart
+according to the worflow.
 
-```bash
-kubectl create -f examples/helm3crd/release.yaml
-kubectl describe rel/my-release
-```
+- WIP
 
-## Test controller reconcilation logic (for depending resources)
+## examples/sequenced
 
-Upon deletion of its depending resources, the controller will recreate it,
+In that directory, the ArmadaChart (act) are disabled by default and the charts not installed
+automatically when the act CR are created.
+When the "ArmadaChartGroup" CR is created, the "chartgroup controller" receives an event and it
+orchestrate the order of deployment/enablement of the ArmadaChart. The ArmadaChartGroup also
+becomes owner of the ArmadaChart. 
 
-```bash
-kubectl describe rel/my-release
-```
+- WIP
 
-## Test controller reconcilation logic (for CRD)
+## examples/backup
 
-When deleting the CRD, the corresponding helm chart should be uninstalled.
+This directory contains the CR definitions involved during an ArmadaBackup procedure.
 
-```bash
-kubectl delete -f examples/helm3crd/release.yaml
-```
+- WIP
+
+## examples/restore
+
+This directory contains the CR definitions involved during an ArmadaRestore procedure.
+
+- WIP
 
 # Appendix
 
-## Helm hooks for CRDs
-
-Example of annotations hook for a CRD
-
-```yaml
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: crontabs.stable.example.com
-  annotations:
-    "helm.sh/hook": crd-install
-spec:
-  group: stable.example.com
-  version: v1
-  scope: Namespaced
-  names:
-    plural: crontabs
-    singular: crontab
-    kind: CronTab
-    shortNames:
-    - ct
-```
-
-## Add columns to status
-
-in register.go 
-
-```go
-// Package v1alpha1 contains API Schema definitions for the fun v1alpha1 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=sigs.k8s.io/controller-tools/pkg/crd/generator/testData/pkg/apis/fun
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=fun.myk8s.io
-```
-```go
-// ToySpec defines the desired state of Toy
-type ToySpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// +kubebuilder:validation:Maximum=100
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:ExclusiveMinimum=true
-	Power float32 `json:"power,omitempty"`
-
-	Bricks int32 `json:"bricks,omitempty"`
-
-	// +kubebuilder:validation:MaxLength=15
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name,omitempty"`
-
-	// This is a comment on an array field.
-	// +kubebuilder:validation:MaxItems=500
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:UniqueItems=false
-	Knights []string `json:"knights,omitempty"`
-
-	// This is a comment on a boolean field.
-	Winner bool `json:"winner,omitempty"`
-
-	// +kubebuilder:validation:Enum=Lion,Wolf,Dragon
-	Alias string `json:"alias,omitempty"`
-
-	// +kubebuilder:validation:Enum=1,2,3
-	Rank int `json:"rank"`
-
-	Comment []byte `json:"comment,omitempty"`
-
-	// This is a comment on an object field.
-	Template v1.PodTemplateSpec `json:"template"`
-
-	Claim v1.PersistentVolumeClaim `json:"claim,omitempty"`
-
-	//This is a dummy comment.
-	// Just checking if the multi-line comments are working or not.
-	Replicas *int32 `json:"replicas"`
-
-	// This is a newly added field.
-	// Using this for testing purpose.
-	Rook *intstr.IntOrString `json:"rook"`
-
-	// This is a comment on a map field.
-	Location map[string]string `json:"location"`
-}
-
-// ToyStatus defines the observed state of Toy
-type ToyStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// It tracks the number of replicas.
-	Replicas int32 `json:"replicas"`
-}
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// Toy is the Schema for the toys API
-// +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
-// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=
-// +kubebuilder:printcolumn:name="toy",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status",description="descr1",format="date"
-// +kubebuilder:printcolumn:name="abc",type="integer",JSONPath="status",description="descr2",format="int32"
-// +kubebuilder:printcolumn:name="service",type="string",JSONPath=".status.conditions.ready",description="descr3",format="byte"
-// +kubebuilder:resource:path=services,shortName=ty
-type Toy struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   ToySpec   `json:"spec,omitempty"`
-	Status ToyStatus `json:"status,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ToyList contains a list of Toy
-type ToyList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Toy `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&Toy{}, &ToyList{})
-}
-```
+[POCs](./pocs/README.md) contains additional notes regarding successful and failed attempts.
