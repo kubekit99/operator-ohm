@@ -53,30 +53,6 @@ type ArmadaChartGroupStatus struct {
 	ArmadaStatus
 }
 
-// SetCondition sets a condition on the status object. If the condition already
-// exists, it will be replaced. SetCondition does not update the resource in
-// the cluster.
-func (s *ArmadaChartGroupStatus) SetCondition(cond HelmResourceCondition, tgt HelmResourceState) {
-
-	// Add the condition to the list
-	chelper := HelmResourceConditionListHelper{Items: s.Conditions}
-	s.Conditions = chelper.SetCondition(cond)
-
-	// Recompute the state
-	s.ComputeActualState(cond, tgt)
-}
-
-// RemoveCondition removes the condition with the passed condition type from
-// the status object. If the condition is not already present, the returned
-// status object is returned unchanged. RemoveCondition does not update the
-// resource in the cluster.
-func (s *ArmadaChartGroupStatus) RemoveCondition(conditionType HelmResourceConditionType) *ArmadaChartGroupStatus {
-
-	helper := HelmResourceConditionListHelper{Items: s.Conditions}
-	s.Conditions = helper.RemoveCondition(conditionType)
-	return s
-}
-
 // ======= ArmadaChartGroup Definition =======
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

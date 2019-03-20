@@ -171,6 +171,32 @@ type ArmadaStatus struct {
 // SetCondition sets a condition on the status object. If the condition already
 // exists, it will be replaced. SetCondition does not update the resource in
 // the cluster.
+func (s *ArmadaStatus) SetCondition(cond HelmResourceCondition, tgt HelmResourceState) {
+
+	// Add the condition to the list
+	chelper := HelmResourceConditionListHelper{Items: s.Conditions}
+	s.Conditions = chelper.SetCondition(cond)
+
+	// Recompute the state
+	s.ComputeActualState(cond, tgt)
+}
+
+// RemoveCondition removes the condition with the passed condition type from
+// the status object. If the condition is not already present, the returned
+// status object is returned unchanged. RemoveCondition does not update the
+// resource in the cluster.
+func (s *ArmadaStatus) RemoveCondition(conditionType HelmResourceConditionType) {
+	for i, cond := range s.Conditions {
+		if cond.Type == conditionType {
+			s.Conditions = append(s.Conditions[:i], s.Conditions[i+1:]...)
+			return
+		}
+	}
+}
+
+// SetCondition sets a condition on the status object. If the condition already
+// exists, it will be replaced. SetCondition does not update the resource in
+// the cluster.
 func (s *HelmResourceConditionListHelper) SetCondition(condition HelmResourceCondition) []HelmResourceCondition {
 
 	// Initialize the Items array if needed
