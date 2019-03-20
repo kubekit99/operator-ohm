@@ -23,14 +23,7 @@ type ArmadaRestoreSpec struct {
 
 // ArmadaRestoreStatus defines the observed state of ArmadaRestore
 type ArmadaRestoreStatus struct {
-	// Succeeded indicates if the release is in the expected state
-	Succeeded bool `json:"succeeded"`
-	// Reason indicates the reason for any related failures.
-	Reason string `json:"reason,omitempty"`
-	// Actual state of the Helm Custom Resources
-	ActualState HelmResourceState `json:"actual_state"`
-	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
-	Conditions []HelmResourceCondition `json:"conditions,omitempty"`
+	ArmadaStatus `json:",inline"`
 }
 
 type RestoreSource struct {
