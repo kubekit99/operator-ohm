@@ -120,9 +120,9 @@ func (m chartgroupmanager) ReconcileResource(ctx context.Context) (*av1.ArmadaCh
 		// If Sequenced is enabled, let's compute the next one to enable.
 		// It may happen that the current chart is still deploying, in which case
 		// nextToEnable will be nil
+		chartsToEnable = av1.NewArmadaCharts(m.resourceName)
 		nextToEnable := m.deployedResource.GetNextToEnable()
 		if nextToEnable != nil {
-			chartsToEnable = av1.NewArmadaCharts(m.resourceName)
 			chartsToEnable.List.Items = append(chartsToEnable.List.Items, *nextToEnable)
 		}
 	} else {
