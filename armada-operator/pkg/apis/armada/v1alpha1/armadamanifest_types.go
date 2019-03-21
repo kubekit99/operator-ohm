@@ -125,6 +125,39 @@ func (obj *ArmadaManifest) IsDisabled() bool {
 	return !obj.IsEnabled()
 }
 
+// GetChartGroups returns a list of mock ArmadaChartGroup matching
+// the names specified in the ArmadaManifest Spec
+func (obj *ArmadaManifest) GetMockChartGroups() *ArmadaChartGroups {
+	labels := map[string]string{
+		"app": obj.ObjectMeta.Name,
+	}
+
+	var res = NewArmadaChartGroups(obj.ObjectMeta.Name)
+
+	for _, chartgroupname := range obj.Spec.ChartGroups {
+		res.List.Items = append(res.List.Items,
+			ArmadaChartGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      chartgroupname,
+					Namespace: obj.ObjectMeta.Namespace,
+					Labels:    labels,
+				},
+				Spec: ArmadaChartGroupSpec{
+					Charts:      make([]string, 0),
+					Description: "Created by " + obj.ObjectMeta.Name,
+					Name:        chartgroupname,
+					Sequenced:   false,
+					TestCharts:  false,
+					TargetState: StateInitialized,
+					AdminState:  StateDisabled,
+				},
+			},
+		)
+	}
+
+	return res
+}
+
 // Returns a GKV for ArmadaManifest
 func NewArmadaManifestVersionKind(namespace string, name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}

@@ -140,6 +140,44 @@ func NewArmadaChartGroupVersionKind(namespace string, name string) *unstructured
 	return u
 }
 
+// GetMockCharts returns a mock list of ArmadaChart the same name/namespace as the cr
+func (obj *ArmadaChartGroup) GetMockCharts() *ArmadaCharts {
+	labels := map[string]string{
+		"app": obj.ObjectMeta.Name,
+	}
+
+	var res = NewArmadaCharts(obj.ObjectMeta.Name)
+
+	for _, chartname := range obj.Spec.Charts {
+		res.List.Items = append(res.List.Items, ArmadaChart{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      chartname,
+				Namespace: obj.ObjectMeta.Namespace,
+				Labels:    labels,
+			},
+			Spec: ArmadaChartSpec{
+				ChartName: chartname,
+				Release:   chartname + "-release",
+				Namespace: obj.ObjectMeta.Namespace,
+				Upgrade: &ArmadaUpgrade{
+					NoHooks: false,
+				},
+				Source: &ArmadaChartSource{
+					Type:      "local",
+					Location:  "/opt/armada/helm-charts/testchart",
+					Subpath:   ".",
+					Reference: "master",
+				},
+				Dependencies: make([]string, 0),
+				TargetState:  StateInitialized,
+				AdminState:   StateDisabled,
+			},
+		})
+	}
+
+	return res
+}
+
 // ======= ArmadaChartGroupList Definition =======
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -217,7 +255,7 @@ func (obj *ArmadaChartGroups) GetName() string {
 // Loop through the ChartGroup and return the first disabled one
 func (obj *ArmadaChartGroups) GetNextToEnable() *ArmadaChartGroup {
 	for _, act := range obj.List.Items {
-		if act.IsEnabled() && !act.Status.Succeeded {
+		if act.IsEnabled() && !act.Status.Satisfied {
 			// The ChartGroup has been enabled but is still deploying
 			return nil
 		}
@@ -229,6 +267,21 @@ func (obj *ArmadaChartGroups) GetNextToEnable() *ArmadaChartGroup {
 
 	// Everything was done
 	return nil
+}
+
+// Loop through the chartgroups and return all the disabled ones
+func (obj *ArmadaChartGroups) GetAllDisabledChartGroups() *ArmadaChartGroups {
+
+	var res = NewArmadaChartGroups(obj.Name)
+
+	for _, act := range obj.List.Items {
+		if act.IsDisabled() {
+			// The Chart has not been enabled yet
+			res.List.Items = append(res.List.Items, act)
+		}
+	}
+
+	return res
 }
 
 // ======= Schema Registration =======

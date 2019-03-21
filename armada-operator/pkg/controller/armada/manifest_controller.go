@@ -200,11 +200,11 @@ func (r *ManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Res
 	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 
 	if err := r.ensureSynced(mgr, instance); err != nil {
-		if (!instance.IsDeleted()) {
+		if !instance.IsDeleted() {
 			// TODO(jeb): Changed the behavior to stop only if we are not
 			// in a delete phase.
 			return reconcile.Result{}, err
-		} 
+		}
 	}
 
 	switch {
