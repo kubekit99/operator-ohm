@@ -8,9 +8,17 @@ metadata:
 spec:
   additionalPrinterColumns:
   - JSONPath: .status.actual_state
-    description: Status
-    name: Status
+    description: State
+    name: State
     type: string
+  - JSONPath: .spec.target_state
+    description: Target State
+    name: Target State
+    type: string
+  - JSONPath: .status.satisfied
+    description: Satisfied
+    name: Satisfied
+    type: boolean
   group: armada.airshipit.org
   names:
     kind: ArmadaRestore
@@ -138,11 +146,12 @@ spec:
             reason:
               description: Reason indicates the reason for any related failures.
               type: string
-            succeeded:
-              description: Succeeded indicates if the release is in the expected state
+            satisfied:
+              description: Satisfied indicates if the release's ActualState satisfies
+                its target state
               type: boolean
           required:
-          - succeeded
+          - satisfied
           type: object
   version: v1alpha1
 status:

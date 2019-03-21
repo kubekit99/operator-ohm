@@ -117,7 +117,9 @@ type ArmadaBackupStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=armadabackups,shortName=abck
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.actual_state",description="Status"
+// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.actual_state",description="State"
+// +kubebuilder:printcolumn:name="Target State",type="string",JSONPath=".spec.target_state",description="Target State"
+// +kubebuilder:printcolumn:name="Satisfied",type="boolean",JSONPath=".status.satisfied",description="Satisfied"
 type ArmadaBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

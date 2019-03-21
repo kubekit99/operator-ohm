@@ -158,8 +158,8 @@ type HelmResourceConditionListHelper struct {
 
 // ArmadaStatus represents the common attributes shared amongst armada resources
 type ArmadaStatus struct {
-	// Succeeded indicates if the release is in the expected state
-	Succeeded bool `json:"succeeded"`
+	// Satisfied indicates if the release's ActualState satisfies its target state
+	Satisfied bool `json:"satisfied"`
 	// Reason indicates the reason for any related failures.
 	Reason string `json:"reason,omitempty"`
 	// Actual state of the Helm Custom Resources
@@ -282,38 +282,38 @@ func (s *ArmadaStatus) ComputeActualState(cond HelmResourceCondition, target Hel
 			// let's do not recompute the state.
 			if (s.ActualState == "") || (s.ActualState == StateUnknown) {
 				s.ActualState = StateInitialized
-				s.Succeeded = (s.ActualState == target)
+				s.Satisfied = (s.ActualState == target)
 				s.Reason = ""
 			}
 		} else if cond.Type == ConditionDeployed {
 			s.ActualState = StateDeployed
-			s.Succeeded = (s.ActualState == target)
+			s.Satisfied = (s.ActualState == target)
 			s.Reason = ""
 		} else if cond.Type == ConditionEnabled {
 			if (s.ActualState == "") || (s.ActualState == StateUnknown) {
 				s.ActualState = StatePendingInitialization
-				s.Succeeded = (s.ActualState == target)
+				s.Satisfied = (s.ActualState == target)
 				s.Reason = ""
 			}
 		} else if cond.Type == ConditionIrreconcilable {
 			s.ActualState = StateFailed
-			s.Succeeded = false
+			s.Satisfied = false
 			s.Reason = cond.Reason.String()
 		} else {
-			s.Succeeded = (s.ActualState == target)
+			s.Satisfied = (s.ActualState == target)
 			s.Reason = ""
 		}
 	} else {
 		if cond.Type == ConditionDeployed {
 			s.ActualState = StateUninstalled
-			s.Succeeded = (s.ActualState == target)
+			s.Satisfied = (s.ActualState == target)
 			s.Reason = ""
 		} else if cond.Type == ConditionEnabled {
 			s.ActualState = StateUnknown
-			s.Succeeded = true
+			s.Satisfied = true
 			s.Reason = "Disabled Resource is always successful"
 		} else {
-			s.Succeeded = (s.ActualState == target)
+			s.Satisfied = (s.ActualState == target)
 			s.Reason = ""
 		}
 	}

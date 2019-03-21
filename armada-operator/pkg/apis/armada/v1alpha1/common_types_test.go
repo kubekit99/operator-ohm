@@ -84,12 +84,12 @@ func TestComputeActualState(t *testing.T) {
 }
 
 // compareState is a convenience function to check all the results of ComputeActualState
-func compareState(t *testing.T, s *ArmadaStatus, expectedState HelmResourceState, expectedSucceeded bool, expectedReason string) {
+func compareState(t *testing.T, s *ArmadaStatus, expectedState HelmResourceState, expectedSatisfied bool, expectedReason string) {
 	if s.ActualState != expectedState {
 		t.Errorf("Expected 's.ActualState' to be %s, got %s", expectedState, s.ActualState)
 	}
-	if s.Succeeded != expectedSucceeded {
-		t.Errorf("Expected 's.Succeeded' to be %t, got %t", expectedSucceeded, s.Succeeded)
+	if s.Satisfied != expectedSatisfied {
+		t.Errorf("Expected 's.Satisfied' to be %t, got %t", expectedSatisfied, s.Satisfied)
 	}
 	if s.Reason != expectedReason {
 		t.Errorf("Expected 's.Reason' to be %s, got %s", expectedReason, s.Reason)
