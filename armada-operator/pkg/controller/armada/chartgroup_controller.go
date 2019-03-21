@@ -200,7 +200,11 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 
 	if err := r.ensureSynced(mgr, instance); err != nil {
-		return reconcile.Result{}, err
+		if (!instance.IsDeleted()) {
+			// TODO(jeb): Changed the behavior to stop only if we are not
+			// in a delete phase.
+			return reconcile.Result{}, err
+		} 
 	}
 
 	switch {
