@@ -200,7 +200,11 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 
 	if err := r.ensureSynced(mgr, instance); err != nil {
-		return reconcile.Result{}, err
+		if (!instance.IsDeleted()) {
+			// TODO(jeb): Changed the behavior to stop only if we are not
+			// in a delete phase.
+			return reconcile.Result{}, err
+		} 
 	}
 
 	switch {
@@ -208,11 +212,6 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		if shouldRequeue, err = r.deleteArmadaChartGroup(mgr, instance); shouldRequeue {
 			// Need to requeue because finalizer update does not change metadata.generation
 			return reconcile.Result{Requeue: true}, err
-		}
-		return reconcile.Result{}, err
-	case !mgr.IsInstalled():
-		if shouldRequeue, err = r.installArmadaChartGroup(mgr, instance); shouldRequeue {
-			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 		}
 		return reconcile.Result{}, err
 	case mgr.IsUpdateRequired():
@@ -384,45 +383,6 @@ func (r ChartGroupReconciler) deleteArmadaChartGroup(mgr armadaif.ArmadaChartGro
 	err = r.updateResource(instance)
 
 	// Need to requeue because finalizer update does not change metadata.generation
-	return true, err
-}
-
-// installArmadaChartGroup attempts to install instance. It returns true if the reconciler should be re-enqueueed
-func (r ChartGroupReconciler) installArmadaChartGroup(mgr armadaif.ArmadaChartGroupManager, instance *av1.ArmadaChartGroup) (bool, error) {
-	reclog := acglog.WithValues("namespace", instance.Namespace, "acg", instance.Name)
-	reclog.Info("Installing")
-
-	installedResource, err := mgr.InstallResource(context.TODO())
-	if err != nil {
-		hrc := av1.HelmResourceCondition{
-			Type:    av1.ConditionFailed,
-			Status:  av1.ConditionStatusTrue,
-			Reason:  av1.ReasonInstallError,
-			Message: err.Error(),
-		}
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		r.logAndRecordFailure(instance, &hrc, err)
-
-		_ = r.updateResourceStatus(instance)
-		return false, err
-	}
-	instance.Status.RemoveCondition(av1.ConditionFailed)
-
-	if err := r.watchArmadaCharts(instance, installedResource); err != nil {
-		return false, err
-	}
-
-	hrc := av1.HelmResourceCondition{
-		Type:         av1.ConditionDeployed,
-		Status:       av1.ConditionStatusTrue,
-		Reason:       av1.ReasonInstallSuccessful,
-		Message:      "",
-		ResourceName: installedResource.GetName(),
-	}
-	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-	r.logAndRecordSuccess(instance, &hrc)
-
-	err = r.updateResourceStatus(instance)
 	return true, err
 }
 

@@ -19,11 +19,16 @@ import (
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	armadaif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+var acglog = logf.Log.WithName("acg-manager")
 
 type chartgroupmanager struct {
 	kubeClient       client.Client
@@ -32,17 +37,12 @@ type chartgroupmanager struct {
 	spec             *av1.ArmadaChartGroupSpec
 	status           *av1.ArmadaChartGroupStatus
 	deployedResource *av1.ArmadaCharts
-	isInstalled      bool
 	isUpdateRequired bool
 }
 
 // ResourceName returns the name of the release.
 func (m chartgroupmanager) ResourceName() string {
 	return m.resourceName
-}
-
-func (m chartgroupmanager) IsInstalled() bool {
-	return m.isInstalled
 }
 
 func (m chartgroupmanager) IsUpdateRequired() bool {
@@ -60,7 +60,8 @@ func (m *chartgroupmanager) Sync(ctx context.Context) error {
 		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.Name, Namespace: existingResource.Namespace}, &existingResource)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
-				log.Error(err, "Can't not Sync ArmadaChart")
+				// Don't want to trace is the error is not a NotFound.
+				acglog.Error(err, "Can't not retrieve ArmadaChart")
 			}
 			errs = append(errs, err)
 		} else {
@@ -68,40 +69,22 @@ func (m *chartgroupmanager) Sync(ctx context.Context) error {
 		}
 	}
 
-	// Let's check if some of the ArmaChart are already present.
-	// If yes, let's consider the ArmadaChartGroup as installed and we will update it.
-	if len(m.deployedResource.List.Items) == 0 {
-		m.isInstalled = false
-		return nil
-	} else {
-		m.isInstalled = true
-	}
-
-	if len(targetResourceList.List.Items) != len(m.deployedResource.List.Items) {
-		m.isUpdateRequired = true
-	} else {
-		m.isUpdateRequired = false
-	}
-
-	return nil
-}
-
-// InstallResource currently create dummy Charts in the K8s cluster if those are not found.
-// This is probably not the behavior we want to maitain in the long run.
-func (m chartgroupmanager) InstallResource(ctx context.Context) (*av1.ArmadaCharts, error) {
-	errs := make([]error, 0)
-	toInstallList := m.expectedChartList()
-	for _, toInstall := range (*toInstallList).List.Items {
-		err := m.kubeClient.Create(context.TODO(), &toInstall)
-		if err != nil {
-			log.Error(err, "Can't not Create ArmadaChart")
-			errs = append(errs, err)
-		}
-	}
+	// The ChartGroup manager is not in charge of creating the ArmaChart since it
+	// only contains the name of the charts.
 	if len(errs) != 0 {
-		return nil, errs[0]
+		// Regardless if the error is NotFound or something else,
+		// we can't sync the ArmadaChartGroup with content of Kubernetes.
+		m.isUpdateRequired = false
+		return errs[0]
 	}
-	return toInstallList, nil
+
+	// TODO(jeb): We should check here the "admin_state" of the ArmadaChartGroup compared
+	// it to the "admin_state" of the ArmadaCharts
+	// TODO(jeb): We should check that the ArmadaChartGroup is still not the "owner" of
+	// chartgroups which are not listed in its Spec anymore. In such as case we should put
+	// the isUpdateRequired to true.
+	m.isUpdateRequired = false
+	return nil
 }
 
 // UpdateResource performs an update of an ArmadaChartGroup.
@@ -112,7 +95,7 @@ func (m chartgroupmanager) UpdateResource(ctx context.Context) (*av1.ArmadaChart
 	for _, toUpdate := range (*toUpdateList).List.Items {
 		err := m.kubeClient.Update(context.TODO(), &toUpdate)
 		if err != nil {
-			log.Error(err, "Can't not Update ArmadaChart")
+			acglog.Error(err, "Can't not Update ArmadaChart")
 			errs = append(errs, err)
 		}
 	}
@@ -130,8 +113,25 @@ func (m chartgroupmanager) UpdateResource(ctx context.Context) (*av1.ArmadaChart
 // ReconcileResource creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m chartgroupmanager) ReconcileResource(ctx context.Context) (*av1.ArmadaCharts, error) {
-	toReconcile := m.expectedChartList()
-	return toReconcile, nil
+
+	nextToEnable := m.deployedResource.GetNextToEnable()
+	if nextToEnable != nil {
+		found := nextToEnable.FromArmadaChart()
+		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, nextToEnable)
+		if err == nil {
+			nextToEnable.Spec.AdminState = av1.StateEnabled
+			if err2 := m.kubeClient.Update(context.TODO(), nextToEnable); err2 != nil {
+				acglog.Error(err, "Can't get enable of ArmadaChart", "name", found.GetName())
+				return m.deployedResource, err
+			}
+			acglog.Info("Enabled ArmadaChart", "name", found.GetName())
+		} else {
+			acglog.Error(err, "Can't enable ArmadaChart", "name", found.GetName())
+			return m.deployedResource, err
+		}
+	}
+
+	return m.deployedResource, nil
 }
 
 // UninstallResource currently delete Charts matching the ArmadaChartGroups.
@@ -142,7 +142,7 @@ func (m chartgroupmanager) UninstallResource(ctx context.Context) (*av1.ArmadaCh
 	for _, toDelete := range (*toDeleteList).List.Items {
 		err := m.kubeClient.Delete(context.TODO(), &toDelete)
 		if err != nil {
-			log.Error(err, "Can't not Delete ArmadaChart")
+			acglog.Error(err, "Can't not Delete ArmadaChart")
 			errs = append(errs, err)
 		}
 	}

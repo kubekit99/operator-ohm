@@ -206,9 +206,12 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 
 	if err := r.ensureSynced(mgr, instance); err != nil {
-		return reconcile.Result{}, err
+		if (!instance.IsDeleted()) {
+			// TODO(jeb): Changed the behavior to stop only if we are not
+			// in a delete phase.
+			return reconcile.Result{}, err
+		} 
 	}
-	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 
 	switch {
 	case instance.IsDeleted():
@@ -289,6 +292,7 @@ func (r ChartReconciler) ensureSynced(mgr services.HelmManager, instance *av1.Ar
 		_ = r.updateResourceStatus(instance)
 		return err
 	}
+	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 	return nil
 }
 

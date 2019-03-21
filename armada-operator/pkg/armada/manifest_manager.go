@@ -22,8 +22,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+var amflog = logf.Log.WithName("amf-manager")
 
 type manifestmanager struct {
 	kubeClient       client.Client
@@ -32,17 +36,12 @@ type manifestmanager struct {
 	spec             *av1.ArmadaManifestSpec
 	status           *av1.ArmadaManifestStatus
 	deployedResource *av1.ArmadaChartGroups
-	isInstalled      bool
 	isUpdateRequired bool
 }
 
 // ResourceName returns the name of the release.
 func (m manifestmanager) ResourceName() string {
 	return m.resourceName
-}
-
-func (m manifestmanager) IsInstalled() bool {
-	return m.isInstalled
 }
 
 func (m manifestmanager) IsUpdateRequired() bool {
@@ -59,7 +58,8 @@ func (m *manifestmanager) Sync(ctx context.Context) error {
 		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.Name, Namespace: existingResource.Namespace}, &existingResource)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
-				log.Error(err, "Can't not Sync ArmadaChartGroup")
+				// Don't want to trace is the error is not a NotFound.
+				amflog.Error(err, "Can't not retrieve ArmadaChartGroup")
 			}
 			errs = append(errs, err)
 		} else {
@@ -67,41 +67,23 @@ func (m *manifestmanager) Sync(ctx context.Context) error {
 		}
 	}
 
-	// Let's check if some of the ArmaChartGroup are already present.
-	// If yes, let's consider the ArmadaManifest as installed and we will update it.
-	if len(m.deployedResource.List.Items) == 0 {
-		m.isInstalled = false
-		return nil
-	} else {
-		m.isInstalled = true
-	}
-
-	if len(targetResourceList.List.Items) != len(m.deployedResource.List.Items) {
-		m.isUpdateRequired = true
-	} else {
+	// The ChartGroup manager is not in charge of creating the ArmaChart since it
+	// only contains the name of the charts.
+	if len(errs) != 0 {
+		// Regardless if the error is NotFound or something else,
+		// we can't sync the ArmadaChartGroup with content of Kubernetes.
 		m.isUpdateRequired = false
+		return errs[0]
 	}
 
+	// TODO(jeb): We should check here the "admin_state" of the ArmadaManifest compared
+	// it to the "admin_state" of the ArmadaChartGroups
+	// TODO(jeb): We should check that the ArmadaManifest is still not the "owner" of
+	// charts which are not listed in its Spec anymore. In such as case we should put
+	// the isUpdateRequired to true.
+	m.isUpdateRequired = false
 	return nil
 
-}
-
-// InstallResource currently create dummy ChartGroups in the K8s cluster if those are not found.
-// This is probably not the behavior we want to maitain in the long run.
-func (m manifestmanager) InstallResource(ctx context.Context) (*av1.ArmadaChartGroups, error) {
-	errs := make([]error, 0)
-	toInstallList := m.expectedChartGroupList()
-	for _, toInstall := range (*toInstallList).List.Items {
-		err := m.kubeClient.Create(context.TODO(), &toInstall)
-		if err != nil {
-			log.Error(err, "Can't not Create ArmadaChartGroup")
-			errs = append(errs, err)
-		}
-	}
-	if len(errs) != 0 {
-		return nil, errs[0]
-	}
-	return toInstallList, nil
 }
 
 // UpdateResource performs an update of an ArmadaManifest.
@@ -112,7 +94,7 @@ func (m manifestmanager) UpdateResource(ctx context.Context) (*av1.ArmadaChartGr
 	for _, toUpdate := range (*toUpdateList).List.Items {
 		err := m.kubeClient.Update(context.TODO(), &toUpdate)
 		if err != nil {
-			log.Error(err, "Can't not Update ArmadaChartGroup")
+			amflog.Error(err, "Can't not Update ArmadaChartGroup")
 			errs = append(errs, err)
 		}
 	}
@@ -130,8 +112,25 @@ func (m manifestmanager) UpdateResource(ctx context.Context) (*av1.ArmadaChartGr
 // ReconcileResource creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m manifestmanager) ReconcileResource(ctx context.Context) (*av1.ArmadaChartGroups, error) {
-	toReconcile := m.expectedChartGroupList()
-	return toReconcile, nil
+
+	nextToEnable := m.deployedResource.GetNextToEnable()
+	if nextToEnable != nil {
+		found := nextToEnable.FromArmadaChartGroup()
+		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, nextToEnable)
+		if err == nil {
+			nextToEnable.Spec.AdminState = av1.StateEnabled
+			if err2 := m.kubeClient.Update(context.TODO(), nextToEnable); err2 != nil {
+				acglog.Error(err, "Can't get enable of ArmadaChartGroup", "name", found.GetName())
+				return m.deployedResource, err
+			}
+			acglog.Info("Enabled ArmadaChartGroup", "name", found.GetName())
+		} else {
+			acglog.Error(err, "Can't enable ArmadaChartGroup", "name", found.GetName())
+			return m.deployedResource, err
+		}
+	}
+
+	return m.deployedResource, nil
 }
 
 // UninstallResource currently delete ChartGroups matching the manifest.
@@ -142,7 +141,7 @@ func (m manifestmanager) UninstallResource(ctx context.Context) (*av1.ArmadaChar
 	for _, toDelete := range (*toDeleteList).List.Items {
 		err := m.kubeClient.Delete(context.TODO(), &toDelete)
 		if err != nil {
-			log.Error(err, "Can't not Delete ArmadaChartGroup")
+			amflog.Error(err, "Can't not Delete ArmadaChartGroup")
 			errs = append(errs, err)
 		}
 	}

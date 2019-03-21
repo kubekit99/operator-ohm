@@ -231,6 +231,21 @@ func (obj *ArmadaCharts) GetName() string {
 	return obj.Name
 }
 
+// Loop through the Chartand return the first disabled one
+func (obj *ArmadaCharts) GetNextToEnable() *ArmadaChart {
+	for _, act := range obj.List.Items {
+		if act.IsEnabled() && !act.Status.Succeeded {
+			// The ChartGroup has been enabled but is still deploying
+			return nil
+		}
+		if act.IsDisabled() {
+			// The ChartGroup has not been enabled yet
+			return &act
+		}
+	}
+	return nil
+}
+
 // ======= Schema Registration =======
 func init() {
 	SchemeBuilder.Register(&ArmadaChart{}, &ArmadaChartList{})
