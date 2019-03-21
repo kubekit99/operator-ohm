@@ -6,7 +6,11 @@ metadata:
 spec:
   chart_name: memcached
   release: memcached
-  namespace: default
+  namespace: openstack
+  wait:
+    timeout: 100
+    labels:
+      release_group: armada-memcached
   install:
     no_hooks: false
   upgrade:
@@ -16,6 +20,6 @@ spec:
     type: local
     location: /opt/armada/helm-charts/memcached
     subpath: .
-    reference: 87aad18f7d8c6a1a08f3adc8866efd33bee6aa52
-  dependencies: []
-  target_state: initialized
+    reference: master
+  dependencies:
+    - helm-toolkit

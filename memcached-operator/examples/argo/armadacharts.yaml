@@ -2,15 +2,15 @@
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChart
 metadata:
-  name: mariadb
+  name: memcached
 spec:
-  chart_name: mariadb
-  release: mariadb
+  chart_name: memcached
+  release: memcached
   namespace: openstack
   wait:
-    timeout: 3600
+    timeout: 100
     labels:
-      release_group: armada-mariadb
+      release_group: armada-memcached
   install:
     no_hooks: false
   upgrade:
@@ -18,8 +18,10 @@ spec:
   values: {}
   source:
     type: local
-    location: /opt/armada/helm-charts/mariadb
+    location: /opt/armada/helm-charts/memcached
     subpath: .
     reference: master
   dependencies:
     - helm-toolkit
+  admin_state: disabled
+  target_state: deployed

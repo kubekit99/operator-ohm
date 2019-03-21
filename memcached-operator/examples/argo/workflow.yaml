@@ -1,0 +1,43 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: memcached-manifest
+spec:
+  entrypoint: memcached-manifest
+  serviceAccountName: armada-argo-sa
+  templates:
+  - name: memcached-manifest
+    dag:
+      tasks:
+      - name: memcached-chartgroup
+        template: memcached-chartgroup-template
+
+  - name: memcached-chartgroup-template
+    steps:
+    - - name: enable-memcached
+        template: enable-memcached-template
+    - - name: memcached-ready
+        template: memcached-ready-template
+
+  - name: enable-memcached-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: memcached
+        spec:
+          admin_state: enabled
+
+  - name: memcached-ready-template
+    resource:
+      action: get
+      successCondition: status.satisfied == true
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: memcached
