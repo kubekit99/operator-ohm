@@ -234,7 +234,7 @@ func (obj *ArmadaCharts) GetName() string {
 // Loop through the Chartand return the first disabled one
 func (obj *ArmadaCharts) GetNextToEnable() *ArmadaChart {
 	for _, act := range obj.List.Items {
-		if act.IsEnabled() && !act.Status.Succeeded {
+		if act.IsEnabled() && !act.Status.Satisfied {
 			// The ChartGroup has been enabled but is still deploying
 			return nil
 		}
