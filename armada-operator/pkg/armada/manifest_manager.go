@@ -109,27 +109,32 @@ func (m manifestmanager) UpdateResource(ctx context.Context) (*av1.ArmadaChartGr
 	return m.deployedResource, toUpdateList, nil
 }
 
-// ReconcileResource creates or patches resources as necessary to match the
-// deployed release's manifest.
+// ReconcileResource enables the ArmadaChartGroups which are listed in its list and not enabled yet
 func (m manifestmanager) ReconcileResource(ctx context.Context) (*av1.ArmadaChartGroups, error) {
+	errs := make([]error, 0)
 
-	nextToEnable := m.deployedResource.GetNextToEnable()
-	if nextToEnable != nil {
+	// The main goal of the ArmadaManifest is to group together all the ChartGroups that need to
+	// be deployed. There is not concept of "sequencing/order" here.
+	chartGroupsToEnable := m.deployedResource.GetAllDisabledChartGroups()
+	for _, nextToEnable := range (*chartGroupsToEnable).List.Items {
 		found := nextToEnable.FromArmadaChartGroup()
-		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, nextToEnable)
+		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, &nextToEnable)
 		if err == nil {
 			nextToEnable.Spec.AdminState = av1.StateEnabled
-			if err2 := m.kubeClient.Update(context.TODO(), nextToEnable); err2 != nil {
+			if err2 := m.kubeClient.Update(context.TODO(), &nextToEnable); err2 != nil {
 				acglog.Error(err, "Can't get enable of ArmadaChartGroup", "name", found.GetName())
-				return m.deployedResource, err
+				errs = append(errs, err)
 			}
 			acglog.Info("Enabled ArmadaChartGroup", "name", found.GetName())
 		} else {
 			acglog.Error(err, "Can't enable ArmadaChartGroup", "name", found.GetName())
-			return m.deployedResource, err
+			errs = append(errs, err)
 		}
 	}
 
+	if len(errs) != 0 {
+		return m.deployedResource, errs[0]
+	}
 	return m.deployedResource, nil
 }
 
@@ -157,6 +162,8 @@ func (m manifestmanager) UninstallResource(ctx context.Context) (*av1.ArmadaChar
 }
 
 // expectedChartGroupList returns a dummy list of ArmadaChartGroup the same name/namespace as the cr
+// TODO(jeb): We should be able to delete this function and use the GetMockChartGroups
+// method of the ArmadaManifest.
 func (m manifestmanager) expectedChartGroupList() *av1.ArmadaChartGroups {
 	labels := map[string]string{
 		"app": m.resourceName,

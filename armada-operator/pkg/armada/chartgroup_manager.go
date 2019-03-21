@@ -113,24 +113,42 @@ func (m chartgroupmanager) UpdateResource(ctx context.Context) (*av1.ArmadaChart
 // ReconcileResource creates or patches resources as necessary to match the
 // deployed release's manifest.
 func (m chartgroupmanager) ReconcileResource(ctx context.Context) (*av1.ArmadaCharts, error) {
+	errs := make([]error, 0)
 
-	nextToEnable := m.deployedResource.GetNextToEnable()
-	if nextToEnable != nil {
+	var chartsToEnable *av1.ArmadaCharts
+	if m.spec.Sequenced {
+		// If Sequenced is enabled, let's compute the next one to enable.
+		// It may happen that the current chart is still deploying, in which case
+		// nextToEnable will be nil
+		nextToEnable := m.deployedResource.GetNextToEnable()
+		if nextToEnable != nil {
+			chartsToEnable = av1.NewArmadaCharts(m.resourceName)
+			chartsToEnable.List.Items = append(chartsToEnable.List.Items, *nextToEnable)
+		}
+	} else {
+		// If Sequenced is false, all the Charts in disabled state should be enabled.
+		chartsToEnable = m.deployedResource.GetAllDisabledCharts()
+	}
+
+	for _, nextToEnable := range (*chartsToEnable).List.Items {
 		found := nextToEnable.FromArmadaChart()
-		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, nextToEnable)
+		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, &nextToEnable)
 		if err == nil {
 			nextToEnable.Spec.AdminState = av1.StateEnabled
-			if err2 := m.kubeClient.Update(context.TODO(), nextToEnable); err2 != nil {
+			if err2 := m.kubeClient.Update(context.TODO(), &nextToEnable); err2 != nil {
 				acglog.Error(err, "Can't get enable of ArmadaChart", "name", found.GetName())
-				return m.deployedResource, err
+				errs = append(errs, err)
 			}
 			acglog.Info("Enabled ArmadaChart", "name", found.GetName())
 		} else {
 			acglog.Error(err, "Can't enable ArmadaChart", "name", found.GetName())
-			return m.deployedResource, err
+			errs = append(errs, err)
 		}
 	}
 
+	if len(errs) != 0 {
+		return m.deployedResource, errs[0]
+	}
 	return m.deployedResource, nil
 }
 
@@ -158,6 +176,8 @@ func (m chartgroupmanager) UninstallResource(ctx context.Context) (*av1.ArmadaCh
 }
 
 // expectedChartList returns a dummy ArmadaChart the same name/namespace as the cr
+// TODO(jeb): We should be able to delete this function and use the GetMockCharts
+// method of the ArmadaChartGroup.
 func (m chartgroupmanager) expectedChartList() *av1.ArmadaCharts {
 	labels := map[string]string{
 		"app": m.resourceName,
