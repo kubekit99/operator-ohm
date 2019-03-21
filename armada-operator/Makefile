@@ -79,6 +79,9 @@ docker-push-v3:
 install: install-v2
 
 purge: setup
+	kubectl delete act --all
+	kubectl delete acg --all
+	kubectl delete amf --all
 	helm delete --purge armada-operator
 
 install-v2: docker-build-v2
