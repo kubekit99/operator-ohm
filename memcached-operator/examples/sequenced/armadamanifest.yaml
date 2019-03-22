@@ -1,0 +1,23 @@
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaChartGroup
+metadata:
+  name: memcached-group
+spec:
+  description: Deploys memcached Chart
+  sequenced: True
+  chart_group:
+    - memcached
+  admin_state: disabled
+  target_state: deployed
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaManifest
+metadata:
+  name: memcached-manifest
+spec:
+  release_prefix: armada
+  chart_groups:
+    - memcached-group
+  admin_state: enabled
+  target_state: deployed

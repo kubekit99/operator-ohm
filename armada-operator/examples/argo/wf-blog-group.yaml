@@ -4,7 +4,7 @@ metadata:
   name: wf-blog-group
 spec:
   entrypoint: wf-blog-group
-  serviceAccountName: wf-chartgroup-sa
+  serviceAccountName: armada-argo-sa
   templates:
   - name: wf-blog-group
     steps:

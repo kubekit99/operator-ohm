@@ -42,6 +42,7 @@ install: docker-build
 	kubectl apply -f ../armada-operator/chart/templates/role_binding.yaml
 	kubectl apply -f ../armada-operator/chart/templates/role.yaml
 	kubectl apply -f ../armada-operator/chart/templates/service_account.yaml
+	kubectl apply -f ../armada-operator/chart/templates/argo_armada_role.yaml
 	kubectl create -f deploy/operator.yaml
 
 purge: setup
@@ -52,6 +53,7 @@ purge: setup
 	kubectl delete -f ../armada-operator/chart/templates/role_binding.yaml
 	kubectl delete -f ../armada-operator/chart/templates/role.yaml
 	kubectl delete -f ../armada-operator/chart/templates/service_account.yaml
+	kubectl delete -f ../armada-operator/chart/templates/argo_armada_role.yaml
 
 installmanifest:
 	kubectl label nodes airship openstack-control-plane=enabled --overwrite

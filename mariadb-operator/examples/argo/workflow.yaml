@@ -1,0 +1,43 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: mariadb-manifest
+spec:
+  entrypoint: mariadb-manifest
+  serviceAccountName: armada-argo-sa
+  templates:
+  - name: mariadb-manifest
+    dag:
+      tasks:
+      - name: mariadb-chartgroup
+        template: mariadb-chartgroup-template
+
+  - name: mariadb-chartgroup-template
+    steps:
+    - - name: enable-mariadb
+        template: enable-mariadb-template
+    - - name: mariadb-ready
+        template: mariadb-ready-template
+
+  - name: enable-mariadb-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: mariadb
+        spec:
+          admin_state: enabled
+
+  - name: mariadb-ready-template
+    resource:
+      action: get
+      successCondition: status.satisfied == true
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: mariadb

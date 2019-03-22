@@ -1,0 +1,23 @@
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaChartGroup
+metadata:
+  name: rabbitmq-group
+spec:
+  description: Deploys rabbitmq Chart
+  sequenced: True
+  chart_group:
+    - rabbitmq
+  admin_state: disabled
+  target_state: deployed
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaManifest
+metadata:
+  name: rabbitmq-manifest
+spec:
+  release_prefix: armada
+  chart_groups:
+    - rabbitmq-group
+  admin_state: enabled
+  target_state: deployed

@@ -1,0 +1,23 @@
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaChartGroup
+metadata:
+  name: mariadb-group
+spec:
+  description: Deploys mariadb Chart
+  sequenced: True
+  chart_group:
+    - mariadb
+  admin_state: disabled
+  target_state: deployed
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaManifest
+metadata:
+  name: mariadb-manifest
+spec:
+  release_prefix: armada
+  chart_groups:
+    - mariadb-group
+  admin_state: enabled
+  target_state: deployed

@@ -1,0 +1,43 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: rabbitmq-manifest
+spec:
+  entrypoint: rabbitmq-manifest
+  serviceAccountName: armada-argo-sa
+  templates:
+  - name: rabbitmq-manifest
+    dag:
+      tasks:
+      - name: rabbitmq-chartgroup
+        template: rabbitmq-chartgroup-template
+
+  - name: rabbitmq-chartgroup-template
+    steps:
+    - - name: enable-rabbitmq
+        template: enable-rabbitmq-template
+    - - name: rabbitmq-ready
+        template: rabbitmq-ready-template
+
+  - name: enable-rabbitmq-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: rabbitmq
+        spec:
+          admin_state: enabled
+
+  - name: rabbitmq-ready-template
+    resource:
+      action: get
+      successCondition: status.satisfied == true
+      manifest: |
+        apiVersion: armada.airshipit.org/v1alpha1
+        kind: ArmadaChart
+        metadata:
+          name: rabbitmq

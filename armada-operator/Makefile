@@ -98,6 +98,7 @@ install-kubectl: docker-build
 	kubectl apply -f ./chart/templates/role_binding.yaml
 	kubectl apply -f ./chart/templates/role.yaml
 	kubectl apply -f ./chart/templates/service_account.yaml
+	kubectl apply -f ./chart/templates/argo_armada_role.yaml
 	kubectl create -f deploy/operator.yaml
 
 purge-kubectl: setup
@@ -108,3 +109,4 @@ purge-kubectl: setup
 	kubectl delete -f ./chart/templates/role_binding.yaml
 	kubectl delete -f ./chart/templates/role.yaml
 	kubectl delete -f ./chart/templates/service_account.yaml
+	kubectl delete -f ./chart/templates/argo_armada_role.yaml
