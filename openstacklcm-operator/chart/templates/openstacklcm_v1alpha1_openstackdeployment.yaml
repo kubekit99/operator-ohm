@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: openstackupgrades.openstackhelm.openstack.org
+  name: openstackdeployments.openstacklcm.airshipit.org
 spec:
-  group: openstackhelm.openstack.org
+  group: openstacklcm.airshipit.org
   names:
-    kind: OpenstackUpgrade
-    plural: openstackupgrades
+    kind: OpenstackDeployment
+    plural: openstackdeployments
   scope: Namespaced
   validation:
     openAPIV3Schema:

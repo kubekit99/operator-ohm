@@ -174,7 +174,107 @@ This example assumes that the argo controller has been installed. When the "argo
 CR is created, the "argo controller" is waked up and it orchestrates the enablement of the ArmadaChart
 according to the worflow.
 
-- WIP
+Note: You need to have argo installed in your cluster.
+
+```bash
+kubectl apply -f example/argo
+
+armadachart.armada.airshipit.org/blog-1 created
+armadachart.armada.airshipit.org/blog-2 created
+workflow.argoproj.io/wf-blog-group created
+```
+
+The first ArmadaChart is installed:
+
+```bash
+kubectl get all
+
+pod/armada-operator-cbbc7d7f7-zxj5n     1/1     Running             0          60s
+pod/blog-1-testchart-5dd8c474f4-26574   0/1     ContainerCreating   0          6s
+pod/wf-blog-group-1193326311            0/1     Completed           0          8s
+pod/wf-blog-group-2026876860            0/1     ContainerCreating   0          1s
+pod/wf-blog-group-2432013970            0/1     Completed           0          4s
+
+NAME                       TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+service/armada-operator    ClusterIP   10.98.2.253    <none>        8383/TCP   57s
+service/blog-1-testchart   ClusterIP   10.104.240.7   <none>        80/TCP     6s
+service/kubernetes         ClusterIP   10.96.0.1      <none>        443/TCP    7m43s
+
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/armada-operator    1/1     1            1           60s
+deployment.apps/blog-1-testchart   0/1     1            0           6s
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/armada-operator-cbbc7d7f7     1         1         1       60s
+replicaset.apps/blog-1-testchart-5dd8c474f4   1         1         0       6s
+```
+
+Later both charts have been installed
+
+```bash
+NAME                                    READY   STATUS      RESTARTS   AGE
+pod/armada-operator-cbbc7d7f7-zxj5n     1/1     Running     0          44m
+pod/blog-1-testchart-5dd8c474f4-26574   1/1     Running     0          43m
+pod/blog-2-testchart-57f86dd9c5-xmhd7   1/1     Running     0          43m
+pod/wf-blog-group-1193326311            0/1     Completed   0          43m
+pod/wf-blog-group-2026876860            0/1     Completed   0          43m
+pod/wf-blog-group-2234690393            0/1     Completed   0          43m
+pod/wf-blog-group-2432013970            0/1     Completed   0          43m
+
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+service/armada-operator    ClusterIP   10.98.2.253      <none>        8383/TCP   44m
+service/blog-1-testchart   ClusterIP   10.104.240.7     <none>        80/TCP     43m
+service/blog-2-testchart   ClusterIP   10.110.160.242   <none>        80/TCP     43m
+service/kubernetes         ClusterIP   10.96.0.1        <none>        443/TCP    51m
+
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/armada-operator    1/1     1            1           44m
+deployment.apps/blog-1-testchart   1/1     1            1           43m
+deployment.apps/blog-2-testchart   1/1     1            1           43m
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/armada-operator-cbbc7d7f7     1         1         1       44m
+replicaset.apps/blog-1-testchart-5dd8c474f4   1         1         1       43m
+replicaset.apps/blog-2-testchart-57f86dd9c5   1         1         1       43m
+```
+
+argo is tracing the steps take to sequence the deployment of the charts:
+
+```bash
+argo get wf-blog-group
+
+Name:                wf-blog-group
+Namespace:           default
+ServiceAccount:      armada-argo-sa
+Status:              Succeeded
+Created:             Fri Mar 22 10:27:28 -0500 (26 seconds ago)
+Started:             Fri Mar 22 10:27:28 -0500 (26 seconds ago)
+Finished:            Fri Mar 22 10:27:42 -0500 (12 seconds ago)
+Duration:            14 seconds
+
+STEP                  PODNAME                   DURATION  MESSAGE
+ ✔ wf-blog-group
+ ├---✔ enable-blog-1  wf-blog-group-1193326311  2s
+ ├---✔ blog-1-ready   wf-blog-group-2432013970  3s
+ ├---✔ enable-blog-2  wf-blog-group-2026876860  3s
+ └---✔ blog-2-ready   wf-blog-group-2234690393  3s
+ ```
+
+We can check the state of the ArmadaChart
+
+```bash
+kubectl get act
+
+NAME     STATE      TARGET STATE   SATISFIED
+blog-1   deployed   deployed       true
+blog-2   deployed   deployed       true
+```
+
+Run the cleanup
+```bash
+
+kubectl delete -f examples/argo
+```
 
 ## examples/sequenced
 
@@ -184,7 +284,8 @@ When the "ArmadaChartGroup" CR is created, the "chartgroup controller" receives 
 orchestrate the order of deployment/enablement of the ArmadaChart. The ArmadaChartGroup also
 becomes owner of the ArmadaChart. 
 
-- WIP
+This is basically the same sequencing that above except that it is implemented using an
+ArmadaChartGroup and an ArmadaManifest
 
 ## examples/backup
 

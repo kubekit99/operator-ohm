@@ -582,3 +582,308 @@ NAME                              DATA   AGE
 mariadb-mariadb-mariadb-ingress   0      12m
 mariadb-mariadb-state             5      12m
 ```
+
+# Deployment using argo workflow
+
+## Install the keystone operator
+
+Ensure that argo is installed as well as helm
+
+```bash
+helm ls
+
+NAME    REVISION        UPDATED                         STATUS          CHART           APP VERSION     NAMESPACE
+argo    1               Fri Mar 22 10:25:22 2019        DEPLOYED        argo-0.3.1                      argo
+```
+
+```bash
+make install
+
+docker tag kubekit99/keystone-operator:poc kubekit99/keystone-operator:latest
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
+customresourcedefinition.apiextensions.k8s.io/armadachartgroups.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
+customresourcedefinition.apiextensions.k8s.io/armadacharts.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
+customresourcedefinition.apiextensions.k8s.io/armadamanifests.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/role_binding.yaml
+rolebinding.rbac.authorization.k8s.io/armada-operator created
+kubectl apply -f ../armada-operator/chart/templates/role.yaml
+role.rbac.authorization.k8s.io/armada-operator created
+kubectl apply -f ../armada-operator/chart/templates/service_account.yaml
+serviceaccount/armada-operator created
+kubectl apply -f ../armada-operator/chart/templates/argo_armada_role.yaml
+serviceaccount/armada-argo-sa created
+role.rbac.authorization.k8s.io/armada-argo-role created
+rolebinding.rbac.authorization.k8s.io/armada-argo-rolebinding created
+kubectl create -f deploy/operator.yaml
+deployment.apps/keystone-operator created
+```
+
+## Create the ArmadaChart and ArgoWorkflow in K8s
+```bash
+kubectl apply -f examples/argo/
+
+armadachart.armada.airshipit.org/mariadb created
+armadachart.armada.airshipit.org/memcached created
+armadachart.armada.airshipit.org/rabbitmq created
+armadachart.armada.airshipit.org/keystone created
+workflow.argoproj.io/armada-manifest created
+```
+
+## Check the sequencement of the deployment
+
+```bash
+argo get armada-manifest
+
+Name:                armada-manifest
+Namespace:           default
+ServiceAccount:      armada-argo-sa
+Status:              Running
+Created:             Fri Mar 22 11:23:24 -0500 (20 seconds ago)
+Started:             Fri Mar 22 11:23:24 -0500 (20 seconds ago)
+Duration:            20 seconds
+
+STEP                          PODNAME                     DURATION  MESSAGE
+ ● armada-manifest
+ ├-● keystone-infra-services
+ | ├---✔ enable-mariadb       armada-manifest-842022813   2s
+ | ├---✔ mariadb-ready        armada-manifest-361794910   4s
+ | └---◷ enable-memcached     armada-manifest-4290341812  3s        ContainerCreating
+ └-✔ openstack-keystone
+   ├---✔ enable-keystone      armada-manifest-2789817682  3s
+   └---✔ keystone-ready       armada-manifest-587324697   5s
+```
+
+```bash
+argo get armada-manifest
+Name:                armada-manifest
+Namespace:           default
+ServiceAccount:      armada-argo-sa
+Status:              Running
+Created:             Fri Mar 22 11:23:24 -0500 (22 seconds ago)
+Started:             Fri Mar 22 11:23:24 -0500 (22 seconds ago)
+Duration:            22 seconds
+
+STEP                          PODNAME                     DURATION  MESSAGE
+ ● armada-manifest
+ ├-● keystone-infra-services
+ | ├---✔ enable-mariadb       armada-manifest-842022813   2s
+ | ├---✔ mariadb-ready        armada-manifest-361794910   4s
+ | ├---✔ enable-memcached     armada-manifest-4290341812  3s
+ | └---◷ memcached-ready      armada-manifest-13034731    0s
+ └-✔ openstack-keystone
+   ├---✔ enable-keystone      armada-manifest-2789817682  3s
+   └---✔ keystone-ready       armada-manifest-587324697   5s
+```
+
+```bash
+argo get armada-manifest
+Name:                armada-manifest
+Namespace:           default
+ServiceAccount:      armada-argo-sa
+Status:              Running
+Created:             Fri Mar 22 11:23:24 -0500 (25 seconds ago)
+Started:             Fri Mar 22 11:23:24 -0500 (25 seconds ago)
+Duration:            25 seconds
+
+STEP                          PODNAME                     DURATION  MESSAGE
+ ● armada-manifest
+ ├-● keystone-infra-services
+ | ├---✔ enable-mariadb       armada-manifest-842022813   2s
+ | ├---✔ mariadb-ready        armada-manifest-361794910   4s
+ | ├---✔ enable-memcached     armada-manifest-4290341812  3s
+ | └---● memcached-ready      armada-manifest-13034731    3s
+ └-✔ openstack-keystone
+   ├---✔ enable-keystone      armada-manifest-2789817682  3s
+   └---✔ keystone-ready       armada-manifest-587324697   5s
+```
+
+```bash
+argo get armada-manifest
+Name:                armada-manifest
+Namespace:           default
+ServiceAccount:      armada-argo-sa
+Status:              Running
+Created:             Fri Mar 22 11:23:24 -0500 (33 seconds ago)
+Started:             Fri Mar 22 11:23:24 -0500 (33 seconds ago)
+Duration:            33 seconds
+
+STEP                          PODNAME                     DURATION  MESSAGE
+ ● armada-manifest
+ ├-● keystone-infra-services
+ | ├---✔ enable-mariadb       armada-manifest-842022813   2s
+ | ├---✔ mariadb-ready        armada-manifest-361794910   4s
+ | ├---✔ enable-memcached     armada-manifest-4290341812  3s
+ | ├---✔ memcached-ready      armada-manifest-13034731    4s
+ | ├---✔ enable-rabbitmq      armada-manifest-1873087745  3s
+ | └---● rabbitmq-ready       armada-manifest-3014489540  3s
+ └-✔ openstack-keystone
+   ├---✔ enable-keystone      armada-manifest-2789817682  3s
+   └---✔ keystone-ready       armada-manifest-587324697   5s
+```
+
+```bash
+argo get armada-manifest
+
+Name:                armada-manifest
+Namespace:           default
+ServiceAccount:      armada-argo-sa
+Status:              Succeeded
+Created:             Fri Mar 22 11:23:24 -0500 (35 seconds ago)
+Started:             Fri Mar 22 11:23:24 -0500 (35 seconds ago)
+Finished:            Fri Mar 22 11:23:58 -0500 (1 second ago)
+Duration:            34 seconds
+
+STEP                          PODNAME                     DURATION  MESSAGE
+ ✔ armada-manifest
+ ├-✔ keystone-infra-services
+ | ├---✔ enable-mariadb       armada-manifest-842022813   2s
+ | ├---✔ mariadb-ready        armada-manifest-361794910   4s
+ | ├---✔ enable-memcached     armada-manifest-4290341812  3s
+ | ├---✔ memcached-ready      armada-manifest-13034731    4s
+ | ├---✔ enable-rabbitmq      armada-manifest-1873087745  3s
+ | └---✔ rabbitmq-ready       armada-manifest-3014489540  3s
+ └-✔ openstack-keystone
+   ├---✔ enable-keystone      armada-manifest-2789817682  3s
+   └---✔ keystone-ready       armada-manifest-587324697   5s
+```
+
+## Check the state of the keystone service
+
+Check that keystone is now up and running
+
+```bash
+NAME                                              READY   STATUS      RESTARTS   AGE
+pod/armada-manifest-13034731                      0/1     Completed   0          3m27s
+pod/armada-manifest-1873087745                    0/1     Completed   0          3m23s
+pod/armada-manifest-2789817682                    0/1     Completed   0          3m49s
+pod/armada-manifest-3014489540                    0/1     Completed   0          3m19s
+pod/armada-manifest-361794910                     0/1     Completed   0          3m46s
+pod/armada-manifest-4290341812                    0/1     Completed   0          3m32s
+pod/armada-manifest-587324697                     0/1     Completed   0          3m44s
+pod/armada-manifest-842022813                     0/1     Completed   0          3m49s
+pod/keystone-api-5f6bb99ccc-kzs58                 1/1     Running     0          3m44s
+pod/keystone-bootstrap-8dk7l                      0/1     Completed   0          3m44s
+pod/keystone-credential-setup-8gxkr               0/1     Completed   0          3m44s
+pod/keystone-db-init-sksvx                        0/1     Completed   0          3m44s
+pod/keystone-db-sync-cddcd                        0/1     Completed   0          3m44s
+pod/keystone-domain-manage-7njql                  0/1     Completed   0          3m44s
+pod/keystone-fernet-setup-6ltxd                   0/1     Completed   0          3m44s
+pod/keystone-operator-c547fdc5-rhslg              1/1     Running     0          9m14s
+pod/keystone-rabbit-init-6r4tf                    0/1     Completed   0          3m44s
+pod/mariadb-ingress-75cb44bc8c-6cx7v              1/1     Running     0          3m46s
+pod/mariadb-ingress-error-pages-8f44b444b-npk44   1/1     Running     0          3m46s
+pod/mariadb-server-0                              1/1     Running     0          3m46s
+pod/memcached-memcached-5bc79f976c-gklsw          1/1     Running     0          3m27s
+pod/rabbitmq-rabbitmq-0                           1/1     Running     0          3m17s
+
+NAME                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                        AGE
+service/keystone                      ClusterIP   10.104.46.98     <none>        80/TCP,443/TCP                 3m44s
+service/keystone-api                  ClusterIP   10.97.85.189     <none>        5000/TCP                       3m44s
+service/keystone-operator             ClusterIP   10.110.250.132   <none>        8383/TCP                       9m12s
+service/kubernetes                    ClusterIP   10.96.0.1        <none>        443/TCP                        67m
+service/mariadb                       ClusterIP   10.103.9.46      <none>        3306/TCP                       3m46s
+service/mariadb-discovery             ClusterIP   None             <none>        3306/TCP,4567/TCP              3m46s
+service/mariadb-ingress-error-pages   ClusterIP   None             <none>        80/TCP                         3m46s
+service/mariadb-server                ClusterIP   10.110.232.126   <none>        3306/TCP                       3m46s
+service/memcached                     ClusterIP   10.109.129.158   <none>        11211/TCP                      3m27s
+service/rabbitmq                      ClusterIP   10.107.124.53    <none>        5672/TCP,25672/TCP,15672/TCP   3m17s
+service/rabbitmq-dsv-7b1733           ClusterIP   None             <none>        5672/TCP,25672/TCP,15672/TCP   3m17s
+service/rabbitmq-mgr-7b1733           ClusterIP   10.98.214.134    <none>        80/TCP,443/TCP                 3m17s
+
+NAME                                          READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/keystone-api                  1/1     1            1           3m44s
+deployment.apps/keystone-operator             1/1     1            1           9m14s
+deployment.apps/mariadb-ingress               1/1     1            1           3m46s
+deployment.apps/mariadb-ingress-error-pages   1/1     1            1           3m46s
+deployment.apps/memcached-memcached           1/1     1            1           3m27s
+
+NAME                                                    DESIRED   CURRENT   READY   AGE
+replicaset.apps/keystone-api-5f6bb99ccc                 1         1         1       3m44s
+replicaset.apps/keystone-operator-c547fdc5              1         1         1       9m14s
+replicaset.apps/mariadb-ingress-75cb44bc8c              1         1         1       3m46s
+replicaset.apps/mariadb-ingress-error-pages-8f44b444b   1         1         1       3m46s
+replicaset.apps/memcached-memcached-5bc79f976c          1         1         1       3m27s
+
+NAME                                 READY   AGE
+statefulset.apps/mariadb-server      1/1     3m46s
+statefulset.apps/rabbitmq-rabbitmq   1/1     3m17s
+
+NAME                                  COMPLETIONS   DURATION   AGE
+job.batch/keystone-bootstrap          1/1           3m14s      3m44s
+job.batch/keystone-credential-setup   1/1           15s        3m44s
+job.batch/keystone-db-init            1/1           100s       3m44s
+job.batch/keystone-db-sync            1/1           2m22s      3m44s
+job.batch/keystone-domain-manage      1/1           3m1s       3m44s
+job.batch/keystone-fernet-setup       1/1           15s        3m44s
+job.batch/keystone-rabbit-init        1/1           2m1s       3m44s
+
+NAME                                       SCHEDULE       SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+cronjob.batch/keystone-credential-rotate   0 0 1 * *      False     0        <none>          3m44s
+cronjob.batch/keystone-fernet-rotate       0 */12 * * *   False     0        <none>          3m44s
+```
+
+## Delete the service
+
+```bash
+kubectl delete -f examples/argo
+
+armadachart.armada.airshipit.org "mariadb" deleted
+armadachart.armada.airshipit.org "memcached" deleted
+armadachart.armada.airshipit.org "rabbitmq" deleted
+armadachart.armada.airshipit.org "keystone" deleted
+workflow.argoproj.io "armada-manifest" deleted
+```
+
+Check in argo that the workflow is gone
+
+```bash
+argo list
+
+NAME   STATUS   AGE   DURATION
+```
+
+Check in K8s that the keystone service is gone
+
+```bash
+kubectl get all
+
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/keystone-operator-c547fdc5-rhslg   1/1     Running   0          16m
+
+NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+service/keystone-operator   ClusterIP   10.110.250.132   <none>        8383/TCP   16m
+service/kubernetes          ClusterIP   10.96.0.1        <none>        443/TCP    74m
+
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/keystone-operator   1/1     1            1           16m
+
+NAME                                         DESIRED   CURRENT   READY   AGE
+replicaset.apps/keystone-operator-c547fdc5   1         1         1       16m
+```
+
+## Delete the keystone operator
+
+```bash
+make purge
+
+kubectl delete -f deploy/operator.yaml
+deployment.apps "keystone-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
+customresourcedefinition.apiextensions.k8s.io "armadachartgroups.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
+customresourcedefinition.apiextensions.k8s.io "armadacharts.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
+customresourcedefinition.apiextensions.k8s.io "armadamanifests.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/role_binding.yaml
+rolebinding.rbac.authorization.k8s.io "armada-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/role.yaml
+role.rbac.authorization.k8s.io "armada-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/service_account.yaml
+serviceaccount "armada-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/argo_armada_role.yaml
+serviceaccount "armada-argo-sa" deleted
+role.rbac.authorization.k8s.io "armada-argo-role" deleted
+rolebinding.rbac.authorization.k8s.io "armada-argo-rolebinding" deleted
+```

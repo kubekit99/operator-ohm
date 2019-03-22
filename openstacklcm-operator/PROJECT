@@ -1,4 +1,4 @@
 version: "1"
-domain: openstack.org
+domain: airshipit.org
 output-dir: deploy/crds
 repo: github.com/kubekit99/operator-ohm/openstacklcm-operator
