@@ -32,6 +32,10 @@ spec:
         template: enable-memcached-template
     - - name: memcached-ready
         template: memcached-ready-template
+    - - name: enable-rabbitmq
+        template: enable-rabbitmq-template
+    - - name: rabbitmq-ready
+        template: rabbitmq-ready-template
 
   - name: enable-mariadb-template
     resource:
