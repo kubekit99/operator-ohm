@@ -27,7 +27,7 @@ spec:
         metadata:
           name: blog-1
         spec:
-          admin_state: enabled
+          target_state: deployed
 
   - name: blog-1-ready-template
     resource:
@@ -49,7 +49,7 @@ spec:
         metadata:
           name: blog-2
         spec:
-          admin_state: enabled
+          target_state: deployed
 
   - name: blog-2-ready-template
     resource:

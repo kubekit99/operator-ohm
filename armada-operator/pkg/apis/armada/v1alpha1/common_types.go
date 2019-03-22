@@ -59,6 +59,8 @@ func (x HelmResourceConditionReason) String() string { return string(x) }
 
 // Describe the status of a release
 const (
+	// StateUninitialied indicates that a release/chart/chartgroup/manifest exists, but has not been acted upon
+	StateUninitialied HelmResourceState = "uninitialized"
 	// StateUnknown indicates that a release/chart/chartgroup/manifest is in an uncertain state.
 	StateUnknown HelmResourceState = "unknown"
 	// StateInitialized indicates that a release/chart/chartgroup/manifest is in an Kubernetes

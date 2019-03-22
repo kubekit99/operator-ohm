@@ -166,11 +166,15 @@ const (
 // completion it will remove the work from the queue.
 func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reclog := actlog.WithValues("namespace", request.Namespace, "act", request.Name)
+	reclog.Info("Received a request")
+
 	instance := &av1.ArmadaChart{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
 
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	instance.Init()
+
 	if apierrors.IsNotFound(err) {
 		// We are working asynchronously. By the time we receive the event,
 		// the object is already gone
@@ -182,14 +186,6 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
-	// AdminState POC begin
-	// We will have to enhance the placement of this test to account
-	// for kubectl apply where more than just the AdminState is changed
-	if r.isReconcileDisabled(instance) {
-		return reconcile.Result{}, nil
-	}
-	// AdminState POC end
-
 	mgr := r.managerFactory.NewArmadaChartManager(instance)
 	reclog = reclog.WithValues("release", mgr.ReleaseName())
 
@@ -199,12 +195,6 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	hrc := av1.HelmResourceCondition{
-		Type:   av1.ConditionInitialized,
-		Status: av1.ConditionStatusTrue,
-	}
-	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-
 	if err := r.ensureSynced(mgr, instance); err != nil {
 		if !instance.IsDeleted() {
 			// TODO(jeb): Changed the behavior to stop only if we are not
@@ -213,13 +203,31 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 	}
 
-	switch {
-	case instance.IsDeleted():
+	if instance.IsDeleted() {
 		if shouldRequeue, err = r.deleteArmadaChart(mgr, instance); shouldRequeue {
 			// Need to requeue because finalizer update does not change metadata.generation
 			return reconcile.Result{Requeue: true}, err
 		}
 		return reconcile.Result{}, err
+	}
+
+	if instance.IsSatisfied() {
+		reclog.Info("Already satisfied; skipping")
+		err = r.updateResource(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		err = r.client.Status().Update(context.TODO(), instance)
+		return reconcile.Result{}, err
+	}
+
+	hrc := av1.HelmResourceCondition{
+		Type:   av1.ConditionInitialized,
+		Status: av1.ConditionStatusTrue,
+	}
+	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
+
+	switch {
 	case !mgr.IsInstalled():
 		if shouldRequeue, err = r.installArmadaChart(mgr, instance); shouldRequeue {
 			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err

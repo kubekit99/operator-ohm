@@ -92,6 +92,18 @@ type ArmadaChart struct {
 	Status ArmadaChartStatus `json:"status,omitempty"`
 }
 
+// Init is used to initialize an ArmadaChart. Namely, if the state has not been
+// specified, it will be set
+func (obj *ArmadaChart) Init() {
+	if obj.Status.ActualState == "" {
+		obj.Status.ActualState = StateUninitialied
+	}
+	if obj.Spec.TargetState == "" {
+		obj.Spec.TargetState = StateUninitialied
+	}
+	obj.Status.Satisfied = (obj.Spec.TargetState == obj.Status.ActualState)
+}
+
 // Return the list of dependent resources to watch
 func (obj *ArmadaChart) GetDependentResources() []unstructured.Unstructured {
 	var res = make([]unstructured.Unstructured, 0)
@@ -145,6 +157,11 @@ func (obj *ArmadaChart) IsEnabled() bool {
 // IsDisabled returns true if the chart is not managed by the reconcilier
 func (obj *ArmadaChart) IsDisabled() bool {
 	return !obj.IsEnabled()
+}
+
+// IsSatisfied returns true if the chart's actual state meets its target state
+func (obj *ArmadaChart) IsSatisfied() bool {
+	return obj.Spec.TargetState == obj.Status.ActualState
 }
 
 // Returns a GKV for ArmadaChart
