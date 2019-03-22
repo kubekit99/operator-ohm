@@ -585,6 +585,41 @@ mariadb-mariadb-state             5      12m
 
 # Deployment using argo workflow
 
+## Install the keystone operator
+
+Ensure that argo is installed as well as helm
+
+```bash
+helm ls
+
+NAME    REVISION        UPDATED                         STATUS          CHART           APP VERSION     NAMESPACE
+argo    1               Fri Mar 22 10:25:22 2019        DEPLOYED        argo-0.3.1                      argo
+```
+
+```bash
+make install
+
+docker tag kubekit99/keystone-operator:poc kubekit99/keystone-operator:latest
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
+customresourcedefinition.apiextensions.k8s.io/armadachartgroups.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
+customresourcedefinition.apiextensions.k8s.io/armadacharts.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
+customresourcedefinition.apiextensions.k8s.io/armadamanifests.armada.airshipit.org created
+kubectl apply -f ../armada-operator/chart/templates/role_binding.yaml
+rolebinding.rbac.authorization.k8s.io/armada-operator created
+kubectl apply -f ../armada-operator/chart/templates/role.yaml
+role.rbac.authorization.k8s.io/armada-operator created
+kubectl apply -f ../armada-operator/chart/templates/service_account.yaml
+serviceaccount/armada-operator created
+kubectl apply -f ../armada-operator/chart/templates/argo_armada_role.yaml
+serviceaccount/armada-argo-sa created
+role.rbac.authorization.k8s.io/armada-argo-role created
+rolebinding.rbac.authorization.k8s.io/armada-argo-rolebinding created
+kubectl create -f deploy/operator.yaml
+deployment.apps/keystone-operator created
+```
+
 ## Create the ArmadaChart and ArgoWorkflow in K8s
 ```bash
 kubectl apply -f examples/argo/
@@ -789,7 +824,7 @@ cronjob.batch/keystone-credential-rotate   0 0 1 * *      False     0        <no
 cronjob.batch/keystone-fernet-rotate       0 */12 * * *   False     0        <none>          3m44s
 ```
 
-## Cleanup
+## Delete the service
 
 ```bash
 kubectl delete -f examples/argo
@@ -801,9 +836,15 @@ armadachart.armada.airshipit.org "keystone" deleted
 workflow.argoproj.io "armada-manifest" deleted
 ```
 
+Check in argo that the workflow is gone
+
 ```bash
 argo list
 
+NAME   STATUS   AGE   DURATION
+```
+
+Check in K8s that the keystone service is gone
 
 ```bash
 kubectl get all
@@ -820,4 +861,29 @@ deployment.apps/keystone-operator   1/1     1            1           16m
 
 NAME                                         DESIRED   CURRENT   READY   AGE
 replicaset.apps/keystone-operator-c547fdc5   1         1         1       16m
+```
+
+## Delete the keystone operator
+
+```bash
+make purge
+
+kubectl delete -f deploy/operator.yaml
+deployment.apps "keystone-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
+customresourcedefinition.apiextensions.k8s.io "armadachartgroups.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
+customresourcedefinition.apiextensions.k8s.io "armadacharts.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
+customresourcedefinition.apiextensions.k8s.io "armadamanifests.armada.airshipit.org" deleted
+kubectl delete -f ../armada-operator/chart/templates/role_binding.yaml
+rolebinding.rbac.authorization.k8s.io "armada-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/role.yaml
+role.rbac.authorization.k8s.io "armada-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/service_account.yaml
+serviceaccount "armada-operator" deleted
+kubectl delete -f ../armada-operator/chart/templates/argo_armada_role.yaml
+serviceaccount "armada-argo-sa" deleted
+role.rbac.authorization.k8s.io "armada-argo-role" deleted
+rolebinding.rbac.authorization.k8s.io "armada-argo-rolebinding" deleted
 ```
