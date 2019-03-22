@@ -35,21 +35,21 @@ import (
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/kube"
-	"k8s.io/helm/pkg/storage"
 	cpb "k8s.io/helm/pkg/proto/hapi/chart"
 	rpb "k8s.io/helm/pkg/proto/hapi/release"
 	svc "k8s.io/helm/pkg/proto/hapi/services"
+	"k8s.io/helm/pkg/storage"
 	"k8s.io/helm/pkg/tiller"
 )
 
 type chartmanager struct {
-	storageBackend   *storage.Storage
-	helmKubeClient   *kube.Client
-	chartLocation    *av1.ArmadaChartSource
+	storageBackend *storage.Storage
+	helmKubeClient *kube.Client
+	chartLocation  *av1.ArmadaChartSource
 
-	releaseManager   *tiller.ReleaseServer
-	releaseName string
-	namespace   string
+	releaseManager *tiller.ReleaseServer
+	releaseName    string
+	namespace      string
 
 	spec   interface{}
 	status *av1.ArmadaChartStatus
