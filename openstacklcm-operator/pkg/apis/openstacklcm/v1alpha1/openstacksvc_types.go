@@ -28,6 +28,9 @@ type OpenstackSvcStatus struct {
 
 // OpenstackSvc is the Schema for the openstackdeployments API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=openstacksvcs,shortName=osvc
+// +kubebuilder:printcolumn:name="Succeeded",type="boolean",JSONPath=".status.succeeded",description="Succeeded"
 type OpenstackSvc struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

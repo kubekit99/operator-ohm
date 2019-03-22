@@ -6,11 +6,20 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: openstacksvcs.openstacklcm.airshipit.org
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.succeeded
+    description: Succeeded
+    name: Succeeded
+    type: boolean
   group: openstacklcm.airshipit.org
   names:
     kind: OpenstackSvc
     plural: openstacksvcs
+    shortNames:
+    - osvc
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:

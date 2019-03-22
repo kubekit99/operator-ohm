@@ -30,6 +30,9 @@ type OpenstackUpgradeStatus struct {
 
 // OpenstackUpgrade is the Schema for the openstackupgrades API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=openstackupgrades,shortName=oupg
+// +kubebuilder:printcolumn:name="Succeeded",type="boolean",JSONPath=".status.succeeded",description="Succeeded"
 type OpenstackUpgrade struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

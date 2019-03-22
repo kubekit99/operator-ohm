@@ -77,6 +77,9 @@ type CephRestoreSource struct {
 
 // OpenstackRestore is the Schema for the openstackrestores API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=openstackrestores,shortName=orst
+// +kubebuilder:printcolumn:name="Succeeded",type="boolean",JSONPath=".status.succeeded",description="Succeeded"
 type OpenstackRestore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

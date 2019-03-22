@@ -30,6 +30,9 @@ type OpenstackRollbackStatus struct {
 
 // OpenstackRollback is the Schema for the openstackrollbacks API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=openstackrollbacks,shortName=orbck
+// +kubebuilder:printcolumn:name="Succeeded",type="boolean",JSONPath=".status.succeeded",description="Succeeded"
 type OpenstackRollback struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

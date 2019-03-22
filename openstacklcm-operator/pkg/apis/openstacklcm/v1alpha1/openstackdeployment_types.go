@@ -28,6 +28,9 @@ type OpenstackDeploymentStatus struct {
 
 // OpenstackDeployment is the Schema for the openstackdeployments API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=openstackdeployments,shortName=odpl
+// +kubebuilder:printcolumn:name="Succeeded",type="boolean",JSONPath=".status.succeeded",description="Succeeded"
 type OpenstackDeployment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
