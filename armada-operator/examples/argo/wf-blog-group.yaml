@@ -32,7 +32,7 @@ spec:
   - name: blog-1-ready-template
     resource:
       action: get
-      successCondition: status.satisfied == true
+      successCondition: status.actual_state == deployed
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
@@ -54,7 +54,7 @@ spec:
   - name: blog-2-ready-template
     resource:
       action: get
-      successCondition: status.satisfied == true
+      successCondition: status.actual_state == deployed
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
