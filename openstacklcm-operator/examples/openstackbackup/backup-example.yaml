@@ -1,4 +1,4 @@
-apiVersion: openstackhelm.openstack.org/v1alpha1
+apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: OpenstackBackup
 metadata:
   name: openstackbackup

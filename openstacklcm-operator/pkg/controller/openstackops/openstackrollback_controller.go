@@ -1,10 +1,10 @@
-package openstackupgrade
+package openstackops
 
 import (
 	"context"
 	"fmt"
 
-	lcmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstackhelm/v1alpha1"
+	lcmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 	lcmutils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
 	//corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,45 +22,45 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_openstackupgrade")
+var log4 = logf.Log.WithName("controller_openstackrollback")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new OpenstackUpgrade Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new OpenstackRollback Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func AddOpenstackRollback(mgr manager.Manager) error {
+	return add4(mgr, newReconciler4(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileOpenstackUpgrade{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("openstackupgrade-recorder")}
+func newReconciler4(mgr manager.Manager) reconcile.Reconciler {
+	return &ReconcileOpenstackRollback{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("openstackrollback-recorder")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add4(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("openstackupgrade-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("openstackrollback-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource OpenstackUpgrade
-	err = c.Watch(&source.Kind{Type: &lcmv1alpha1.OpenstackUpgrade{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource OpenstackRollback
+	err = c.Watch(&source.Kind{Type: &lcmv1alpha1.OpenstackRollback{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to secondary resource Workflows and requeue the owner OpenstackUpgrade
-	// JEB: When a Workflow owned by OpenstackUpgrade is deleted, the Reconcile method is invoked.
+	// Watch for changes to secondary resource Workflows and requeue the owner OpenstackRollback
+	// JEB: When a Workflow owned by OpenstackRollback is deleted, the Reconcile method is invoked.
 	o := lcmutils.NewWorkflowGroupVersionKind()
 	err = c.Watch(&source.Kind{Type: o},
 		&handler.EnqueueRequestForOwner{
 			IsController: true,
-			OwnerType:    &lcmv1alpha1.OpenstackUpgrade{},
+			OwnerType:    &lcmv1alpha1.OpenstackRollback{},
 		},
 		// predicate.GenerationChangedPredicate{}
 	)
@@ -71,10 +71,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileOpenstackUpgrade{}
+var _ reconcile.Reconciler = &ReconcileOpenstackRollback{}
 
-// ReconcileOpenstackUpgrade reconciles a OpenstackUpgrade object
-type ReconcileOpenstackUpgrade struct {
+// ReconcileOpenstackRollback reconciles a OpenstackRollback object
+type ReconcileOpenstackRollback struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client   client.Client
@@ -82,18 +82,18 @@ type ReconcileOpenstackUpgrade struct {
 	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a OpenstackUpgrade object and makes changes based on the state read
-// and what is in the OpenstackUpgrade.Spec
+// Reconcile reads that state of the cluster for a OpenstackRollback object and makes changes based on the state read
+// and what is in the OpenstackRollback.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
 // a Workflow as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileOpenstackUpgrade) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("OpenstackUpgrade.Namespace", request.Namespace, "OpenstackUpgrade.Name", request.Name)
+func (r *ReconcileOpenstackRollback) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	reqLogger := log4.WithValues("OpenstackRollback.Namespace", request.Namespace, "OpenstackRollback.Name", request.Name)
 
-	// Fetch the OpenstackUpgrade instance
-	instance := &lcmv1alpha1.OpenstackUpgrade{}
+	// Fetch the OpenstackRollback instance
+	instance := &lcmv1alpha1.OpenstackRollback{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -110,28 +110,28 @@ func (r *ReconcileOpenstackUpgrade) Reconcile(request reconcile.Request) (reconc
 	wf := lcmutils.NewWorkflowForCR(instance.Name, instance.Namespace)
 
 	// name of your custom finalizer
-	myFinalizerName := "finalizer.openstackupgrade"
+	myFinalizerName := "finalizer.openstackrollback"
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object.
 		if !lcmutils.FinalizerContainsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
-			reqLogger.Info("Handling OpenstackUpgrade creation/update. Adding Finalizer")
+			reqLogger.Info("Handling OpenstackRollback creation/update. Adding Finalizer")
 			r.recorder.Event(instance, "Normal", "Updated", fmt.Sprintf("Adding Finalizier"))
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.client.Update(context.Background(), instance); err != nil {
 				return reconcile.Result{}, err
 			}
 		} else {
-			reqLogger.Info("Handling OpenstackUpgrade creation/update")
+			reqLogger.Info("Handling OpenstackRollback creation/update")
 
 		}
 	} else {
 
 		// The object is being deleted
 		if lcmutils.FinalizerContainsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
-			reqLogger.Info("Handling OpenstackUpgrade deletion step 1")
+			reqLogger.Info("Handling OpenstackRollback deletion step 1")
 			reqLogger.Info("Deleting Workflow", "Workflow.Namespace", wf.GetNamespace(), "Workflow.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
 
 			// our finalizer is present, so lets handle our external dependency
@@ -150,7 +150,7 @@ func (r *ReconcileOpenstackUpgrade) Reconcile(request reconcile.Request) (reconc
 				return reconcile.Result{}, err
 			}
 		} else {
-			reqLogger.Info("Handling OpenstackUpgrade deletion step 2")
+			reqLogger.Info("Handling OpenstackRollback deletion step 2")
 		}
 
 		// Our finalizer has finished, so the reconciler can do nothing.
@@ -160,8 +160,8 @@ func (r *ReconcileOpenstackUpgrade) Reconcile(request reconcile.Request) (reconc
 	// SetControllerReference sets owner as a Controller OwnerReference on owned.
 	// This is used for garbage collection of the owned object and for reconciling the owner object on changes to owned
 	// (with a Watch + EnqueueRequestForOwner).
-	// JEB: Check the OwnerReferenec by running "kubectl describe workflows/openstackupgrade-wf"
-	// JEB: The OpenstackUpgrade CR is owner of the workflow. This currently makes the Finalizer almost useless.
+	// JEB: Check the OwnerReferenec by running "kubectl describe workflows/openstackrollback-wf"
+	// JEB: The OpenstackRollback CR is owner of the workflow. This currently makes the Finalizer almost useless.
 	if err := controllerutil.SetControllerReference(instance, wf, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -188,7 +188,7 @@ func (r *ReconcileOpenstackUpgrade) Reconcile(request reconcile.Request) (reconc
 			r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 			return reconcile.Result{}, err
 		} else {
-			// JEB: If the workflow owned by OpenstackUpgrade has been deleted, the workflow will be recreated by this method.
+			// JEB: If the workflow owned by OpenstackRollback has been deleted, the workflow will be recreated by this method.
 			// Still only one line will appear in the "kubectl describe" but with a comment (x2 over XXmn)
 			_ = r.updateStatus(instance, true, "", targetedOpenstackVersion)
 			r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
@@ -213,10 +213,10 @@ func (r *ReconcileOpenstackUpgrade) Reconcile(request reconcile.Request) (reconc
 	return reconcile.Result{}, nil
 }
 
-// Update the status in the OpenstackUpgrade Custome Resource
-func (r *ReconcileOpenstackUpgrade) updateStatus(instance *lcmv1alpha1.OpenstackUpgrade, success bool, reason string, openstackVersion string) error {
+// Update the status in the OpenstackRollback Custome Resource
+func (r *ReconcileOpenstackRollback) updateStatus(instance *lcmv1alpha1.OpenstackRollback, success bool, reason string, openstackVersion string) error {
 
-	reqLogger := log.WithValues("OpenstackUpgrade.Namespace", instance.Namespace, "OpenstackUpgrade.Name", instance.Name)
+	reqLogger := log4.WithValues("OpenstackRollback.Namespace", instance.Namespace, "OpenstackRollback.Name", instance.Name)
 
 	instanceCopy := instance.DeepCopy()
 	instanceCopy.Status.Succeeded = success
@@ -241,9 +241,9 @@ func (r *ReconcileOpenstackUpgrade) updateStatus(instance *lcmv1alpha1.Openstack
 }
 
 // Delete the depending Argo Workflow
-func (r *ReconcileOpenstackUpgrade) deleteWorkflow(wf *unstructured.Unstructured) error {
+func (r *ReconcileOpenstackRollback) deleteWorkflow(wf *unstructured.Unstructured) error {
 
-	reqLogger := log.WithValues("Worflow.Namespace", wf.GetNamespace(), "Worflow.Name", wf.GetName())
+	reqLogger := log4.WithValues("Worflow.Namespace", wf.GetNamespace(), "Worflow.Name", wf.GetName())
 
 	found := lcmutils.NewWorkflowGroupVersionKind()
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)

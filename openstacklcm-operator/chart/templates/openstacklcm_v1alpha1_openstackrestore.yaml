@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: openstackrestores.openstackhelm.openstack.org
+  name: openstackrestores.openstacklcm.airshipit.org
 spec:
-  group: openstackhelm.openstack.org
+  group: openstacklcm.airshipit.org
   names:
     kind: OpenstackRestore
     plural: openstackrestores

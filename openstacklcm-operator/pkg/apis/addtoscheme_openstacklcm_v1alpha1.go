@@ -1,7 +1,7 @@
 package apis
 
 import (
-	"github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstackhelm/v1alpha1"
+	"github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 )
 
 func init() {

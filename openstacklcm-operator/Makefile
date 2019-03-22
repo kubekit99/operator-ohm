@@ -12,10 +12,21 @@ setup:
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
-	dep ensure
+	# JEB: dep ensure
+
+clean:
+	rm -fr vendor
+	rm -fr cover.out
+	rm -fr build/_output
+	rm -fr config/crds
 
 # Run tests
-unittest: setup generate fmt vet
+unittest: setup fmt vet
+	echo "sudo systemctl stop kubelet"
+	echo -e 'docker stop $$(docker ps -qa)'
+	echo -e 'export PATH=$${PATH}:/usr/local/kubebuilder/bin'
+	mkdir -p config/crds
+	cp chart/templates/*v1alpha1* config/crds/
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 # Run go fmt against code
@@ -24,17 +35,19 @@ fmt: setup
 
 # Run go vet against code
 vet: setup
-	go vet ./pkg/... ./cmd/...
+	go vet -composites=false -tags=v2 ./pkg/... ./cmd/...
 
 # Generate code
 generate: setup
-	go generate ./pkg/... ./cmd/...
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/
+	# JEB: go generate ./pkg/... ./cmd/...
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/ --domain airshipit.org
 	operator-sdk generate k8s
 
 # Build the docker image
-docker-build: unittest
-	operator-sdk build ${IMG}
+docker-build: fmt vet
+	# JEB: operator-sdk build ${IMG}
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o build/_output/bin/openstacklcm-operator -gcflags all=-trimpath=${GOPATH} -asmflags all=-trimpath=${GOPATH} -tags=v2 ./cmd/...
+	docker build . -f build/Dockerfile -t ${IMG}
 	docker tag ${IMG} ${DHUBREPO}:latest
 
 # Push the docker image
@@ -42,22 +55,37 @@ docker-push:
 	docker push ${IMG}
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-install: docker-build
-	helm install --name lcm-operator chart 
+install: install
 
 purge: setup
-	helm delete --purge lcm-operator
+	helm delete --purge openstacklcm-operator
 
-createchart:
-	kubectl create -f examples/openstackbackup/backup-example.yaml
-	# kubectl create -f examples/openstackdeployment/deployment-example.yaml
-	# kubectl create -f examples/openstackrestore/restore-example.yaml
-	# kubectl create -f examples/openstackrollback/rollback-example.yaml
-	# kubectl create -f examples/openstackupgrade/upgrade-example.yaml
+install: docker-build
+	helm install --name openstacklcm-operator chart --set images.tags.operator=${IMG}
 
-deletechart:
-	kubectl delete -f examples/openstackbackup/backup-example.yaml
-	# kubectl delete -f examples/openstackdeployment/deployment-example.yaml
-	# kubectl delete -f examples/openstackrestore/restore-example.yaml
-	# kubectl delete -f examples/openstackrollback/rollback-example.yaml
-	# kubectl delete -f examples/openstackupgrade/upgrade-example.yaml
+# Deploy and purge procedure which do not rely on helm itself
+install-kubectl: docker-build
+	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstackbackup.yaml
+	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstackdeployment.yaml
+	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstackrestore.yaml
+	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstackrollback.yaml
+	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstackupgrade.yaml
+	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstacksvc.yaml
+	kubectl apply -f ./chart/templates/role_binding.yaml
+	kubectl apply -f ./chart/templates/role.yaml
+	kubectl apply -f ./chart/templates/service_account.yaml
+	kubectl apply -f ./chart/templates/argo_openstacklcm_role.yaml
+	kubectl create -f deploy/operator.yaml
+
+purge-kubectl: setup
+	kubectl delete -f deploy/operator.yaml
+	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstackbackup.yaml
+	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstackdeployment.yaml
+	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstackrestore.yaml
+	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstackrollback.yaml
+	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstackupgrade.yaml
+	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstacksvc.yaml
+	kubectl delete -f ./chart/templates/role_binding.yaml
+	kubectl delete -f ./chart/templates/role.yaml
+	kubectl delete -f ./chart/templates/service_account.yaml
+	kubectl delete -f ./chart/templates/argo_openstacklcm_role.yaml

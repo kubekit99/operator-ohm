@@ -1,10 +1,10 @@
-package openstackdeployment
+package openstackops
 
 import (
 	"context"
 	"fmt"
 
-	lcmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstackhelm/v1alpha1"
+	lcmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 	lcmutils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
 	//corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,45 +22,45 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_openstackdeployment")
+var log1 = logf.Log.WithName("controller_openstackbackup")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new OpenstackDeployment Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new OpenstackBackup Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func AddOpenstackBackup(mgr manager.Manager) error {
+	return add1(mgr, newReconciler1(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileOpenstackDeployment{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("openstackdeployment-recorder")}
+func newReconciler1(mgr manager.Manager) reconcile.Reconciler {
+	return &ReconcileOpenstackBackup{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("openstackbackup-recorder")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add1(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("openstackdeployment-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("openstackbackup-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource OpenstackDeployment
-	err = c.Watch(&source.Kind{Type: &lcmv1alpha1.OpenstackDeployment{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource OpenstackBackup
+	err = c.Watch(&source.Kind{Type: &lcmv1alpha1.OpenstackBackup{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to secondary resource Workflows and requeue the owner OpenstackDeployment
-	// JEB: When a Workflow owned by OpenstackDeployment is deleted, the Reconcile method is invoked.
+	// Watch for changes to secondary resource Workflows and requeue the owner OpenstackBackup
+	// JEB: When a Workflow owned by OpenstackBackup is deleted, the Reconcile method is invoked.
 	o := lcmutils.NewWorkflowGroupVersionKind()
 	err = c.Watch(&source.Kind{Type: o},
 		&handler.EnqueueRequestForOwner{
 			IsController: true,
-			OwnerType:    &lcmv1alpha1.OpenstackDeployment{},
+			OwnerType:    &lcmv1alpha1.OpenstackBackup{},
 		},
 		// predicate.GenerationChangedPredicate{}
 	)
@@ -71,10 +71,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileOpenstackDeployment{}
+var _ reconcile.Reconciler = &ReconcileOpenstackBackup{}
 
-// ReconcileOpenstackDeployment reconciles a OpenstackDeployment object
-type ReconcileOpenstackDeployment struct {
+// ReconcileOpenstackBackup reconciles a OpenstackBackup object
+type ReconcileOpenstackBackup struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client   client.Client
@@ -82,18 +82,18 @@ type ReconcileOpenstackDeployment struct {
 	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a OpenstackDeployment object and makes changes based on the state read
-// and what is in the OpenstackDeployment.Spec
+// Reconcile reads that state of the cluster for a OpenstackBackup object and makes changes based on the state read
+// and what is in the OpenstackBackup.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
 // a Workflow as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("OpenstackDeployment.Namespace", request.Namespace, "OpenstackDeployment.Name", request.Name)
+func (r *ReconcileOpenstackBackup) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	reqLogger := log1.WithValues("OpenstackBackup.Namespace", request.Namespace, "OpenstackBackup.Name", request.Name)
 
-	// Fetch the OpenstackDeployment instance
-	instance := &lcmv1alpha1.OpenstackDeployment{}
+	// Fetch the OpenstackBackup instance
+	instance := &lcmv1alpha1.OpenstackBackup{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -110,28 +110,28 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 	wf := lcmutils.NewWorkflowForCR(instance.Name, instance.Namespace)
 
 	// name of your custom finalizer
-	myFinalizerName := "finalizer.openstackdeployment"
+	myFinalizerName := "finalizer.openstackbackup"
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object.
 		if !lcmutils.FinalizerContainsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
-			reqLogger.Info("Handling OpenstackDeployment creation/update. Adding Finalizer")
+			reqLogger.Info("Handling OpenstackBackup creation/update. Adding Finalizer")
 			r.recorder.Event(instance, "Normal", "Updated", fmt.Sprintf("Adding Finalizier"))
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.client.Update(context.Background(), instance); err != nil {
 				return reconcile.Result{}, err
 			}
 		} else {
-			reqLogger.Info("Handling OpenstackDeployment creation/update")
+			reqLogger.Info("Handling OpenstackBackup creation/update")
 
 		}
 	} else {
 
 		// The object is being deleted
 		if lcmutils.FinalizerContainsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
-			reqLogger.Info("Handling OpenstackDeployment deletion step 1")
+			reqLogger.Info("Handling OpenstackBackup deletion step 1")
 			reqLogger.Info("Deleting Workflow", "Workflow.Namespace", wf.GetNamespace(), "Workflow.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
 
 			// our finalizer is present, so lets handle our external dependency
@@ -150,7 +150,7 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 				return reconcile.Result{}, err
 			}
 		} else {
-			reqLogger.Info("Handling OpenstackDeployment deletion step 2")
+			reqLogger.Info("Handling OpenstackBackup deletion step 2")
 		}
 
 		// Our finalizer has finished, so the reconciler can do nothing.
@@ -160,13 +160,15 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 	// SetControllerReference sets owner as a Controller OwnerReference on owned.
 	// This is used for garbage collection of the owned object and for reconciling the owner object on changes to owned
 	// (with a Watch + EnqueueRequestForOwner).
-	// JEB: Check the OwnerReferenec by running "kubectl describe workflows/openstackdeployment-wf"
-	// JEB: The OpenstackDeployment CR is owner of the workflow. This currently makes the Finalizer almost useless.
+	// JEB: Check the OwnerReferenec by running "kubectl describe workflows/openstackbackup-wf"
+	// JEB: The OpenstackBackup CR is owner of the workflow. This currently makes the Finalizer almost useless.
 	if err := controllerutil.SetControllerReference(instance, wf, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	targetedOpenstackVersion := instance.Spec.OpenstackVersion
+	offsite := instance.Spec.BackupSource.Offsite
+	ceph := instance.Spec.BackupSource.Ceph
+	targetedOpenstackVersion := "moc.version.backedup"
 
 	// Check if this Workflow already exists
 	found := lcmutils.NewWorkflowGroupVersionKind()
@@ -174,11 +176,16 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 	if err != nil && errors.IsNotFound(err) {
 		reqLogger.Info("Creating a new Workflow", "Workflow.Namespace", wf.GetNamespace(), "Workflow.Name", wf.GetName(), "Worflow.Kind", wf.GetKind())
 
-		if targetedOpenstackVersion != "" {
-			// Adapt the worfklow to include the targeted Version
+		if offsite != nil {
+			// Adapt the worfklow to rely on offsite
 			// TODO: This is the bulk of the work still has to be done
-			adaptedwf := wf
-			err = r.client.Create(context.TODO(), adaptedwf)
+			offsitewf := wf
+			err = r.client.Create(context.TODO(), offsitewf)
+		} else if ceph != nil {
+			// Adapt the worfklow to rely on ceph
+			// TODO: This is the bulk of the work still has to be done
+			cephwf := wf
+			err = r.client.Create(context.TODO(), cephwf)
 		} else {
 			err = r.client.Create(context.TODO(), wf)
 		}
@@ -188,7 +195,7 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 			r.recorder.Event(instance, "Normal", "Failure", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
 			return reconcile.Result{}, err
 		} else {
-			// JEB: If the workflow owned by OpenstackDeployment has been deleted, the workflow will be recreated by this method.
+			// JEB: If the workflow owned by OpenstackBackup has been deleted, the workflow will be recreated by this method.
 			// Still only one line will appear in the "kubectl describe" but with a comment (x2 over XXmn)
 			_ = r.updateStatus(instance, true, "", targetedOpenstackVersion)
 			r.recorder.Event(instance, "Normal", "Created", fmt.Sprintf("Creating worfklow %s/%s", wf.GetNamespace(), wf.GetName()))
@@ -203,7 +210,9 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 		return reconcile.Result{}, err
 	} else {
 		// The controller needs to check that CRD and workflow are still consistent
-		if targetedOpenstackVersion != "" {
+		if offsite != nil {
+		} else if ceph != nil {
+		} else {
 		}
 
 		_ = r.updateStatus(instance, true, "", targetedOpenstackVersion)
@@ -213,10 +222,10 @@ func (r *ReconcileOpenstackDeployment) Reconcile(request reconcile.Request) (rec
 	return reconcile.Result{}, nil
 }
 
-// Update the status in the OpenstackDeployment Custome Resource
-func (r *ReconcileOpenstackDeployment) updateStatus(instance *lcmv1alpha1.OpenstackDeployment, success bool, reason string, openstackVersion string) error {
+// Update the status in the OpenstackBackup Custome Resource
+func (r *ReconcileOpenstackBackup) updateStatus(instance *lcmv1alpha1.OpenstackBackup, success bool, reason string, openstackVersion string) error {
 
-	reqLogger := log.WithValues("OpenstackDeployment.Namespace", instance.Namespace, "OpenstackDeployment.Name", instance.Name)
+	reqLogger := log1.WithValues("OpenstackBackup.Namespace", instance.Namespace, "OpenstackBackup.Name", instance.Name)
 
 	instanceCopy := instance.DeepCopy()
 	instanceCopy.Status.Succeeded = success
@@ -241,9 +250,9 @@ func (r *ReconcileOpenstackDeployment) updateStatus(instance *lcmv1alpha1.Openst
 }
 
 // Delete the depending Argo Workflow
-func (r *ReconcileOpenstackDeployment) deleteWorkflow(wf *unstructured.Unstructured) error {
+func (r *ReconcileOpenstackBackup) deleteWorkflow(wf *unstructured.Unstructured) error {
 
-	reqLogger := log.WithValues("Worflow.Namespace", wf.GetNamespace(), "Worflow.Name", wf.GetName())
+	reqLogger := log1.WithValues("Worflow.Namespace", wf.GetNamespace(), "Worflow.Name", wf.GetName())
 
 	found := lcmutils.NewWorkflowGroupVersionKind()
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)

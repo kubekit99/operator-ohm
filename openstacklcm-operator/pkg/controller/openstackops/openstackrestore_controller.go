@@ -1,10 +1,10 @@
-package openstackrestore
+package openstackops
 
 import (
 	"context"
 	"fmt"
 
-	lcmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstackhelm/v1alpha1"
+	lcmv1alpha1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 	lcmutils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
 	//corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_openstackrestore")
+var log3 = logf.Log.WithName("controller_openstackrestore")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -31,17 +31,17 @@ var log = logf.Log.WithName("controller_openstackrestore")
 
 // Add creates a new OpenstackRestore Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func AddOpenstackRestore(mgr manager.Manager) error {
+	return add3(mgr, newReconciler3(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler3(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileOpenstackRestore{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("openstackrestore-recorder")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add3(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("openstackrestore-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -90,7 +90,7 @@ type ReconcileOpenstackRestore struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOpenstackRestore) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("OpenstackRestore.Namespace", request.Namespace, "OpenstackRestore.Name", request.Name)
+	reqLogger := log3.WithValues("OpenstackRestore.Namespace", request.Namespace, "OpenstackRestore.Name", request.Name)
 
 	// Fetch the OpenstackRestore instance
 	instance := &lcmv1alpha1.OpenstackRestore{}
@@ -223,7 +223,7 @@ func (r *ReconcileOpenstackRestore) Reconcile(request reconcile.Request) (reconc
 // Update the status in the OpenstackRestore Custome Resource
 func (r *ReconcileOpenstackRestore) updateStatus(instance *lcmv1alpha1.OpenstackRestore, success bool, reason string, openstackVersion string) error {
 
-	reqLogger := log.WithValues("OpenstackRestore.Namespace", instance.Namespace, "OpenstackRestore.Name", instance.Name)
+	reqLogger := log3.WithValues("OpenstackRestore.Namespace", instance.Namespace, "OpenstackRestore.Name", instance.Name)
 
 	instanceCopy := instance.DeepCopy()
 	instanceCopy.Status.Succeeded = success
@@ -250,7 +250,7 @@ func (r *ReconcileOpenstackRestore) updateStatus(instance *lcmv1alpha1.Openstack
 // Delete the depending Argo Workflow
 func (r *ReconcileOpenstackRestore) deleteWorkflow(wf *unstructured.Unstructured) error {
 
-	reqLogger := log.WithValues("Worflow.Namespace", wf.GetNamespace(), "Worflow.Name", wf.GetName())
+	reqLogger := log3.WithValues("Worflow.Namespace", wf.GetNamespace(), "Worflow.Name", wf.GetName())
 
 	found := lcmutils.NewWorkflowGroupVersionKind()
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: wf.GetName(), Namespace: wf.GetNamespace()}, found)
