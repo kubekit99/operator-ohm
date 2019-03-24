@@ -70,7 +70,7 @@ install-kubectl: docker-build
 	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstackrestore.yaml
 	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstackrollback.yaml
 	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstackupgrade.yaml
-	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_openstacksvc.yaml
+	kubectl apply -f ./chart/templates/openstacklcm_v1alpha1_oslc.yaml
 	kubectl apply -f ./chart/templates/role_binding.yaml
 	kubectl apply -f ./chart/templates/role.yaml
 	kubectl apply -f ./chart/templates/service_account.yaml
@@ -84,7 +84,7 @@ purge-kubectl: setup
 	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstackrestore.yaml
 	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstackrollback.yaml
 	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstackupgrade.yaml
-	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_openstacksvc.yaml
+	kubectl delete -f ./chart/templates/openstacklcm_v1alpha1_oslc.yaml
 	kubectl delete -f ./chart/templates/role_binding.yaml
 	kubectl delete -f ./chart/templates/role.yaml
 	kubectl delete -f ./chart/templates/service_account.yaml

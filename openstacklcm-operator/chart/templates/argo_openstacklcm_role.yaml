@@ -38,8 +38,8 @@ rules:
       - openstackrollbacks/finalizers
       - openstackdeployments
       - openstackdeployments/finalizers
-      - openstacksvcs
-      - openstacksvcs/finalizers
+      - oslcs
+      - oslcs/finalizers
     verbs:
       - create
       - delete

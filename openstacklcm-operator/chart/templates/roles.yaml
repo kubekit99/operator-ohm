@@ -87,7 +87,7 @@ rules:
   - openstackbackups/status
   - openstackdeployments
   - openstackdeployments/status
-  - openstacksvcs
-  - openstacksvcs/status
+  - oslcs
+  - oslcs/status
   verbs:
   - '*'
