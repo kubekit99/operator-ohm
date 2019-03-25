@@ -20,40 +20,51 @@ import (
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 )
 
-type rollbackphasemanager struct {
+type rollbackmanager struct {
 	phasemanager
 
 	spec   av1.RollbackPhaseSpec
 	status *av1.RollbackPhaseStatus
-
-	deployedResource *av1.RollbackPhase
 }
 
 // Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this RollbackPhase CR
-func (m *rollbackphasemanager) Sync(ctx context.Context) error {
-	m.deployedResource = &av1.RollbackPhase{}
-	m.isInstalled = true
-	m.isUpdateRequired = false
+func (m *rollbackmanager) Sync(ctx context.Context) error {
+
+	m.deployedSubResourceList = av1.NewSubResourceList(m.namespace, m.resourceName)
+
+	rendered, deployed, err := m.sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	m.deployedSubResourceList = deployed
+	if len(rendered.Items) != len(deployed.Items) {
+		m.isInstalled = false
+		m.isUpdateRequired = false
+	} else {
+		m.isInstalled = true
+		m.isUpdateRequired = false
+	}
 
 	return nil
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this RollbackPhase CR
-func (m rollbackphasemanager) InstallResource(ctx context.Context) (*av1.RollbackPhase, error) {
-	return &av1.RollbackPhase{}, nil
+func (m rollbackmanager) InstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.installResource(ctx)
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this RollbackPhase CR
-func (m rollbackphasemanager) UpdateResource(ctx context.Context) (*av1.RollbackPhase, *av1.RollbackPhase, error) {
-	return m.deployedResource, &av1.RollbackPhase{}, nil
+func (m rollbackmanager) UpdateResource(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
+	return m.updateResource(ctx)
 }
 
 // ReconcileResource creates or patches resources as necessary to match this RollbackPhase CR
-func (m rollbackphasemanager) ReconcileResource(ctx context.Context) (*av1.RollbackPhase, error) {
-	return m.deployedResource, nil
+func (m rollbackmanager) ReconcileResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.reconcileResource(ctx)
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this RollbackPhase CR
-func (m rollbackphasemanager) UninstallResource(ctx context.Context) (*av1.RollbackPhase, error) {
-	return &av1.RollbackPhase{}, nil
+func (m rollbackmanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.uninstallResource(ctx)
 }

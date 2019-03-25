@@ -20,40 +20,51 @@ import (
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 )
 
-type planningphasemanager struct {
+type planningmanager struct {
 	phasemanager
 
 	spec   av1.PlanningPhaseSpec
 	status *av1.PlanningPhaseStatus
-
-	deployedResource *av1.PlanningPhase
 }
 
 // Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this PlanningPhase CR
-func (m *planningphasemanager) Sync(ctx context.Context) error {
-	m.deployedResource = &av1.PlanningPhase{}
-	m.isInstalled = true
-	m.isUpdateRequired = false
+func (m *planningmanager) Sync(ctx context.Context) error {
+
+	m.deployedSubResourceList = av1.NewSubResourceList(m.namespace, m.resourceName)
+
+	rendered, deployed, err := m.sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	m.deployedSubResourceList = deployed
+	if len(rendered.Items) != len(deployed.Items) {
+		m.isInstalled = false
+		m.isUpdateRequired = false
+	} else {
+		m.isInstalled = true
+		m.isUpdateRequired = false
+	}
 
 	return nil
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this PlanningPhase CR
-func (m planningphasemanager) InstallResource(ctx context.Context) (*av1.PlanningPhase, error) {
-	return &av1.PlanningPhase{}, nil
+func (m planningmanager) InstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.installResource(ctx)
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this PlanningPhase CR
-func (m planningphasemanager) UpdateResource(ctx context.Context) (*av1.PlanningPhase, *av1.PlanningPhase, error) {
-	return m.deployedResource, &av1.PlanningPhase{}, nil
+func (m planningmanager) UpdateResource(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
+	return m.updateResource(ctx)
 }
 
 // ReconcileResource creates or patches resources as necessary to match this PlanningPhase CR
-func (m planningphasemanager) ReconcileResource(ctx context.Context) (*av1.PlanningPhase, error) {
-	return m.deployedResource, nil
+func (m planningmanager) ReconcileResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.reconcileResource(ctx)
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this PlanningPhase CR
-func (m planningphasemanager) UninstallResource(ctx context.Context) (*av1.PlanningPhase, error) {
-	return &av1.PlanningPhase{}, nil
+func (m planningmanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.uninstallResource(ctx)
 }

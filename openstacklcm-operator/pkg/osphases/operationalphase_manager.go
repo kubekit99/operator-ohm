@@ -20,40 +20,51 @@ import (
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 )
 
-type operationalphasemanager struct {
+type operationalmanager struct {
 	phasemanager
 
 	spec   av1.OperationalPhaseSpec
 	status *av1.OperationalPhaseStatus
-
-	deployedResource *av1.OperationalPhase
 }
 
 // Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this OperationalPhase CR
-func (m *operationalphasemanager) Sync(ctx context.Context) error {
-	m.deployedResource = &av1.OperationalPhase{}
-	m.isInstalled = true
-	m.isUpdateRequired = false
+func (m *operationalmanager) Sync(ctx context.Context) error {
+
+	m.deployedSubResourceList = av1.NewSubResourceList(m.namespace, m.resourceName)
+
+	rendered, deployed, err := m.sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	m.deployedSubResourceList = deployed
+	if len(rendered.Items) != len(deployed.Items) {
+		m.isInstalled = false
+		m.isUpdateRequired = false
+	} else {
+		m.isInstalled = true
+		m.isUpdateRequired = false
+	}
 
 	return nil
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this OperationalPhase CR
-func (m operationalphasemanager) InstallResource(ctx context.Context) (*av1.OperationalPhase, error) {
-	return &av1.OperationalPhase{}, nil
+func (m operationalmanager) InstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.installResource(ctx)
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this OperationalPhase CR
-func (m operationalphasemanager) UpdateResource(ctx context.Context) (*av1.OperationalPhase, *av1.OperationalPhase, error) {
-	return m.deployedResource, &av1.OperationalPhase{}, nil
+func (m operationalmanager) UpdateResource(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
+	return m.updateResource(ctx)
 }
 
 // ReconcileResource creates or patches resources as necessary to match this OperationalPhase CR
-func (m operationalphasemanager) ReconcileResource(ctx context.Context) (*av1.OperationalPhase, error) {
-	return m.deployedResource, nil
+func (m operationalmanager) ReconcileResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.reconcileResource(ctx)
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this OperationalPhase CR
-func (m operationalphasemanager) UninstallResource(ctx context.Context) (*av1.OperationalPhase, error) {
-	return &av1.OperationalPhase{}, nil
+func (m operationalmanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.uninstallResource(ctx)
 }

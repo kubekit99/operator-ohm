@@ -19,110 +19,110 @@ import (
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 )
 
-// PlanningPhaseManager manages the Planning Phase of an OpenstackServiceLifeCycle
+// PlanningPhaseManager manages the PlanningPhase Phase of an OpenstackServiceLifeCycle
 type PlanningPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.PlanningPhase, error)
-	UpdateResource(context.Context) (*av1.PlanningPhase, *av1.PlanningPhase, error)
-	ReconcileResource(context.Context) (*av1.PlanningPhase, error)
-	UninstallResource(context.Context) (*av1.PlanningPhase, error)
+	InstallResource(context.Context) (*av1.SubResourceList, error)
+	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
+	ReconcileResource(context.Context) (*av1.SubResourceList, error)
+	UninstallResource(context.Context) (*av1.SubResourceList, error)
 }
 
-// InstallPhaseManager manages the Install Phase of an OpenstackServiceLifeCycle
+// InstallPhaseManager manages the InstallPhase Phase of an OpenstackServiceLifeCycle
 type InstallPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.InstallPhase, error)
-	UpdateResource(context.Context) (*av1.InstallPhase, *av1.InstallPhase, error)
-	ReconcileResource(context.Context) (*av1.InstallPhase, error)
-	UninstallResource(context.Context) (*av1.InstallPhase, error)
+	InstallResource(context.Context) (*av1.SubResourceList, error)
+	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
+	ReconcileResource(context.Context) (*av1.SubResourceList, error)
+	UninstallResource(context.Context) (*av1.SubResourceList, error)
 }
 
-// TestPhaseManager manages the Test Phase of an OpenstackServiceLifeCycle
+// TestPhaseManager manages the TestPhase Phase of an OpenstackServiceLifeCycle
 type TestPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.TestPhase, error)
-	UpdateResource(context.Context) (*av1.TestPhase, *av1.TestPhase, error)
-	ReconcileResource(context.Context) (*av1.TestPhase, error)
-	UninstallResource(context.Context) (*av1.TestPhase, error)
+	InstallResource(context.Context) (*av1.SubResourceList, error)
+	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
+	ReconcileResource(context.Context) (*av1.SubResourceList, error)
+	UninstallResource(context.Context) (*av1.SubResourceList, error)
 }
 
-// TrafficRolloutPhaseManager manages the TrafficRollout Phase of an OpenstackServiceLifeCycle
+// TrafficRolloutPhaseManager manages the TrafficRolloutPhase Phase of an OpenstackServiceLifeCycle
 type TrafficRolloutPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.TrafficRolloutPhase, error)
-	UpdateResource(context.Context) (*av1.TrafficRolloutPhase, *av1.TrafficRolloutPhase, error)
-	ReconcileResource(context.Context) (*av1.TrafficRolloutPhase, error)
-	UninstallResource(context.Context) (*av1.TrafficRolloutPhase, error)
+	InstallResource(context.Context) (*av1.SubResourceList, error)
+	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
+	ReconcileResource(context.Context) (*av1.SubResourceList, error)
+	UninstallResource(context.Context) (*av1.SubResourceList, error)
 }
 
-// OperationalPhaseManager manages the Operational Phase of an OpenstackServiceLifeCycle
+// OperationalPhaseManager manages the OperationalPhase Phase of an OpenstackServiceLifeCycle
 type OperationalPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.OperationalPhase, error)
-	UpdateResource(context.Context) (*av1.OperationalPhase, *av1.OperationalPhase, error)
-	ReconcileResource(context.Context) (*av1.OperationalPhase, error)
-	UninstallResource(context.Context) (*av1.OperationalPhase, error)
+	InstallResource(context.Context) (*av1.SubResourceList, error)
+	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
+	ReconcileResource(context.Context) (*av1.SubResourceList, error)
+	UninstallResource(context.Context) (*av1.SubResourceList, error)
 }
 
-// TrafficDrainPhaseManager manages the TrafficDrain Phase of an OpenstackServiceLifeCycle
+// TrafficDrainPhaseManager manages the TrafficDrainPhase Phase of an OpenstackServiceLifeCycle
 type TrafficDrainPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.TrafficDrainPhase, error)
-	UpdateResource(context.Context) (*av1.TrafficDrainPhase, *av1.TrafficDrainPhase, error)
-	ReconcileResource(context.Context) (*av1.TrafficDrainPhase, error)
-	UninstallResource(context.Context) (*av1.TrafficDrainPhase, error)
+	InstallResource(context.Context) (*av1.SubResourceList, error)
+	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
+	ReconcileResource(context.Context) (*av1.SubResourceList, error)
+	UninstallResource(context.Context) (*av1.SubResourceList, error)
 }
 
-// UpgradePhaseManager manages the Upgrade Phase of an OpenstackServiceLifeCycle
+// UpgradePhaseManager manages the UpgradePhase Phase of an OpenstackServiceLifeCycle
 type UpgradePhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.UpgradePhase, error)
-	UpdateResource(context.Context) (*av1.UpgradePhase, *av1.UpgradePhase, error)
-	ReconcileResource(context.Context) (*av1.UpgradePhase, error)
-	UninstallResource(context.Context) (*av1.UpgradePhase, error)
+	InstallResource(context.Context) (*av1.SubResourceList, error)
+	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
+	ReconcileResource(context.Context) (*av1.SubResourceList, error)
+	UninstallResource(context.Context) (*av1.SubResourceList, error)
 }
 
-// RollbackPhaseManager manages the Rollback Phase of an OpenstackServiceLifeCycle
+// RollbackPhaseManager manages the RollbackPhase Phase of an OpenstackServiceLifeCycle
 type RollbackPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.RollbackPhase, error)
-	UpdateResource(context.Context) (*av1.RollbackPhase, *av1.RollbackPhase, error)
-	ReconcileResource(context.Context) (*av1.RollbackPhase, error)
-	UninstallResource(context.Context) (*av1.RollbackPhase, error)
+	InstallResource(context.Context) (*av1.SubResourceList, error)
+	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
+	ReconcileResource(context.Context) (*av1.SubResourceList, error)
+	UninstallResource(context.Context) (*av1.SubResourceList, error)
 }
 
-// DeletePhaseManager manages the Delete Phase of an OpenstackServiceLifeCycle
+// DeletePhaseManager manages the DeletePhase Phase of an OpenstackServiceLifeCycle
 type DeletePhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.DeletePhase, error)
-	UpdateResource(context.Context) (*av1.DeletePhase, *av1.DeletePhase, error)
-	ReconcileResource(context.Context) (*av1.DeletePhase, error)
-	UninstallResource(context.Context) (*av1.DeletePhase, error)
+	InstallResource(context.Context) (*av1.SubResourceList, error)
+	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
+	ReconcileResource(context.Context) (*av1.SubResourceList, error)
+	UninstallResource(context.Context) (*av1.SubResourceList, error)
 }

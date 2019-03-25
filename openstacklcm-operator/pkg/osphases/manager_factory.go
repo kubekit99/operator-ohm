@@ -15,24 +15,36 @@
 package osphases
 
 import (
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type managerFactory struct {
+	kubeClient client.Client
 }
 
 // NewManagerFactory returns a new factory.
 func NewManagerFactory(mgr manager.Manager) lcmif.PhaseManagerFactory {
-	return &managerFactory{}
+	return &managerFactory{kubeClient: mgr.GetClient()}
 }
 
 // NewPlanningPhaseManager returns a new manager capable of controlling PlanningPhase phase of the service lifecyle
 func (f managerFactory) NewPlanningPhaseManager(r *av1.PlanningPhase) lcmif.PlanningPhaseManager {
-	return &planningphasemanager{
-		phasemanager: phasemanager{renderer: nil, namespace: r.GetNamespace()},
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
+	return &planningmanager{
+		phasemanager: phasemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -41,8 +53,16 @@ func (f managerFactory) NewPlanningPhaseManager(r *av1.PlanningPhase) lcmif.Plan
 
 // NewInstallPhaseManager returns a new manager capable of controlling InstallPhase phase of the service lifecyle
 func (f managerFactory) NewInstallPhaseManager(r *av1.InstallPhase) lcmif.InstallPhaseManager {
-	return &installphasemanager{
-		phasemanager: phasemanager{renderer: nil, namespace: r.GetNamespace()},
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
+	return &installmanager{
+		phasemanager: phasemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -51,8 +71,16 @@ func (f managerFactory) NewInstallPhaseManager(r *av1.InstallPhase) lcmif.Instal
 
 // NewTestPhaseManager returns a new manager capable of controlling TestPhase phase of the service lifecyle
 func (f managerFactory) NewTestPhaseManager(r *av1.TestPhase) lcmif.TestPhaseManager {
-	return &testphasemanager{
-		phasemanager: phasemanager{renderer: nil, namespace: r.GetNamespace()},
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
+	return &testmanager{
+		phasemanager: phasemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -61,8 +89,16 @@ func (f managerFactory) NewTestPhaseManager(r *av1.TestPhase) lcmif.TestPhaseMan
 
 // NewTrafficRolloutPhaseManager returns a new manager capable of controlling TrafficRolloutPhase phase of the service lifecyle
 func (f managerFactory) NewTrafficRolloutPhaseManager(r *av1.TrafficRolloutPhase) lcmif.TrafficRolloutPhaseManager {
-	return &trafficrolloutphasemanager{
-		phasemanager: phasemanager{renderer: nil, namespace: r.GetNamespace()},
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
+	return &trafficrolloutmanager{
+		phasemanager: phasemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -71,8 +107,16 @@ func (f managerFactory) NewTrafficRolloutPhaseManager(r *av1.TrafficRolloutPhase
 
 // NewOperationalPhaseManager returns a new manager capable of controlling OperationalPhase phase of the service lifecyle
 func (f managerFactory) NewOperationalPhaseManager(r *av1.OperationalPhase) lcmif.OperationalPhaseManager {
-	return &operationalphasemanager{
-		phasemanager: phasemanager{renderer: nil, namespace: r.GetNamespace()},
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
+	return &operationalmanager{
+		phasemanager: phasemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -81,8 +125,16 @@ func (f managerFactory) NewOperationalPhaseManager(r *av1.OperationalPhase) lcmi
 
 // NewTrafficDrainPhaseManager returns a new manager capable of controlling TrafficDrainPhase phase of the service lifecyle
 func (f managerFactory) NewTrafficDrainPhaseManager(r *av1.TrafficDrainPhase) lcmif.TrafficDrainPhaseManager {
-	return &trafficdrainphasemanager{
-		phasemanager: phasemanager{renderer: nil, namespace: r.GetNamespace()},
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
+	return &trafficdrainmanager{
+		phasemanager: phasemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -91,8 +143,16 @@ func (f managerFactory) NewTrafficDrainPhaseManager(r *av1.TrafficDrainPhase) lc
 
 // NewUpgradePhaseManager returns a new manager capable of controlling UpgradePhase phase of the service lifecyle
 func (f managerFactory) NewUpgradePhaseManager(r *av1.UpgradePhase) lcmif.UpgradePhaseManager {
-	return &upgradephasemanager{
-		phasemanager: phasemanager{renderer: nil, namespace: r.GetNamespace()},
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
+	return &upgrademanager{
+		phasemanager: phasemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -101,8 +161,16 @@ func (f managerFactory) NewUpgradePhaseManager(r *av1.UpgradePhase) lcmif.Upgrad
 
 // NewRollbackPhaseManager returns a new manager capable of controlling RollbackPhase phase of the service lifecyle
 func (f managerFactory) NewRollbackPhaseManager(r *av1.RollbackPhase) lcmif.RollbackPhaseManager {
-	return &rollbackphasemanager{
-		phasemanager: phasemanager{renderer: nil, namespace: r.GetNamespace()},
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
+	return &rollbackmanager{
+		phasemanager: phasemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -111,8 +179,16 @@ func (f managerFactory) NewRollbackPhaseManager(r *av1.RollbackPhase) lcmif.Roll
 
 // NewDeletePhaseManager returns a new manager capable of controlling DeletePhase phase of the service lifecyle
 func (f managerFactory) NewDeletePhaseManager(r *av1.DeletePhase) lcmif.DeletePhaseManager {
-	return &deletephasemanager{
-		phasemanager: phasemanager{renderer: nil, namespace: r.GetNamespace()},
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
+	return &deletemanager{
+		phasemanager: phasemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,

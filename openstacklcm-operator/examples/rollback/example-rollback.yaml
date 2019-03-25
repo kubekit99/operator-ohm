@@ -16,3 +16,4 @@ spec:
     path: xxx
   openstackEndpoints:
   - https://local.com
+  target_state: deployed

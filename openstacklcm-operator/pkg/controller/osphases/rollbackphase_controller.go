@@ -311,7 +311,7 @@ func (r RollbackPhaseReconciler) updateFinalizers(instance *av1.RollbackPhase) (
 }
 
 // watchDependentResources updates all resources which are dependent on this one
-func (r RollbackPhaseReconciler) watchDependentResources(resource *av1.RollbackPhase) error {
+func (r RollbackPhaseReconciler) watchDependentResources(resource *av1.SubResourceList) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
 			return err

@@ -311,7 +311,7 @@ func (r PlanningPhaseReconciler) updateFinalizers(instance *av1.PlanningPhase) (
 }
 
 // watchDependentResources updates all resources which are dependent on this one
-func (r PlanningPhaseReconciler) watchDependentResources(resource *av1.PlanningPhase) error {
+func (r PlanningPhaseReconciler) watchDependentResources(resource *av1.SubResourceList) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
 			return err

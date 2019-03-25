@@ -202,15 +202,15 @@ func (r *OperationalPhaseReconciler) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, err
 	}
 
-	if instance.IsSatisfied() {
-		reclog.Info("Already satisfied; skipping")
-		err = r.updateResource(instance)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		err = r.client.Status().Update(context.TODO(), instance)
-		return reconcile.Result{}, err
-	}
+	// if instance.IsSatisfied() {
+	// 	reclog.Info("Already satisfied; skipping")
+	// 	err = r.updateResource(instance)
+	// 	if err != nil {
+	// 		return reconcile.Result{}, err
+	// 	}
+	// 	err = r.client.Status().Update(context.TODO(), instance)
+	// 	return reconcile.Result{}, err
+	// }
 
 	hrc := av1.LcmResourceCondition{
 		Type:   av1.ConditionInitialized,
@@ -311,7 +311,7 @@ func (r OperationalPhaseReconciler) updateFinalizers(instance *av1.OperationalPh
 }
 
 // watchDependentResources updates all resources which are dependent on this one
-func (r OperationalPhaseReconciler) watchDependentResources(resource *av1.OperationalPhase) error {
+func (r OperationalPhaseReconciler) watchDependentResources(resource *av1.SubResourceList) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
 			return err

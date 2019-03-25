@@ -20,40 +20,51 @@ import (
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 )
 
-type testphasemanager struct {
+type testmanager struct {
 	phasemanager
 
 	spec   av1.TestPhaseSpec
 	status *av1.TestPhaseStatus
-
-	deployedResource *av1.TestPhase
 }
 
 // Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this TestPhase CR
-func (m *testphasemanager) Sync(ctx context.Context) error {
-	m.deployedResource = &av1.TestPhase{}
-	m.isInstalled = true
-	m.isUpdateRequired = false
+func (m *testmanager) Sync(ctx context.Context) error {
+
+	m.deployedSubResourceList = av1.NewSubResourceList(m.namespace, m.resourceName)
+
+	rendered, deployed, err := m.sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	m.deployedSubResourceList = deployed
+	if len(rendered.Items) != len(deployed.Items) {
+		m.isInstalled = false
+		m.isUpdateRequired = false
+	} else {
+		m.isInstalled = true
+		m.isUpdateRequired = false
+	}
 
 	return nil
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this TestPhase CR
-func (m testphasemanager) InstallResource(ctx context.Context) (*av1.TestPhase, error) {
-	return &av1.TestPhase{}, nil
+func (m testmanager) InstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.installResource(ctx)
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this TestPhase CR
-func (m testphasemanager) UpdateResource(ctx context.Context) (*av1.TestPhase, *av1.TestPhase, error) {
-	return m.deployedResource, &av1.TestPhase{}, nil
+func (m testmanager) UpdateResource(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
+	return m.updateResource(ctx)
 }
 
 // ReconcileResource creates or patches resources as necessary to match this TestPhase CR
-func (m testphasemanager) ReconcileResource(ctx context.Context) (*av1.TestPhase, error) {
-	return m.deployedResource, nil
+func (m testmanager) ReconcileResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.reconcileResource(ctx)
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this TestPhase CR
-func (m testphasemanager) UninstallResource(ctx context.Context) (*av1.TestPhase, error) {
-	return &av1.TestPhase{}, nil
+func (m testmanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.uninstallResource(ctx)
 }

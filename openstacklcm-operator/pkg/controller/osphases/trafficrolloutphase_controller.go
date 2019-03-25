@@ -311,7 +311,7 @@ func (r TrafficRolloutPhaseReconciler) updateFinalizers(instance *av1.TrafficRol
 }
 
 // watchDependentResources updates all resources which are dependent on this one
-func (r TrafficRolloutPhaseReconciler) watchDependentResources(resource *av1.TrafficRolloutPhase) error {
+func (r TrafficRolloutPhaseReconciler) watchDependentResources(resource *av1.SubResourceList) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
 			return err

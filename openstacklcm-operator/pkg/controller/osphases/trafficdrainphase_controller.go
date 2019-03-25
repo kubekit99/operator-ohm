@@ -311,7 +311,7 @@ func (r TrafficDrainPhaseReconciler) updateFinalizers(instance *av1.TrafficDrain
 }
 
 // watchDependentResources updates all resources which are dependent on this one
-func (r TrafficDrainPhaseReconciler) watchDependentResources(resource *av1.TrafficDrainPhase) error {
+func (r TrafficDrainPhaseReconciler) watchDependentResources(resource *av1.SubResourceList) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
 			return err

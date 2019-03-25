@@ -5,3 +5,4 @@ metadata:
 spec:
   openstackVersion: moc.version.to.install.to
   openstackRevision: 3
+  target_state: deployed

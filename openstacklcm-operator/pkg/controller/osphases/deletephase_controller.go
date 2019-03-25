@@ -311,7 +311,7 @@ func (r DeletePhaseReconciler) updateFinalizers(instance *av1.DeletePhase) (bool
 }
 
 // watchDependentResources updates all resources which are dependent on this one
-func (r DeletePhaseReconciler) watchDependentResources(resource *av1.DeletePhase) error {
+func (r DeletePhaseReconciler) watchDependentResources(resource *av1.SubResourceList) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
 			return err

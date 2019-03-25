@@ -1,0 +1,9 @@
+delete
+install
+operational
+planning
+rollback
+test
+trafficdrain
+trafficrollout
+upgrade

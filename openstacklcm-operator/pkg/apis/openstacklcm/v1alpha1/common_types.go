@@ -18,6 +18,7 @@ import (
 	// "encoding/json"
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -386,4 +387,46 @@ type ControllerRevisionList struct {
 
 	// Items is the list of ControllerRevisions
 	Items []ControllerRevision `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+// SubResourceList represent the list of
+type SubResourceList struct {
+	Name      string
+	Namespace string
+	// Items is the list of ControllerRevisions
+	Items [](unstructured.Unstructured) `json:"items"`
+}
+
+// Returns the Name for the SubResourceList
+func (obj *SubResourceList) GetName() string {
+	return obj.Name
+}
+
+// Returns the Namespace for this SubResourceList
+func (obj *SubResourceList) GetNamespace() string {
+	return obj.Namespace
+}
+
+// Returns the Notes for this SubResourceList
+// TODO(jeb): We should properly remove this method
+func (obj *SubResourceList) GetNotes() string {
+	return "Notes"
+}
+
+// Returns the Version for this SubResourceList
+// TODO(jeb): We should properly remove this method
+func (obj *SubResourceList) GetVersion() int32 {
+	return 0
+}
+
+// Returns the DependentResource for this SubResourceList
+func (obj *SubResourceList) GetDependentResources() []unstructured.Unstructured {
+	return obj.Items
+}
+
+// Returns a new SubResourceList
+func NewSubResourceList(namespace string, name string) *SubResourceList {
+	res := &SubResourceList{Namespace: namespace, Name: name}
+	res.Items = make([]unstructured.Unstructured, 0)
+	return res
 }

@@ -64,199 +64,230 @@ make docker-build
 helm install --name lcm-operator chart 
 ```
 
-## Openstack Databases Backup CRD and Controller
-
-### Trigger a backup
-
-Upon creation of the custom resource, the controller will
-- Create a new workflow owned by the customer resource.
-- Add events to the custom resources.
-- The workflow creation will get argo to react and run the workflow, and create news pods.
+## Openstack Service Phase CRD testing
 
 
 ```bash
-kubectl apply -f examples/openstackbackup/backup-example.yaml
-kubectl describe openstackbackups/openstackbackup
-kubectl describe workflows/openstackbackup-wf
-kubectl describe pod/openstackbackup-wf
-kubectl logs pod/openstackbackup-wf main
+kubectl apply -f examples/upgrade/
+kubectl describe osupg
 ```
-
-### Test controller reconcilation logic (for depending workflows)
-
-Upon deletion of its workflow, the controller will recreate it,
-which will get argo to rerun the workflow.
 
 ```bash
-kubectl delete workflows/openstackbackup-wf
-kubectl logs pod/openstackbackup-wf main
-kubectl describe openstackbackups/openstackbackup
+kubectl apply -f examples/rollback
+kubectl describe osrbck
 ```
-
-### Test controller reconcilation logic (for CRD)
-
-When deleting the CRD, the corresponding workflow should be deleted.
-Argo in turn, will delete the corresponding pods.
 
 ```bash
-kubectl delete -f examples/openstackbackup/backup-example.yaml
-kubectl describe workflows/openstackbackup-wf
-kubectl describe pod/openstackbackup-wf
+kubectl apply -f examples/trafficrollout
+kubectl describe osroll
 ```
-
-
-## Openstack Databases Data Restore CRD and Controller
-
-Upon creation of the custom resource, the controller will
-- Create a new workflow owned by the customer resource.
-- Add events to the custom resources.
-- The workflow creation will get argo to react and run the workflow, and create news pods.
-
-### Trigger a restore
 
 ```bash
-kubectl apply -f examples/openstackrestore/restore-example.yaml
-kubectl describe openstackrestores/openstackrestore
-kubectl describe workflows/openstackrestore-wf
-kubectl describe pod/openstackrestore-wf
-kubectl logs pod/openstackrestore-wf main
+kubectl apply -f examples/trafficdrain
+kubectl describe osdrain
 ```
-
-### Test controller reconcilation logic (for depending workflows)
-
-Upon deletion of its workflow, the controller will recreate it,
-which will get argo to rerun the workflow.
 
 ```bash
-kubectl delete workflows/openstackrestore-wf
-kubectl logs pod/openstackrestore-wf main
-kubectl describe openstackrestores/openstackrestore
+kubectl apply -f examples/test
+kubectl describe ostest
 ```
-
-### Test controller reconcilation logic (for CRD)
-
-When deleting the CRD, the corresponding workflow should be deleted.
-Argo in turn, will delete the corresponding pods.
 
 ```bash
-kubectl delete -f examples/openstackrestore/restore-example.yaml
-kubectl describe workflows/openstackrestore-wf
-kubectl describe pod/openstackrestore-wf
+kubectl apply -f examples/operational
+kubectl describe osplan
 ```
-
-
-## Openstack Upgrade CRD and Controller
-
-### Trigger an upgrade
 
 ```bash
-kubectl apply -f examples/openstackupgrade/upgrade-example.yaml
-kubectl describe openstackupgrades/openstackupgrade
-kubectl describe workflows/openstackupgrade-wf
-kubectl describe pod/openstackupgrade-wf
-kubectl logs pod/openstackupgrade-wf main
+kubectl apply -f examples/install
+kubectl describe osins
 ```
-
-### Test controller reconcilation logic (for depending workflows)
-
-Upon deletion of its workflow, the controller will recreate it,
-which will get argo to rerun the workflow.
 
 ```bash
-kubectl delete workflows/openstackupgrade-wf
-kubectl logs pod/openstackupgrade-wf main
-kubectl describe openstackupgrades/openstackupgrade
+kubectl apply -f examples/delete
+kubectl describe osdlt
 ```
 
-### Test controller reconcilation logic (for CRD)
-
-When deleting the CRD, the corresponding workflow should be deleted.
-Argo in turn, will delete the corresponding pods.
+# Simple sanity tests
 
 ```bash
-kubectl delete -f examples/openstackupgrade/upgrade-example.yaml
-kubectl describe workflows/openstackupgrade-wf
-kubectl describe pod/openstackupgrade-wf
+for i in `cat phaselist.txt`; do kubectl apply -f examples/$i; done
+
+deletephase.openstacklcm.airshipit.org/delete created
+ginstallphase.openstacklcm.airshipit.org/install created
+operationalphase.openstacklcm.airshipit.org/operational created
+planningphase.openstacklcm.airshipit.org/planning created
+rollbackphase.openstacklcm.airshipit.org/rollback created
+testphase.openstacklcm.airshipit.org/test created
+trafficdrainphase.openstacklcm.airshipit.org/trafficdrain created
+trafficrolloutphase.openstacklcm.airshipit.org/trafficrollout created
+upgradephase.openstacklcm.airshipit.org/upgrade created
 ```
-
-
-## Openstack Rollback CRD and Controller
-
-### Trigger a rollback
-
-Upon creation of the custom resource, the controller will
-- Create a new workflow owned by the customer resource.
-- Add events to the custom resources.
-- The workflow creation will get argo to react and run the workflow, and create news pods.
 
 ```bash
-kubectl apply -f examples/openstackrollback/rollback-example.yaml
-kubectl describe openstackrollbacks/openstackrollback
-kubectl describe workflows/openstackrollback-wf
-kubectl describe pod/openstackrollback-wf
-kubectl logs pod/openstackrollback-wf main
+for i in `cat phaselist.txt`; do kubectl logs pod/${i}-wf main; done
+ ____________________
+< workflow 1: delete >
+ --------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ _____________________
+< workflow 1: install >
+ ---------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ _________________________
+< workflow 1: operational >
+ -------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ ______________________
+< workflow 1: planning >
+ ----------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ ______________________
+< workflow 1: rollback >
+ ----------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ __________________
+< workflow 1: test >
+ ------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ __________________________
+< workflow 1: trafficdrain >
+ --------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ ____________________________
+< workflow 1: trafficrollout >
+ ----------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ _____________________
+< workflow 1: upgrade >
+ ---------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
 ```
-
-### Test controller reconcilation logic (for depending workflows)
-
-Upon deletion of its workflow, the controller will recreate it,
-which will get argo to rerun the workflow.
 
 ```bash
-kubectl delete workflows/openstackrollback-wf
-kubectl logs pod/openstackrollback-wf main
-kubectl describe openstackrollbacks/openstackrollback
+kubectl get all
+
+NAME                                         READY   STATUS      RESTARTS   AGE
+pod/delete-wf                                0/2     Completed   0          18s
+pod/install-wf                               0/2     Completed   0          18s
+pod/openstacklcm-operator-6745fc85f4-b5f76   1/1     Running     0          4m46s
+pod/operational-wf                           0/2     Completed   0          18s
+pod/planning-wf                              0/2     Completed   0          17s
+pod/rollback-wf                              0/2     Completed   0          16s
+pod/test-wf                                  0/2     Completed   0          15s
+pod/trafficdrain-wf                          0/2     Completed   0          14s
+pod/trafficrollout-wf                        0/2     Completed   0          14s
+pod/upgrade-wf                               0/2     Completed   0          14s
+
+NAME                            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/kubernetes              ClusterIP   10.96.0.1       <none>        443/TCP    34m
+service/openstacklcm-operator   ClusterIP   10.101.236.32   <none>        8383/TCP   33m
+
+NAME                                    READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/openstacklcm-operator   1/1     1            1           4m46s
+
+NAME                                               DESIRED   CURRENT   READY   AGE
+replicaset.apps/openstacklcm-operator-6745fc85f4   1         1         1       4m46s
 ```
-
-### Test controller reconcilation logic (for CRD)
-
-When deleting the CRD, the corresponding workflow should be deleted.
-Argo in turn, will delete the corresponding pods.
 
 ```bash
-kubectl delete -f examples/openstackrollback/rollback-example.yaml
-kubectl describe workflows/openstackrollback-wf
-kubectl describe pod/openstackrollback-wf
+for i in `cat phaselist.txt`; do kubectl delete -f examples/$i; done
+deletephase.openstacklcm.airshipit.org "delete" deleted
+installphase.openstacklcm.airshipit.org "install" deleted
+operationalphase.openstacklcm.airshipit.org "operational" deleted
+planningphase.openstacklcm.airshipit.org "planning" deleted
+rollbackphase.openstacklcm.airshipit.org "rollback" deleted
+testphase.openstacklcm.airshipit.org "test" deleted
+trafficdrainphase.openstacklcm.airshipit.org "trafficdrain" deleted
+trafficrolloutphase.openstacklcm.airshipit.org "trafficrollout" deleted
+upgradephase.openstacklcm.airshipit.org "upgrade" deleted
 ```
-
-
-## Openstack Greenfield Deployment CRD and Controller
-
-### Trigger a deployment
-
-Upon creation of the custom resource, the controller will
-- Create a new workflow owned by the customer resource.
-- Add events to the custom resources.
-- The workflow creation will get argo to react and run the workflow, and create news pods.
-
-```bash
-kubectl apply -f examples/openstackdeployment/deployment-example.yaml
-kubectl describe openstackdeployments/openstackdeployment
-kubectl describe workflows/openstackdeployment-wf
-kubectl describe pod/openstackdeployment-wf
-kubectl logs pod/openstackdeployment-wf main
-```
-
-### Test controller reconcilation logic (for depending workflows)
-
-Upon deletion of its workflow, the controller will recreate it,
-which will get argo to rerun the workflow.
-
-```bash
-kubectl delete workflows/openstackdeployment-wf
-kubectl logs pod/openstackdeployment-wf main
-kubectl describe openstackdeployments/openstackdeployment
-```
-
-### Test controller reconcilation logic (for CRD)
-
-When deleting the CRD, the corresponding workflow should be deleted.
-Argo in turn, will delete the corresponding pods.
-
-```bash
-kubectl delete -f examples/openstackdeployment/deployment-example.yaml
-kubectl describe workflows/openstackdeployment-wf
-kubectl describe pod/openstackdeployment-wf
-```
-
-

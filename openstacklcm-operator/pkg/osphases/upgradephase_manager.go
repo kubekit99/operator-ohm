@@ -20,40 +20,51 @@ import (
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 )
 
-type upgradephasemanager struct {
+type upgrademanager struct {
 	phasemanager
 
 	spec   av1.UpgradePhaseSpec
 	status *av1.UpgradePhaseStatus
-
-	deployedResource *av1.UpgradePhase
 }
 
 // Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this UpgradePhase CR
-func (m *upgradephasemanager) Sync(ctx context.Context) error {
-	m.deployedResource = &av1.UpgradePhase{}
-	m.isInstalled = true
-	m.isUpdateRequired = false
+func (m *upgrademanager) Sync(ctx context.Context) error {
+
+	m.deployedSubResourceList = av1.NewSubResourceList(m.namespace, m.resourceName)
+
+	rendered, deployed, err := m.sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	m.deployedSubResourceList = deployed
+	if len(rendered.Items) != len(deployed.Items) {
+		m.isInstalled = false
+		m.isUpdateRequired = false
+	} else {
+		m.isInstalled = true
+		m.isUpdateRequired = false
+	}
 
 	return nil
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this UpgradePhase CR
-func (m upgradephasemanager) InstallResource(ctx context.Context) (*av1.UpgradePhase, error) {
-	return &av1.UpgradePhase{}, nil
+func (m upgrademanager) InstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.installResource(ctx)
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this UpgradePhase CR
-func (m upgradephasemanager) UpdateResource(ctx context.Context) (*av1.UpgradePhase, *av1.UpgradePhase, error) {
-	return m.deployedResource, &av1.UpgradePhase{}, nil
+func (m upgrademanager) UpdateResource(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
+	return m.updateResource(ctx)
 }
 
 // ReconcileResource creates or patches resources as necessary to match this UpgradePhase CR
-func (m upgradephasemanager) ReconcileResource(ctx context.Context) (*av1.UpgradePhase, error) {
-	return m.deployedResource, nil
+func (m upgrademanager) ReconcileResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.reconcileResource(ctx)
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this UpgradePhase CR
-func (m upgradephasemanager) UninstallResource(ctx context.Context) (*av1.UpgradePhase, error) {
-	return &av1.UpgradePhase{}, nil
+func (m upgrademanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.uninstallResource(ctx)
 }

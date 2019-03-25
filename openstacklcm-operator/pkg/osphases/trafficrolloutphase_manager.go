@@ -20,40 +20,51 @@ import (
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 )
 
-type trafficrolloutphasemanager struct {
+type trafficrolloutmanager struct {
 	phasemanager
 
 	spec   av1.TrafficRolloutPhaseSpec
 	status *av1.TrafficRolloutPhaseStatus
-
-	deployedResource *av1.TrafficRolloutPhase
 }
 
 // Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this TrafficRolloutPhase CR
-func (m *trafficrolloutphasemanager) Sync(ctx context.Context) error {
-	m.deployedResource = &av1.TrafficRolloutPhase{}
-	m.isInstalled = true
-	m.isUpdateRequired = false
+func (m *trafficrolloutmanager) Sync(ctx context.Context) error {
+
+	m.deployedSubResourceList = av1.NewSubResourceList(m.namespace, m.resourceName)
+
+	rendered, deployed, err := m.sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	m.deployedSubResourceList = deployed
+	if len(rendered.Items) != len(deployed.Items) {
+		m.isInstalled = false
+		m.isUpdateRequired = false
+	} else {
+		m.isInstalled = true
+		m.isUpdateRequired = false
+	}
 
 	return nil
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this TrafficRolloutPhase CR
-func (m trafficrolloutphasemanager) InstallResource(ctx context.Context) (*av1.TrafficRolloutPhase, error) {
-	return &av1.TrafficRolloutPhase{}, nil
+func (m trafficrolloutmanager) InstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.installResource(ctx)
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this TrafficRolloutPhase CR
-func (m trafficrolloutphasemanager) UpdateResource(ctx context.Context) (*av1.TrafficRolloutPhase, *av1.TrafficRolloutPhase, error) {
-	return m.deployedResource, &av1.TrafficRolloutPhase{}, nil
+func (m trafficrolloutmanager) UpdateResource(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
+	return m.updateResource(ctx)
 }
 
 // ReconcileResource creates or patches resources as necessary to match this TrafficRolloutPhase CR
-func (m trafficrolloutphasemanager) ReconcileResource(ctx context.Context) (*av1.TrafficRolloutPhase, error) {
-	return m.deployedResource, nil
+func (m trafficrolloutmanager) ReconcileResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.reconcileResource(ctx)
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this TrafficRolloutPhase CR
-func (m trafficrolloutphasemanager) UninstallResource(ctx context.Context) (*av1.TrafficRolloutPhase, error) {
-	return &av1.TrafficRolloutPhase{}, nil
+func (m trafficrolloutmanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
+	return m.uninstallResource(ctx)
 }
