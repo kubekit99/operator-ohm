@@ -1,0 +1,7 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: TrafficDrainPhase
+metadata:
+  name: trafficdrain
+spec:
+  openstackVersion: moc.version.to.trafficdrain.to
+  openstackRevision: 3

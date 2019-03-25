@@ -1,12 +1,17 @@
 apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: OpenstackRestore
+kind: UpgradePhase
 metadata:
-  name: openstackrestore
+  name: upgrade
 spec:
-  backupStorageType: offsite
+  openstackVersion: moc.version.to.upgrade.to
+  openstackRevision: 3
+  storageType: offsite
+  backupPolicy:
+    timeoutInSecond: 3
   # ceph:
   #   cephSecret: thesecret
   #   path: example
+  clientTLSSecret: client.crt
   offsite:
     endpoint: sftp://foo.bar
     forcePathStyle: true

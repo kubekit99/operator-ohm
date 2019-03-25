@@ -1,0 +1,7 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: DeletePhase
+metadata:
+  name: delete
+spec:
+  openstackVersion: moc.version.to.delete.to
+  openstackRevision: 3

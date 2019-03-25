@@ -11,25 +11,12 @@ import (
 
 // TestPhaseSpec defines the desired state of TestPhase
 type TestPhaseSpec struct {
-	// OpenstackVersion is the version of the backup openstack server.
-	OpenstackVersion string `json:"openstackVersion,omitempty"`
-	// OpenstackRevision is the revision of openstack's KV store where the backup is performed on.
-	OpenstackRevision int32 `json:"openstackRevision,omitempty"`
-
-	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
-	AdminState OpenstackLcmAdminState `json:"admin_state"`
-	// Target state of the Lcm Custom Resources
-	TargetState LcmResourceState `json:"target_state"`
-	// revisionHistoryLimit is the maximum number of revisions that will
-	// be maintained in the TestPhase's revision history. The revision history
-	// consists of all revisions not represented by a currently applied
-	// TestPhaseSpec version. The default value is 10.
-	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
+	PhaseSpec `json:",inline"`
 }
 
 // TestPhaseStatus defines the observed state of TestPhase
 type TestPhaseStatus struct {
-	OpenstackLcmStatus `json:",inline"`
+	PhaseStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -37,7 +24,7 @@ type TestPhaseStatus struct {
 // TestPhase is the Schema for the openstackdeployments API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=testphases,shortName=osvc
+// +kubebuilder:resource:path=testphases,shortName=ostest
 // +kubebuilder:printcolumn:name="Succeeded",type="boolean",JSONPath=".status.succeeded",description="Succeeded"
 type TestPhase struct {
 	metav1.TypeMeta   `json:",inline"`

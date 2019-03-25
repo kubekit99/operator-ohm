@@ -21,7 +21,6 @@ import (
 	"time"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
-	utils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
 	oslcmgr "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/oslc"
 	services "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 
@@ -310,7 +309,7 @@ func (r OslcReconciler) ensureSynced(mgr services.OslcManager, instance *av1.Osl
 // the finalizers were changed, false otherwise
 func (r OslcReconciler) updateFinalizers(instance *av1.Oslc) (bool, error) {
 	pendingFinalizers := instance.GetFinalizers()
-	if !instance.IsDeleted() && !utils.FinalizerContainsString(pendingFinalizers, finalizerOslc) {
+	if !instance.IsDeleted() && !r.contains(pendingFinalizers, finalizerOslc) {
 		finalizers := append(pendingFinalizers, finalizerOslc)
 		instance.SetFinalizers(finalizers)
 		err := r.updateResource(instance)
@@ -336,7 +335,7 @@ func (r OslcReconciler) deleteOslc(mgr services.OslcManager, instance *av1.Oslc)
 	reclog.Info("Deleting")
 
 	pendingFinalizers := instance.GetFinalizers()
-	if !utils.FinalizerContainsString(pendingFinalizers, finalizerOslc) {
+	if !r.contains(pendingFinalizers, finalizerOslc) {
 		reclog.Info("Oslc is terminated, skipping reconciliation")
 		return false, nil
 	}
@@ -523,4 +522,13 @@ func (r OslcReconciler) isReconcileDisabled(instance *av1.Oslc) bool {
 		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		return false
 	}
+}
+
+func (r OslcReconciler) contains(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
 }

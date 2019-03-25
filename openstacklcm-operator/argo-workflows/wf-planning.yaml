@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: openstackbackup-wf
+  name: planning-wf
 spec:
   entrypoint: whalesay
   templates:
@@ -9,4 +9,4 @@ spec:
     container:
       image: docker/whalesay:latest
       command: [cowsay]
-      args: ["workflow 1: openstackbackup"]
+      args: ["workflow 1: planning"]

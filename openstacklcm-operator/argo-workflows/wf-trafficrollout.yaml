@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: openstackdeployment-wf
+  name: trafficrollout-wf
 spec:
   entrypoint: whalesay
   templates:
@@ -9,4 +9,4 @@ spec:
     container:
       image: docker/whalesay:latest
       command: [cowsay]
-      args: ["workflow 2: openstackdeployment"]
+      args: ["workflow 1: trafficrollout"]

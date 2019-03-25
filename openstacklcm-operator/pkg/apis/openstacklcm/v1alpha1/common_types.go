@@ -168,6 +168,12 @@ type OpenstackLcmStatus struct {
 	ActualState LcmResourceState `json:"actual_state"`
 	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
 	Conditions []LcmResourceCondition `json:"conditions,omitempty"`
+}
+
+// PhaseStatus represents the common attributes shared amongst armada resources
+type PhaseStatus struct {
+	OpenstackLcmStatus `json:",inline"`
+
 	// OpenstackVersion is the version of the backup openstack server.
 	OpenstackVersion string `json:"openstackVersion,omitempty"`
 	// OpenstackRevision is the revision of openstack's KV store where the backup is performed on.
@@ -323,6 +329,24 @@ func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, targe
 			s.Reason = ""
 		}
 	}
+}
+
+// PhaseSpec defines the desired state of DeletePhase
+type PhaseSpec struct {
+	// OpenstackVersion is the version of the backup openstack server.
+	OpenstackVersion string `json:"openstackVersion,omitempty"`
+	// OpenstackRevision is the revision of openstack's KV store where the backup is performed on.
+	OpenstackRevision int32 `json:"openstackRevision,omitempty"`
+
+	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
+	AdminState OpenstackLcmAdminState `json:"admin_state"`
+	// Target state of the Lcm Custom Resources
+	TargetState LcmResourceState `json:"target_state"`
+	// revisionHistoryLimit is the maximum number of revisions that will
+	// be maintained in the DeletePhase's revision history. The revision history
+	// consists of all revisions not represented by a currently applied
+	// DeletePhaseSpec version. The default value is 10.
+	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

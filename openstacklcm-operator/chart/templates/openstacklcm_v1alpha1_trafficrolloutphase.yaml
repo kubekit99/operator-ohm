@@ -16,7 +16,7 @@ spec:
     kind: TrafficRolloutPhase
     plural: trafficrolloutphases
     shortNames:
-    - osvc
+    - osroll
   scope: Namespaced
   subresources:
     status: {}
@@ -48,10 +48,9 @@ spec:
               type: string
             revisionHistoryLimit:
               description: revisionHistoryLimit is the maximum number of revisions
-                that will be maintained in the TrafficRolloutPhase's revision history.
-                The revision history consists of all revisions not represented by
-                a currently applied TrafficRolloutPhaseSpec version. The default value
-                is 10.
+                that will be maintained in the DeletePhase's revision history. The
+                revision history consists of all revisions not represented by a currently
+                applied DeletePhaseSpec version. The default value is 10.
               format: int32
               type: integer
           type: object

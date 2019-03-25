@@ -75,19 +75,25 @@ rules:
 - apiGroups:
   - openstacklcm.airshipit.org
   resources:
-  - openstackbackups
-  - openstackbackups/status
-  - openstackrestores
-  - openstackrestores/status
-  - openstackrollbacks
-  - openstackrollbacks/status
-  - openstackupgrades
-  - openstackupgrades/status
-  - openstackbackups
-  - openstackbackups/status
-  - openstackdeployments
-  - openstackdeployments/status
   - oslcs
   - oslcs/status
+  - deletephases
+  - deletephases/status
+  - installphases
+  - installphases/status
+  - operationalphases
+  - operationalphases/status
+  - planningphases
+  - planningphases/status
+  - rollbackphases
+  - rollbackphases/status
+  - testphases
+  - testphases/status
+  - trafficdrainphases
+  - trafficdrainphases/status
+  - trafficrolloutphases
+  - trafficrolloutphases/status
+  - upgradephases
+  - upgradephases/status
   verbs:
   - '*'

@@ -1,15 +1,14 @@
 apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: OpenstackBackup
+kind: RollbackPhase
 metadata:
-  name: openstackbackup
+  name: rollback
 spec:
-  storageType: offsite
-  backupPolicy:
-    timeoutInSecond: 3
+  openstackVersion: moc.version.to.rollback.to
+  openstackRevision: 3
+  backupStorageType: offsite
   # ceph:
   #   cephSecret: thesecret
   #   path: example
-  clientTLSSecret: client.crt
   offsite:
     endpoint: sftp://foo.bar
     forcePathStyle: true

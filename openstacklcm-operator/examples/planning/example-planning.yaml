@@ -1,0 +1,7 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: PlanningPhase
+metadata:
+  name: planning
+spec:
+  openstackVersion: moc.version.to.planning.to
+  openstackRevision: 3

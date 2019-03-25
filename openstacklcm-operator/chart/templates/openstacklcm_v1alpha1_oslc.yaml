@@ -16,7 +16,7 @@ spec:
     kind: Oslc
     plural: oslcs
     shortNames:
-    - osvc
+    - oslc
   scope: Namespaced
   subresources:
     status: {}
@@ -48,9 +48,9 @@ spec:
               type: string
             revisionHistoryLimit:
               description: revisionHistoryLimit is the maximum number of revisions
-                that will be maintained in the Oslc's revision history. The revision
-                history consists of all revisions not represented by a currently applied
-                OslcSpec version. The default value is 10.
+                that will be maintained in the DeletePhase's revision history. The
+                revision history consists of all revisions not represented by a currently
+                applied DeletePhaseSpec version. The default value is 10.
               format: int32
               type: integer
           type: object
@@ -82,15 +82,6 @@ spec:
                 - status
                 type: object
               type: array
-            openstackRevision:
-              description: OpenstackRevision is the revision of openstack's KV store
-                where the backup is performed on.
-              format: int64
-              type: integer
-            openstackVersion:
-              description: OpenstackVersion is the version of the backup openstack
-                server.
-              type: string
             reason:
               description: Reason indicates the reason for any related failures.
               type: string

@@ -1,7 +1,0 @@
-apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: OpenstackDeployment
-metadata:
-  name: openstackdeployment
-spec:
-  openstackVersion: moc.version.to.deploy
-  openstackRevision: 3

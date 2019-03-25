@@ -1,7 +1,0 @@
-apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: OpenstackUpgrade
-metadata:
-  name: openstackupgrade
-spec:
-  openstackVersion: moc.version.to.upgrade.to
-  openstackRevision: 3

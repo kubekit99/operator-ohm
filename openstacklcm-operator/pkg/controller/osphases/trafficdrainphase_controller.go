@@ -20,7 +20,6 @@ import (
 	"reflect"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
-	utils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
 	trafficdrainphasemgr "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/osphases"
 	services "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 
@@ -98,7 +97,7 @@ func addTrafficDrainPhase(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 
 		// Reconcile when a dependent resource is updated, so that it can
-		// be patched back to the resource managed by the Helm release, if
+		// be patched back to the resource managed by the Argo workflow, if
 		// necessary. Ignore updates that only change the status and
 		// resourceVersion.
 		UpdateFunc: func(e event.UpdateEvent) bool {
@@ -122,12 +121,12 @@ func addTrafficDrainPhase(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 	}
 
-	// Watch for changes to secondary resource (described in the helm chart) and requeue the owner TrafficDrainPhase
+	// Watch for changes to secondary resource (described in the yaml files) and requeue the owner TrafficDrainPhase
 	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
 	// that created the object that was the source of the Event
 	if racr, isTrafficDrainPhaseReconciler := r.(*TrafficDrainPhaseReconciler); isTrafficDrainPhaseReconciler {
 		// The enqueueRequestForOwner is not actually done here since we don't know yet the
-		// content of the release. The tools wait for the helm chart to be parse. The chart_manager
+		// content of the yaml files. The tools wait for the yaml files to be parse. The manager
 		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
 		owner := av1.NewTrafficDrainPhaseVersionKind("", "")
 		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c, dependentPredicate)
@@ -141,7 +140,7 @@ func addTrafficDrainPhase(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &TrafficDrainPhaseReconciler{}
 
-// TrafficDrainPhaseReconciler reconciles custom resources as Helm releases.
+// TrafficDrainPhaseReconciler reconciles custom resources as Argo workflows.
 type TrafficDrainPhaseReconciler struct {
 	PhaseReconciler
 }
@@ -301,7 +300,7 @@ func (r TrafficDrainPhaseReconciler) ensureSynced(mgr services.TrafficDrainPhase
 // the finalizers were changed, false otherwise
 func (r TrafficDrainPhaseReconciler) updateFinalizers(instance *av1.TrafficDrainPhase) (bool, error) {
 	pendingFinalizers := instance.GetFinalizers()
-	if !instance.IsDeleted() && !utils.FinalizerContainsString(pendingFinalizers, finalizerTrafficDrainPhase) {
+	if !instance.IsDeleted() && !r.contains(pendingFinalizers, finalizerTrafficDrainPhase) {
 		finalizers := append(pendingFinalizers, finalizerTrafficDrainPhase)
 		instance.SetFinalizers(finalizers)
 		err := r.updateResource(instance)
@@ -327,7 +326,7 @@ func (r TrafficDrainPhaseReconciler) deleteTrafficDrainPhase(mgr services.Traffi
 	reclog.Info("Deleting")
 
 	pendingFinalizers := instance.GetFinalizers()
-	if !utils.FinalizerContainsString(pendingFinalizers, finalizerTrafficDrainPhase) {
+	if !r.contains(pendingFinalizers, finalizerTrafficDrainPhase) {
 		reclog.Info("TrafficDrainPhase is terminated, skipping reconciliation")
 		return false, nil
 	}
@@ -462,7 +461,7 @@ func (r TrafficDrainPhaseReconciler) updateTrafficDrainPhase(mgr services.Traffi
 	return true, err
 }
 
-// reconcileTrafficDrainPhase reconciles the release with the cluster
+// reconcileTrafficDrainPhase reconciles the yaml files with the cluster
 func (r TrafficDrainPhaseReconciler) reconcileTrafficDrainPhase(mgr services.TrafficDrainPhaseManager, instance *av1.TrafficDrainPhase) error {
 	reclog := trafficdrainphaselog.WithValues("namespace", instance.Namespace, "trafficdrainphase", instance.Name)
 	reclog.Info("Reconciling TrafficDrainPhase and LcmResource")

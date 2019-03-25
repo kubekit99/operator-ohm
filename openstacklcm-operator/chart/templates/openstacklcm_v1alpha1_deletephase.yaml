@@ -16,7 +16,7 @@ spec:
     kind: DeletePhase
     plural: deletephases
     shortNames:
-    - osvc
+    - osdlt
   scope: Namespaced
   subresources:
     status: {}

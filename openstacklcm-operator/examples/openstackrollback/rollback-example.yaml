@@ -1,7 +1,0 @@
-apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: OpenstackRollback
-metadata:
-  name: openstackrollback
-spec:
-  openstackVersion: moc.version.to.rollback.to
-  openstackRevision: 3

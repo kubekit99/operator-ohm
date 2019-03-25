@@ -16,7 +16,7 @@ spec:
     kind: RollbackPhase
     plural: rollbackphases
     shortNames:
-    - osvc
+    - osrbck
   scope: Namespaced
   subresources:
     status: {}
@@ -48,9 +48,9 @@ spec:
               type: string
             revisionHistoryLimit:
               description: revisionHistoryLimit is the maximum number of revisions
-                that will be maintained in the RollbackPhase's revision history. The
+                that will be maintained in the DeletePhase's revision history. The
                 revision history consists of all revisions not represented by a currently
-                applied RollbackPhaseSpec version. The default value is 10.
+                applied DeletePhaseSpec version. The default value is 10.
               format: int32
               type: integer
           type: object

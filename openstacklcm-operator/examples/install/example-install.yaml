@@ -1,0 +1,7 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: InstallPhase
+metadata:
+  name: install
+spec:
+  openstackVersion: moc.version.to.install.to
+  openstackRevision: 3

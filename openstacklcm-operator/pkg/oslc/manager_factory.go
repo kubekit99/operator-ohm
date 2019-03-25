@@ -24,11 +24,12 @@ import (
 type managerFactory struct {
 }
 
-// NewManagerFactory returns a new Helm manager factory capable of installing and uninstalling releases.
+// NewManagerFactory returns a new factory.
 func NewManagerFactory(mgr manager.Manager) lcmif.OslcManagerFactory {
 	return &managerFactory{}
 }
 
+// NewOslcManager returns a new OslcManagerr factory capable of managing an Openstack Service Lifecyle
 func (f managerFactory) NewOslcManager(r *av1.Oslc) lcmif.OslcManager {
 	return &oslcmanager{
 		renderer:  nil,

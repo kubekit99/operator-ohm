@@ -11,25 +11,12 @@ import (
 
 // TrafficRolloutPhaseSpec defines the desired state of TrafficRolloutPhase
 type TrafficRolloutPhaseSpec struct {
-	// OpenstackVersion is the version of the backup openstack server.
-	OpenstackVersion string `json:"openstackVersion,omitempty"`
-	// OpenstackRevision is the revision of openstack's KV store where the backup is performed on.
-	OpenstackRevision int32 `json:"openstackRevision,omitempty"`
-
-	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
-	AdminState OpenstackLcmAdminState `json:"admin_state"`
-	// Target state of the Lcm Custom Resources
-	TargetState LcmResourceState `json:"target_state"`
-	// revisionHistoryLimit is the maximum number of revisions that will
-	// be maintained in the TrafficRolloutPhase's revision history. The revision history
-	// consists of all revisions not represented by a currently applied
-	// TrafficRolloutPhaseSpec version. The default value is 10.
-	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
+	PhaseSpec `json:",inline"`
 }
 
 // TrafficRolloutPhaseStatus defines the observed state of TrafficRolloutPhase
 type TrafficRolloutPhaseStatus struct {
-	OpenstackLcmStatus `json:",inline"`
+	PhaseStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -37,7 +24,7 @@ type TrafficRolloutPhaseStatus struct {
 // TrafficRolloutPhase is the Schema for the openstackdeployments API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=trafficrolloutphases,shortName=osvc
+// +kubebuilder:resource:path=trafficrolloutphases,shortName=osroll
 // +kubebuilder:printcolumn:name="Succeeded",type="boolean",JSONPath=".status.succeeded",description="Succeeded"
 type TrafficRolloutPhase struct {
 	metav1.TypeMeta   `json:",inline"`

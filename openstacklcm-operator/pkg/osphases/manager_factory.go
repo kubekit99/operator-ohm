@@ -24,7 +24,7 @@ import (
 type managerFactory struct {
 }
 
-// NewManagerFactory returns a new Helm manager factory capable of installing and uninstalling releases.
+// NewManagerFactory returns a new factory.
 func NewManagerFactory(mgr manager.Manager) lcmif.PhaseManagerFactory {
 	return &managerFactory{}
 }

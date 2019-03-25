@@ -20,7 +20,6 @@ import (
 	"reflect"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
-	utils "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/controller/utils"
 	rollbackphasemgr "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/osphases"
 	services "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 
@@ -98,7 +97,7 @@ func addRollbackPhase(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 
 		// Reconcile when a dependent resource is updated, so that it can
-		// be patched back to the resource managed by the Helm release, if
+		// be patched back to the resource managed by the Argo workflow, if
 		// necessary. Ignore updates that only change the status and
 		// resourceVersion.
 		UpdateFunc: func(e event.UpdateEvent) bool {
@@ -122,12 +121,12 @@ func addRollbackPhase(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 	}
 
-	// Watch for changes to secondary resource (described in the helm chart) and requeue the owner RollbackPhase
+	// Watch for changes to secondary resource (described in the yaml files) and requeue the owner RollbackPhase
 	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
 	// that created the object that was the source of the Event
 	if racr, isRollbackPhaseReconciler := r.(*RollbackPhaseReconciler); isRollbackPhaseReconciler {
 		// The enqueueRequestForOwner is not actually done here since we don't know yet the
-		// content of the release. The tools wait for the helm chart to be parse. The chart_manager
+		// content of the yaml files. The tools wait for the yaml files to be parse. The manager
 		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
 		owner := av1.NewRollbackPhaseVersionKind("", "")
 		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c, dependentPredicate)
@@ -141,7 +140,7 @@ func addRollbackPhase(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &RollbackPhaseReconciler{}
 
-// RollbackPhaseReconciler reconciles custom resources as Helm releases.
+// RollbackPhaseReconciler reconciles custom resources as Argo workflows.
 type RollbackPhaseReconciler struct {
 	PhaseReconciler
 }
@@ -301,7 +300,7 @@ func (r RollbackPhaseReconciler) ensureSynced(mgr services.RollbackPhaseManager,
 // the finalizers were changed, false otherwise
 func (r RollbackPhaseReconciler) updateFinalizers(instance *av1.RollbackPhase) (bool, error) {
 	pendingFinalizers := instance.GetFinalizers()
-	if !instance.IsDeleted() && !utils.FinalizerContainsString(pendingFinalizers, finalizerRollbackPhase) {
+	if !instance.IsDeleted() && !r.contains(pendingFinalizers, finalizerRollbackPhase) {
 		finalizers := append(pendingFinalizers, finalizerRollbackPhase)
 		instance.SetFinalizers(finalizers)
 		err := r.updateResource(instance)
@@ -327,7 +326,7 @@ func (r RollbackPhaseReconciler) deleteRollbackPhase(mgr services.RollbackPhaseM
 	reclog.Info("Deleting")
 
 	pendingFinalizers := instance.GetFinalizers()
-	if !utils.FinalizerContainsString(pendingFinalizers, finalizerRollbackPhase) {
+	if !r.contains(pendingFinalizers, finalizerRollbackPhase) {
 		reclog.Info("RollbackPhase is terminated, skipping reconciliation")
 		return false, nil
 	}
@@ -462,7 +461,7 @@ func (r RollbackPhaseReconciler) updateRollbackPhase(mgr services.RollbackPhaseM
 	return true, err
 }
 
-// reconcileRollbackPhase reconciles the release with the cluster
+// reconcileRollbackPhase reconciles the yaml files with the cluster
 func (r RollbackPhaseReconciler) reconcileRollbackPhase(mgr services.RollbackPhaseManager, instance *av1.RollbackPhase) error {
 	reclog := rollbackphaselog.WithValues("namespace", instance.Namespace, "rollbackphase", instance.Name)
 	reclog.Info("Reconciling RollbackPhase and LcmResource")

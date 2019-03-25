@@ -1,0 +1,7 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: OperationalPhase
+metadata:
+  name: operational
+spec:
+  openstackVersion: moc.version.to.operational.to
+  openstackRevision: 3
