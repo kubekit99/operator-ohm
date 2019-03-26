@@ -48,13 +48,14 @@ func AddOperationalPhaseController(mgr manager.Manager) error {
 
 // newOperationalPhaseReconciler returns a new reconcile.Reconciler
 func newOperationalPhaseReconciler(mgr manager.Manager) reconcile.Reconciler {
-	r := &OperationalPhaseReconciler{PhaseReconciler: PhaseReconciler{
-		client:         mgr.GetClient(),
-		scheme:         mgr.GetScheme(),
-		recorder:       mgr.GetRecorder("operationalphase-recorder"),
-		managerFactory: operationalphasemgr.NewManagerFactory(mgr),
-		// reconcilePeriod: flags.ReconcilePeriod,
-	},
+	r := &OperationalPhaseReconciler{
+		PhaseReconciler: PhaseReconciler{
+			client:         mgr.GetClient(),
+			scheme:         mgr.GetScheme(),
+			recorder:       mgr.GetRecorder("operationalphase-recorder"),
+			managerFactory: operationalphasemgr.NewManagerFactory(mgr),
+			// reconcilePeriod: flags.ReconcilePeriod,
+		},
 	}
 	return r
 }
@@ -202,15 +203,15 @@ func (r *OperationalPhaseReconciler) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, err
 	}
 
-	// if instance.IsSatisfied() {
-	// 	reclog.Info("Already satisfied; skipping")
-	// 	err = r.updateResource(instance)
-	// 	if err != nil {
-	// 		return reconcile.Result{}, err
-	// 	}
-	// 	err = r.client.Status().Update(context.TODO(), instance)
-	// 	return reconcile.Result{}, err
-	// }
+	if instance.IsSatisfied() {
+		reclog.Info("Already satisfied; skipping")
+		err = r.updateResource(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		err = r.client.Status().Update(context.TODO(), instance)
+		return reconcile.Result{}, err
+	}
 
 	hrc := av1.LcmResourceCondition{
 		Type:   av1.ConditionInitialized,
@@ -487,30 +488,4 @@ func (r OperationalPhaseReconciler) reconcileOperationalPhase(mgr services.Opera
 		return err
 	}
 	return nil
-}
-
-// isReconcileDisabled
-func (r OperationalPhaseReconciler) isReconcileDisabled(instance *av1.OperationalPhase) bool {
-	// JEB: Not sure if we need to add this new ConditionEnabled
-	// or we can just used the ConditionInitialized
-	if instance.IsDisabled() {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusFalse,
-			Reason: "OperationalPhase is disabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		_ = r.updateResourceStatus(instance)
-		return true
-	} else {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusTrue,
-			Reason: "OperationalPhase is enabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		return false
-	}
 }

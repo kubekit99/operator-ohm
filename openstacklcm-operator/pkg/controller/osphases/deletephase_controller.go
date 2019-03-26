@@ -48,13 +48,14 @@ func AddDeletePhaseController(mgr manager.Manager) error {
 
 // newDeletePhaseReconciler returns a new reconcile.Reconciler
 func newDeletePhaseReconciler(mgr manager.Manager) reconcile.Reconciler {
-	r := &DeletePhaseReconciler{PhaseReconciler: PhaseReconciler{
-		client:         mgr.GetClient(),
-		scheme:         mgr.GetScheme(),
-		recorder:       mgr.GetRecorder("deletephase-recorder"),
-		managerFactory: deletephasemgr.NewManagerFactory(mgr),
-		// reconcilePeriod: flags.ReconcilePeriod,
-	},
+	r := &DeletePhaseReconciler{
+		PhaseReconciler: PhaseReconciler{
+			client:         mgr.GetClient(),
+			scheme:         mgr.GetScheme(),
+			recorder:       mgr.GetRecorder("deletephase-recorder"),
+			managerFactory: deletephasemgr.NewManagerFactory(mgr),
+			// reconcilePeriod: flags.ReconcilePeriod,
+		},
 	}
 	return r
 }
@@ -487,30 +488,4 @@ func (r DeletePhaseReconciler) reconcileDeletePhase(mgr services.DeletePhaseMana
 		return err
 	}
 	return nil
-}
-
-// isReconcileDisabled
-func (r DeletePhaseReconciler) isReconcileDisabled(instance *av1.DeletePhase) bool {
-	// JEB: Not sure if we need to add this new ConditionEnabled
-	// or we can just used the ConditionInitialized
-	if instance.IsDisabled() {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusFalse,
-			Reason: "DeletePhase is disabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		_ = r.updateResourceStatus(instance)
-		return true
-	} else {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusTrue,
-			Reason: "DeletePhase is enabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		return false
-	}
 }

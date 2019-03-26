@@ -83,16 +83,6 @@ func (obj *Oslc) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsEnabled returns true if the chart group if managed by the reconcilier
-func (obj *Oslc) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
-}
-
-// IsDisabled returns true if the chart group is not managed by the reconcilier
-func (obj *Oslc) IsDisabled() bool {
-	return !obj.IsEnabled()
-}
-
 // IsSatisfied returns true if the chart's actual state meets its target state
 func (obj *Oslc) IsSatisfied() bool {
 	return obj.Spec.TargetState == obj.Status.ActualState
@@ -100,14 +90,6 @@ func (obj *Oslc) IsSatisfied() bool {
 
 func (obj *Oslc) GetName() string {
 	return obj.ObjectMeta.Name
-}
-
-func (obj *Oslc) GetNotes() string {
-	return "Notes"
-}
-
-func (obj *Oslc) GetVersion() int32 {
-	return obj.Spec.OpenstackRevision
 }
 
 // Returns a GKV for Oslc

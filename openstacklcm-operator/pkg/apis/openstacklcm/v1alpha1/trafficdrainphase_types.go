@@ -83,16 +83,6 @@ func (obj *TrafficDrainPhase) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsEnabled returns true if the chart group if managed by the reconcilier
-func (obj *TrafficDrainPhase) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
-}
-
-// IsDisabled returns true if the chart group is not managed by the reconcilier
-func (obj *TrafficDrainPhase) IsDisabled() bool {
-	return !obj.IsEnabled()
-}
-
 // IsSatisfied returns true if the chart's actual state meets its target state
 func (obj *TrafficDrainPhase) IsSatisfied() bool {
 	return obj.Spec.TargetState == obj.Status.ActualState
@@ -100,14 +90,6 @@ func (obj *TrafficDrainPhase) IsSatisfied() bool {
 
 func (obj *TrafficDrainPhase) GetName() string {
 	return obj.ObjectMeta.Name
-}
-
-func (obj *TrafficDrainPhase) GetNotes() string {
-	return "Notes"
-}
-
-func (obj *TrafficDrainPhase) GetVersion() int32 {
-	return obj.Spec.OpenstackRevision
 }
 
 // Returns a GKV for TrafficDrainPhase

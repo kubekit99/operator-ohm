@@ -48,13 +48,14 @@ func AddTestPhaseController(mgr manager.Manager) error {
 
 // newTestPhaseReconciler returns a new reconcile.Reconciler
 func newTestPhaseReconciler(mgr manager.Manager) reconcile.Reconciler {
-	r := &TestPhaseReconciler{PhaseReconciler: PhaseReconciler{
-		client:         mgr.GetClient(),
-		scheme:         mgr.GetScheme(),
-		recorder:       mgr.GetRecorder("testphase-recorder"),
-		managerFactory: testphasemgr.NewManagerFactory(mgr),
-		// reconcilePeriod: flags.ReconcilePeriod,
-	},
+	r := &TestPhaseReconciler{
+		PhaseReconciler: PhaseReconciler{
+			client:         mgr.GetClient(),
+			scheme:         mgr.GetScheme(),
+			recorder:       mgr.GetRecorder("testphase-recorder"),
+			managerFactory: testphasemgr.NewManagerFactory(mgr),
+			// reconcilePeriod: flags.ReconcilePeriod,
+		},
 	}
 	return r
 }
@@ -487,30 +488,4 @@ func (r TestPhaseReconciler) reconcileTestPhase(mgr services.TestPhaseManager, i
 		return err
 	}
 	return nil
-}
-
-// isReconcileDisabled
-func (r TestPhaseReconciler) isReconcileDisabled(instance *av1.TestPhase) bool {
-	// JEB: Not sure if we need to add this new ConditionEnabled
-	// or we can just used the ConditionInitialized
-	if instance.IsDisabled() {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusFalse,
-			Reason: "TestPhase is disabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		_ = r.updateResourceStatus(instance)
-		return true
-	} else {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusTrue,
-			Reason: "TestPhase is enabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		return false
-	}
 }

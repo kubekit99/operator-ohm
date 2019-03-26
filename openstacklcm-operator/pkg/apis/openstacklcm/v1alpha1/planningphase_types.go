@@ -83,16 +83,6 @@ func (obj *PlanningPhase) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsEnabled returns true if the chart group if managed by the reconcilier
-func (obj *PlanningPhase) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
-}
-
-// IsDisabled returns true if the chart group is not managed by the reconcilier
-func (obj *PlanningPhase) IsDisabled() bool {
-	return !obj.IsEnabled()
-}
-
 // IsSatisfied returns true if the chart's actual state meets its target state
 func (obj *PlanningPhase) IsSatisfied() bool {
 	return obj.Spec.TargetState == obj.Status.ActualState
@@ -100,14 +90,6 @@ func (obj *PlanningPhase) IsSatisfied() bool {
 
 func (obj *PlanningPhase) GetName() string {
 	return obj.ObjectMeta.Name
-}
-
-func (obj *PlanningPhase) GetNotes() string {
-	return "Notes"
-}
-
-func (obj *PlanningPhase) GetVersion() int32 {
-	return obj.Spec.OpenstackRevision
 }
 
 // Returns a GKV for PlanningPhase

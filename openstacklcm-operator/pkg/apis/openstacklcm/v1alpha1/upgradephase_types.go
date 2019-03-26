@@ -83,16 +83,6 @@ func (obj *UpgradePhase) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsEnabled returns true if the chart group if managed by the reconcilier
-func (obj *UpgradePhase) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
-}
-
-// IsDisabled returns true if the chart group is not managed by the reconcilier
-func (obj *UpgradePhase) IsDisabled() bool {
-	return !obj.IsEnabled()
-}
-
 // IsSatisfied returns true if the chart's actual state meets its target state
 func (obj *UpgradePhase) IsSatisfied() bool {
 	return obj.Spec.TargetState == obj.Status.ActualState
@@ -100,14 +90,6 @@ func (obj *UpgradePhase) IsSatisfied() bool {
 
 func (obj *UpgradePhase) GetName() string {
 	return obj.ObjectMeta.Name
-}
-
-func (obj *UpgradePhase) GetNotes() string {
-	return "Notes"
-}
-
-func (obj *UpgradePhase) GetVersion() int32 {
-	return obj.Spec.OpenstackRevision
 }
 
 // Returns a GKV for UpgradePhase

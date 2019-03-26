@@ -19,14 +19,14 @@ import (
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 )
 
-// Manager manages a Openstack Service . It can deploy, upgrade, backupi, restore
+// Manager manages a Openstack Service . It can deploy, upgrade, backup, restore
 type OslcManager interface {
-	ReleaseName() string
+	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallRelease(context.Context) (*av1.Oslc, error)
-	UpdateRelease(context.Context) (*av1.Oslc, *av1.Oslc, error)
-	ReconcileRelease(context.Context) (*av1.Oslc, error)
-	UninstallRelease(context.Context) (*av1.Oslc, error)
+	InstallResource(context.Context) (*av1.PhaseList, error)
+	UpdateResource(context.Context) (*av1.PhaseList, *av1.PhaseList, error)
+	ReconcileResource(context.Context) (*av1.PhaseList, error)
+	UninstallResource(context.Context) (*av1.PhaseList, error)
 }

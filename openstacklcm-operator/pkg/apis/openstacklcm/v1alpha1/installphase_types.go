@@ -83,16 +83,6 @@ func (obj *InstallPhase) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsEnabled returns true if the chart group if managed by the reconcilier
-func (obj *InstallPhase) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
-}
-
-// IsDisabled returns true if the chart group is not managed by the reconcilier
-func (obj *InstallPhase) IsDisabled() bool {
-	return !obj.IsEnabled()
-}
-
 // IsSatisfied returns true if the chart's actual state meets its target state
 func (obj *InstallPhase) IsSatisfied() bool {
 	return obj.Spec.TargetState == obj.Status.ActualState
@@ -100,14 +90,6 @@ func (obj *InstallPhase) IsSatisfied() bool {
 
 func (obj *InstallPhase) GetName() string {
 	return obj.ObjectMeta.Name
-}
-
-func (obj *InstallPhase) GetNotes() string {
-	return "Notes"
-}
-
-func (obj *InstallPhase) GetVersion() int32 {
-	return obj.Spec.OpenstackRevision
 }
 
 // Returns a GKV for InstallPhase

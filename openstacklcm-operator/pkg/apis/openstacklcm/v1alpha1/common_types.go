@@ -339,8 +339,6 @@ type PhaseSpec struct {
 	// OpenstackRevision is the revision of openstack's KV store where the backup is performed on.
 	OpenstackRevision int32 `json:"openstackRevision,omitempty"`
 
-	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
-	AdminState OpenstackLcmAdminState `json:"admin_state"`
 	// Target state of the Lcm Custom Resources
 	TargetState LcmResourceState `json:"target_state"`
 	// revisionHistoryLimit is the maximum number of revisions that will
@@ -393,7 +391,10 @@ type ControllerRevisionList struct {
 type SubResourceList struct {
 	Name      string
 	Namespace string
-	// Items is the list of ControllerRevisions
+	Notes     string
+	Version   int32
+
+	// Items is the list of Resources deployed in the K8s cluster
 	Items [](unstructured.Unstructured) `json:"items"`
 }
 
@@ -408,15 +409,13 @@ func (obj *SubResourceList) GetNamespace() string {
 }
 
 // Returns the Notes for this SubResourceList
-// TODO(jeb): We should properly remove this method
 func (obj *SubResourceList) GetNotes() string {
-	return "Notes"
+	return obj.Notes
 }
 
 // Returns the Version for this SubResourceList
-// TODO(jeb): We should properly remove this method
 func (obj *SubResourceList) GetVersion() int32 {
-	return 0
+	return obj.Version
 }
 
 // Returns the DependentResource for this SubResourceList
@@ -427,6 +426,49 @@ func (obj *SubResourceList) GetDependentResources() []unstructured.Unstructured 
 // Returns a new SubResourceList
 func NewSubResourceList(namespace string, name string) *SubResourceList {
 	res := &SubResourceList{Namespace: namespace, Name: name}
+	res.Items = make([]unstructured.Unstructured, 0)
+	return res
+}
+
+// PhaseList represent the list of Phase for that Service
+type PhaseList struct {
+	Name      string
+	Namespace string
+	Notes     string
+	Version   int32
+
+	// Items is the list of Resources deployed in the K8s cluster
+	Items [](unstructured.Unstructured) `json:"items"`
+}
+
+// Returns the Name for the PhaseList
+func (obj *PhaseList) GetName() string {
+	return obj.Name
+}
+
+// Returns the Namespace for this PhaseList
+func (obj *PhaseList) GetNamespace() string {
+	return obj.Namespace
+}
+
+// Returns the Notes for this PhaseList
+func (obj *PhaseList) GetNotes() string {
+	return obj.Notes
+}
+
+// Returns the Version for this PhaseList
+func (obj *PhaseList) GetVersion() int32 {
+	return obj.Version
+}
+
+// Returns the DependentResource for this PhaseList
+func (obj *PhaseList) GetDependentResources() []unstructured.Unstructured {
+	return obj.Items
+}
+
+// Returns a new PhaseList
+func NewPhaseList(namespace string, name string) *PhaseList {
+	res := &PhaseList{Namespace: namespace, Name: name}
 	res.Items = make([]unstructured.Unstructured, 0)
 	return res
 }

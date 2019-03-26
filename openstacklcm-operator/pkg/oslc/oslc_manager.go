@@ -21,54 +21,50 @@ import (
 )
 
 type oslcmanager struct {
-	renderer    interface{}
-	releaseName string
-	namespace   string
+	basemanager
 
-	spec   interface{}
+	spec   av1.OslcSpec
 	status *av1.OslcStatus
-
-	deployedRelease  *av1.Oslc
-	isInstalled      bool
-	isUpdateRequired bool
-	config           *map[string]interface{}
 }
 
-// ReleaseName returns the name of the release.
-func (m oslcmanager) ReleaseName() string {
-	return m.releaseName
-}
-
-func (m oslcmanager) IsInstalled() bool {
-	return m.isInstalled
-}
-
-func (m oslcmanager) IsUpdateRequired() bool {
-	return m.isUpdateRequired
-}
-
-// Sync ensures the Helm storage backend is in sync with the status of the
-// custom resource.
+// Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this Oslc CR
 func (m *oslcmanager) Sync(ctx context.Context) error {
+
+	m.deployedPhaseList = av1.NewPhaseList(m.namespace, m.resourceName)
+
+	rendered, deployed, err := m.sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	m.deployedPhaseList = deployed
+	if len(rendered.Items) != len(deployed.Items) {
+		m.isInstalled = false
+		m.isUpdateRequired = false
+	} else {
+		m.isInstalled = true
+		m.isUpdateRequired = false
+	}
+
 	return nil
 }
 
-func (m oslcmanager) InstallRelease(ctx context.Context) (*av1.Oslc, error) {
-	return &av1.Oslc{}, nil
+// InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Oslc CR
+func (m oslcmanager) InstallResource(ctx context.Context) (*av1.PhaseList, error) {
+	return m.installResource(ctx)
 }
 
-// UpdateRelease performs a Helm release update.
-func (m oslcmanager) UpdateRelease(ctx context.Context) (*av1.Oslc, *av1.Oslc, error) {
-	return m.deployedRelease, &av1.Oslc{}, nil
+// InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this Oslc CR
+func (m oslcmanager) UpdateResource(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, error) {
+	return m.updateResource(ctx)
 }
 
-// ReconcileRelease creates or patches resources as necessary to match the
-// deployed release's manifest.
-func (m oslcmanager) ReconcileRelease(ctx context.Context) (*av1.Oslc, error) {
-	return m.deployedRelease, nil
+// ReconcileResource creates or patches resources as necessary to match this Oslc CR
+func (m oslcmanager) ReconcileResource(ctx context.Context) (*av1.PhaseList, error) {
+	return m.reconcileResource(ctx)
 }
 
-// UninstallRelease performs a Helm release uninstall.
-func (m oslcmanager) UninstallRelease(ctx context.Context) (*av1.Oslc, error) {
-	return &av1.Oslc{}, nil
+// UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this Oslc CR
+func (m oslcmanager) UninstallResource(ctx context.Context) (*av1.PhaseList, error) {
+	return m.uninstallResource(ctx)
 }

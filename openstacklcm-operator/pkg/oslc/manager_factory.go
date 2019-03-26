@@ -15,25 +15,36 @@
 package oslc
 
 import (
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type managerFactory struct {
+	kubeClient client.Client
 }
 
 // NewManagerFactory returns a new factory.
 func NewManagerFactory(mgr manager.Manager) lcmif.OslcManagerFactory {
-	return &managerFactory{}
+	return &managerFactory{kubeClient: mgr.GetClient()}
 }
 
-// NewOslcManager returns a new OslcManagerr factory capable of managing an Openstack Service Lifecyle
+// NewOslcManager returns a new manager capable of controlling Oslc phase of the service lifecyle
 func (f managerFactory) NewOslcManager(r *av1.Oslc) lcmif.OslcManager {
+	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
+	ownerRefs := []metav1.OwnerReference{
+		*controllerRef,
+	}
+
 	return &oslcmanager{
-		renderer:  nil,
-		namespace: r.GetNamespace(),
+		basemanager: basemanager{
+			kubeClient: f.kubeClient,
+			renderer:   NewOwnerRefRenderer(ownerRefs),
+			namespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,

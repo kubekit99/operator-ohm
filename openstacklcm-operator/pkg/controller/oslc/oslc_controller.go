@@ -187,7 +187,7 @@ func (r *OslcReconciler) Reconcile(request reconcile.Request) (reconcile.Result,
 	}
 
 	mgr := r.managerFactory.NewOslcManager(instance)
-	reclog = reclog.WithValues("oslc", mgr.ReleaseName())
+	reclog = reclog.WithValues("oslc", mgr.ResourceName())
 
 	var shouldRequeue bool
 	if shouldRequeue, err = r.updateFinalizers(instance); shouldRequeue {
@@ -320,7 +320,7 @@ func (r OslcReconciler) updateFinalizers(instance *av1.Oslc) (bool, error) {
 }
 
 // watchDependentResources updates all resources which are dependent on this one
-func (r OslcReconciler) watchDependentResources(resource *av1.Oslc) error {
+func (r OslcReconciler) watchDependentResources(resource *av1.PhaseList) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
 			return err
@@ -340,7 +340,7 @@ func (r OslcReconciler) deleteOslc(mgr services.OslcManager, instance *av1.Oslc)
 		return false, nil
 	}
 
-	uninstalledResource, err := mgr.UninstallRelease(context.TODO())
+	uninstalledResource, err := mgr.UninstallResource(context.TODO())
 	if err != nil && err != services.ErrNotFound {
 		hrc := av1.LcmResourceCondition{
 			Type:         av1.ConditionFailed,
@@ -358,7 +358,7 @@ func (r OslcReconciler) deleteOslc(mgr services.OslcManager, instance *av1.Oslc)
 	instance.Status.RemoveCondition(av1.ConditionFailed)
 
 	if err == services.ErrNotFound {
-		reclog.Info("Release already uninstalled, Removing finalizer")
+		reclog.Info("Resource already uninstalled, Removing finalizer")
 	} else {
 		hrc := av1.LcmResourceCondition{
 			Type:   av1.ConditionDeployed,
@@ -389,7 +389,7 @@ func (r OslcReconciler) installOslc(mgr services.OslcManager, instance *av1.Oslc
 	reclog := oslclog.WithValues("namespace", instance.Namespace, "oslc", instance.Name)
 	reclog.Info("Installing`")
 
-	installedResource, err := mgr.InstallRelease(context.TODO())
+	installedResource, err := mgr.InstallResource(context.TODO())
 	if err != nil {
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionFailed,
@@ -430,9 +430,9 @@ func (r OslcReconciler) updateOslc(mgr services.OslcManager, instance *av1.Oslc)
 	reclog := oslclog.WithValues("namespace", instance.Namespace, "oslc", instance.Name)
 	reclog.Info("Updating`")
 
-	previousResource, updatedResource, err := mgr.UpdateRelease(context.TODO())
+	previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
 	if previousResource != nil && updatedResource != nil {
-		reclog.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
+		reclog.Info("UpdateResource", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
 	}
 	if err != nil {
 		hrc := av1.LcmResourceCondition{
@@ -473,9 +473,9 @@ func (r OslcReconciler) updateOslc(mgr services.OslcManager, instance *av1.Oslc)
 // reconcileOslc reconciles the release with the cluster
 func (r OslcReconciler) reconcileOslc(mgr services.OslcManager, instance *av1.Oslc) error {
 	reclog := oslclog.WithValues("namespace", instance.Namespace, "oslc", instance.Name)
-	reclog.Info("Reconciling Oslc and LcmRelease")
+	reclog.Info("Reconciling Oslc and LcmResource")
 
-	expectedResource, err := mgr.ReconcileRelease(context.TODO())
+	expectedResource, err := mgr.ReconcileResource(context.TODO())
 	if err != nil {
 		hrc := av1.LcmResourceCondition{
 			Type:         av1.ConditionIrreconcilable,
@@ -496,32 +496,6 @@ func (r OslcReconciler) reconcileOslc(mgr services.OslcManager, instance *av1.Os
 		return err
 	}
 	return nil
-}
-
-// isReconcileDisabled
-func (r OslcReconciler) isReconcileDisabled(instance *av1.Oslc) bool {
-	// JEB: Not sure if we need to add this new ConditionEnabled
-	// or we can just used the ConditionInitialized
-	if instance.IsDisabled() {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusFalse,
-			Reason: "Oslc is disabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		_ = r.updateResourceStatus(instance)
-		return true
-	} else {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusTrue,
-			Reason: "Oslc is enabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		return false
-	}
 }
 
 func (r OslcReconciler) contains(slice []string, s string) bool {

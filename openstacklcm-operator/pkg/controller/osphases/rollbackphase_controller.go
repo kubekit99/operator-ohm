@@ -48,13 +48,14 @@ func AddRollbackPhaseController(mgr manager.Manager) error {
 
 // newRollbackPhaseReconciler returns a new reconcile.Reconciler
 func newRollbackPhaseReconciler(mgr manager.Manager) reconcile.Reconciler {
-	r := &RollbackPhaseReconciler{PhaseReconciler: PhaseReconciler{
-		client:         mgr.GetClient(),
-		scheme:         mgr.GetScheme(),
-		recorder:       mgr.GetRecorder("rollbackphase-recorder"),
-		managerFactory: rollbackphasemgr.NewManagerFactory(mgr),
-		// reconcilePeriod: flags.ReconcilePeriod,
-	},
+	r := &RollbackPhaseReconciler{
+		PhaseReconciler: PhaseReconciler{
+			client:         mgr.GetClient(),
+			scheme:         mgr.GetScheme(),
+			recorder:       mgr.GetRecorder("rollbackphase-recorder"),
+			managerFactory: rollbackphasemgr.NewManagerFactory(mgr),
+			// reconcilePeriod: flags.ReconcilePeriod,
+		},
 	}
 	return r
 }
@@ -487,30 +488,4 @@ func (r RollbackPhaseReconciler) reconcileRollbackPhase(mgr services.RollbackPha
 		return err
 	}
 	return nil
-}
-
-// isReconcileDisabled
-func (r RollbackPhaseReconciler) isReconcileDisabled(instance *av1.RollbackPhase) bool {
-	// JEB: Not sure if we need to add this new ConditionEnabled
-	// or we can just used the ConditionInitialized
-	if instance.IsDisabled() {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusFalse,
-			Reason: "RollbackPhase is disabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		_ = r.updateResourceStatus(instance)
-		return true
-	} else {
-		hrc := av1.LcmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusTrue,
-			Reason: "RollbackPhase is enabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		return false
-	}
 }
