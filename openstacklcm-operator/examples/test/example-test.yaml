@@ -1,8 +1,0 @@
-apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: TestPhase
-metadata:
-  name: test
-spec:
-  openstackVersion: moc.version.to.test.to
-  openstackRevision: 3
-  target_state: deployed

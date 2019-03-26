@@ -27,10 +27,11 @@ import (
 )
 
 type basemanager struct {
-	kubeClient   client.Client
-	renderer     *OwnerRefRenderer
-	resourceName string
-	namespace    string
+	kubeClient       client.Client
+	renderer         *OwnerRefRenderer
+	serviceName      string
+	serviceNamespace string
+	templateFile     string
 
 	isInstalled       bool
 	isUpdateRequired  bool
@@ -39,7 +40,7 @@ type basemanager struct {
 
 // ResourceName returns the name of the release.
 func (m basemanager) ResourceName() string {
-	return m.resourceName
+	return m.serviceName
 }
 
 func (m basemanager) IsInstalled() bool {
@@ -52,9 +53,9 @@ func (m basemanager) IsUpdateRequired() bool {
 
 // Attempts to compare the K8s object present with the rendered objects
 func (m basemanager) sync(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, error) {
-	deployed := av1.NewPhaseList(m.namespace, m.resourceName)
+	deployed := av1.NewPhaseList(m.serviceNamespace, m.serviceName)
 
-	rendered, err := m.renderer.Render()
+	rendered, err := m.renderer.Render(m.serviceName, m.serviceNamespace, m.templateFile)
 	if err != nil {
 		return nil, deployed, err
 	}
@@ -85,7 +86,8 @@ func (m basemanager) sync(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, 
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m basemanager) installResource(ctx context.Context) (*av1.PhaseList, error) {
-	rendered, err := m.renderer.Render()
+
+	rendered, err := m.renderer.Render(m.serviceName, m.serviceNamespace, m.templateFile)
 	if err != nil {
 		return m.deployedPhaseList, err
 	}

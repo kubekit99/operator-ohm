@@ -1,0 +1,9 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: Oslc
+metadata:
+  name: wip-oslc
+spec:
+  service_name: wip
+  template_file: /opt/openstacklcm-operator/oslc-templates/wip.yaml
+  target_phase: operational
+  target_state: deployed

@@ -1,0 +1,11 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: TrafficRolloutPhase
+metadata:
+  name: trafficrollout
+spec:
+  openstackServiceVersion: moc.version.to.trafficrollout.to
+  target_state: deployed
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/oslc-phases/testservice/wf-trafficrollout.yaml
+    subpath: .

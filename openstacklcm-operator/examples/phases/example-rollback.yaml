@@ -1,17 +1,13 @@
 apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: UpgradePhase
+kind: RollbackPhase
 metadata:
-  name: upgrade
+  name: rollback
 spec:
-  openstackVersion: moc.version.to.upgrade.to
-  openstackRevision: 3
-  storageType: offsite
-  backupPolicy:
-    timeoutInSecond: 3
+  openstackServiceVersion: moc.version.to.rollback.to
+  backupStorageType: offsite
   # ceph:
   #   cephSecret: thesecret
   #   path: example
-  clientTLSSecret: client.crt
   offsite:
     endpoint: sftp://foo.bar
     forcePathStyle: true
@@ -20,3 +16,7 @@ spec:
   openstackEndpoints:
   - https://local.com
   target_state: deployed
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/oslc-phases/testservice/wf-rollback.yaml
+    subpath: .

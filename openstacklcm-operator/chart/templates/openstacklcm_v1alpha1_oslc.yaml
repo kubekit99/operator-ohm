@@ -37,15 +37,6 @@ spec:
           type: object
         spec:
           properties:
-            openstackRevision:
-              description: OpenstackRevision is the revision of openstack's KV store
-                where the backup is performed on.
-              format: int32
-              type: integer
-            openstackVersion:
-              description: OpenstackVersion is the version of the backup openstack
-                server.
-              type: string
             revisionHistoryLimit:
               description: revisionHistoryLimit is the maximum number of revisions
                 that will be maintained in the DeletePhase's revision history. The

@@ -1,0 +1,11 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: TrafficDrainPhase
+metadata:
+  name: trafficdrain
+spec:
+  openstackServiceVersion: moc.version.to.trafficdrain.to
+  target_state: deployed
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/oslc-phases/testservice/wf-trafficdrain.yaml
+    subpath: .

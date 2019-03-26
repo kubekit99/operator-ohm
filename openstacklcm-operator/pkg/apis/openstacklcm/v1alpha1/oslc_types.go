@@ -9,13 +9,50 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// Phase of the Openstack Service Life Cyle
+type OslcPhase string
+
+// Describe the Phase of the Openstack Service Life Cycle
+const (
+	PhasePlanning       OslcPhase = "planning"
+	PhaseInstall        OslcPhase = "install"
+	PhaseTest           OslcPhase = "test"
+	PhaseTrafficRollout OslcPhase = "trafficrollout"
+	PhaseOperational    OslcPhase = "operational"
+	PhaseTrafficDrain   OslcPhase = "trafficdrain"
+	PhaseUpgrade        OslcPhase = "upgrade"
+	PhaseRollback       OslcPhase = "rollback"
+	PhaseDelete         OslcPhase = "delete"
+)
+
+// String converts a OslcPhase to a printable string
+func (x OslcPhase) String() string { return string(x) }
+
 // OslcSpec defines the desired state of Oslc
 type OslcSpec struct {
-	PhaseSpec `json:",inline"`
+	// Openstack Service Name
+	ServiceName string `json:"service_name"`
+
+	// File containing the OpenstackServiceLifeCycle templates
+	TemplateFile string `json:"template_file"`
+
+	// Target phase of the OpenstackService
+	TargetPhase OslcPhase `json:"target_phase"`
+
+	// Target state of the Lcm Custom Resources
+	TargetState LcmResourceState `json:"target_state"`
+	// revisionHistoryLimit is the maximum number of revisions that will
+	// be maintained in the DeletePhase's revision history. The revision history
+	// consists of all revisions not represented by a currently applied
+	// DeletePhaseSpec version. The default value is 10.
+	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
 }
 
 // OslcStatus defines the observed state of Oslc
 type OslcStatus struct {
+	// Actual phase of the OpenstackService
+	ActualPhase OslcPhase `json:"actual_phase"`
+
 	OpenstackLcmStatus `json:",inline"`
 }
 

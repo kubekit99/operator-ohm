@@ -26,15 +26,12 @@ import (
 
 // OwnerRefRenderer loads yaml file and adds ownerrefs to rendered assets
 type OwnerRefRenderer struct {
-	refs []metav1.OwnerReference
+	refs   []metav1.OwnerReference
+	suffix string
 }
 
 // Adds the ownerrefs to all the documents in a YAML file
-func (o *OwnerRefRenderer) Render() (*av1.SubResourceList, error) {
-
-	name := o.refs[0].Name
-	namespace := "default" // o.refs[0].NameSpace
-	fileName := "/root/argo-workflows/wf-" + name + ".yaml"
+func (o *OwnerRefRenderer) Render(name string, namespace string, fileName string) (*av1.SubResourceList, error) {
 
 	ownedRenderedFiles := av1.NewSubResourceList(namespace, name)
 
@@ -44,8 +41,12 @@ func (o *OwnerRefRenderer) Render() (*av1.SubResourceList, error) {
 		return ownedRenderedFiles, err
 	}
 
-	unstructured.SetName(name + "-wf")
-	unstructured.SetNamespace(namespace)
+	if unstructured.GetName() == "" {
+		unstructured.SetName(name + "-" + o.suffix)
+	}
+	if unstructured.GetNamespace() == "" {
+		unstructured.SetNamespace(namespace)
+	}
 	unstructured.SetOwnerReferences(o.refs)
 	labels := map[string]string{
 		"app": name,
@@ -92,8 +93,9 @@ func (o *OwnerRefRenderer) fromYaml(filename string) (unstructured.Unstructured,
 }
 
 // NewOwnerRefRenderer creates a new OwnerRef engine with a set of metav1.OwnerReferences to be added to assets
-func NewOwnerRefRenderer(refs []metav1.OwnerReference) *OwnerRefRenderer {
+func NewOwnerRefRenderer(refs []metav1.OwnerReference, suffix string) *OwnerRefRenderer {
 	return &OwnerRefRenderer{
-		refs: refs,
+		refs:   refs,
+		suffix: suffix,
 	}
 }

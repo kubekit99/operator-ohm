@@ -332,12 +332,27 @@ func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, targe
 	}
 }
 
+// LcmSource describe the location of the CR to create during a Phase of an
+// Openstack Service Life Cycle.
+type PhaseSource struct {
+	AuthMethod string `json:"auth_method,omitempty"`
+	// ``url`` or ``path`` to the chart's parent directory
+	Location    string `json:"location"`
+	ProxyServer string `json:"proxy_server,omitempty"`
+	// (optional) branch, commit, or reference in the repo (``master`` if not specified)
+	Reference string `json:"reference,omitempty"`
+	// (optional) relative path to target chart from parent (``.`` if not specified)
+	Subpath string `json:"subpath"`
+	// source to build the chart: ``git``, ``local``, or ``tar``
+	Type string `json:"type"`
+}
+
 // PhaseSpec defines the desired state of DeletePhase
 type PhaseSpec struct {
-	// OpenstackVersion is the version of the backup openstack server.
-	OpenstackVersion string `json:"openstackVersion,omitempty"`
-	// OpenstackRevision is the revision of openstack's KV store where the backup is performed on.
-	OpenstackRevision int32 `json:"openstackRevision,omitempty"`
+	// provide a path to a ``git repo``, ``local dir``, or ``tarball url`` chart
+	Source *PhaseSource `json:"source"`
+	// OpenstackServiceVersion is the version of the openstack service.
+	OpenstackServiceVersion string `json:"openstackServiceVersion,omitempty"`
 
 	// Target state of the Lcm Custom Resources
 	TargetState LcmResourceState `json:"target_state"`

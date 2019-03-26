@@ -42,9 +42,11 @@ func (f managerFactory) NewPlanningPhaseManager(r *av1.PlanningPhase) lcmif.Plan
 
 	return &planningmanager{
 		phasemanager: phasemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osplan"),
+			source:         r.Spec.Source,
+			phaseName:      r.GetName(),
+			phaseNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -60,9 +62,11 @@ func (f managerFactory) NewInstallPhaseManager(r *av1.InstallPhase) lcmif.Instal
 
 	return &installmanager{
 		phasemanager: phasemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osins"),
+			source:         r.Spec.Source,
+			phaseName:      r.GetName(),
+			phaseNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -78,9 +82,11 @@ func (f managerFactory) NewTestPhaseManager(r *av1.TestPhase) lcmif.TestPhaseMan
 
 	return &testmanager{
 		phasemanager: phasemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "ostest"),
+			source:         r.Spec.Source,
+			phaseName:      r.GetName(),
+			phaseNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -96,9 +102,11 @@ func (f managerFactory) NewTrafficRolloutPhaseManager(r *av1.TrafficRolloutPhase
 
 	return &trafficrolloutmanager{
 		phasemanager: phasemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osroll"),
+			source:         r.Spec.Source,
+			phaseName:      r.GetName(),
+			phaseNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -114,9 +122,11 @@ func (f managerFactory) NewOperationalPhaseManager(r *av1.OperationalPhase) lcmi
 
 	return &operationalmanager{
 		phasemanager: phasemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osops"),
+			source:         r.Spec.Source,
+			phaseName:      r.GetName(),
+			phaseNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -132,9 +142,11 @@ func (f managerFactory) NewTrafficDrainPhaseManager(r *av1.TrafficDrainPhase) lc
 
 	return &trafficdrainmanager{
 		phasemanager: phasemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osdrain"),
+			source:         r.Spec.Source,
+			phaseName:      r.GetName(),
+			phaseNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -150,9 +162,11 @@ func (f managerFactory) NewUpgradePhaseManager(r *av1.UpgradePhase) lcmif.Upgrad
 
 	return &upgrademanager{
 		phasemanager: phasemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osupg"),
+			source:         r.Spec.Source,
+			phaseName:      r.GetName(),
+			phaseNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -168,9 +182,11 @@ func (f managerFactory) NewRollbackPhaseManager(r *av1.RollbackPhase) lcmif.Roll
 
 	return &rollbackmanager{
 		phasemanager: phasemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osrbck"),
+			source:         r.Spec.Source,
+			phaseName:      r.GetName(),
+			phaseNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,
@@ -186,9 +202,11 @@ func (f managerFactory) NewDeletePhaseManager(r *av1.DeletePhase) lcmif.DeletePh
 
 	return &deletemanager{
 		phasemanager: phasemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osdlt"),
+			source:         r.Spec.Source,
+			phaseName:      r.GetName(),
+			phaseNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,

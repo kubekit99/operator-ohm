@@ -30,7 +30,7 @@ type oslcmanager struct {
 // Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this Oslc CR
 func (m *oslcmanager) Sync(ctx context.Context) error {
 
-	m.deployedPhaseList = av1.NewPhaseList(m.namespace, m.resourceName)
+	m.deployedPhaseList = av1.NewPhaseList(m.serviceNamespace, m.serviceName)
 
 	rendered, deployed, err := m.sync(ctx)
 	if err != nil {

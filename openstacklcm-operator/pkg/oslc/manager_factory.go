@@ -42,9 +42,11 @@ func (f managerFactory) NewOslcManager(r *av1.Oslc) lcmif.OslcManager {
 
 	return &oslcmanager{
 		basemanager: basemanager{
-			kubeClient: f.kubeClient,
-			renderer:   NewOwnerRefRenderer(ownerRefs),
-			namespace:  r.GetNamespace()},
+			kubeClient:       f.kubeClient,
+			renderer:         NewOwnerRefRenderer(ownerRefs, "oslc"),
+			templateFile:     r.Spec.TemplateFile,
+			serviceName:      r.GetName(),
+			serviceNamespace: r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,

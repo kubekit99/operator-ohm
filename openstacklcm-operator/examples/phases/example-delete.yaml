@@ -1,0 +1,11 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: DeletePhase
+metadata:
+  name: delete
+spec:
+  openstackServiceVersion: moc.version.to.delete.to
+  target_state: deployed
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/oslc-phases/testservice/wf-delete.yaml
+    subpath: .

@@ -1,0 +1,25 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: UpgradePhase
+metadata:
+  name: upgrade
+spec:
+  openstackServiceVersion: moc.version.to.upgrade.to
+  storageType: offsite
+  backupPolicy:
+    timeoutInSecond: 3
+  # ceph:
+  #   cephSecret: thesecret
+  #   path: example
+  clientTLSSecret: client.crt
+  offsite:
+    endpoint: sftp://foo.bar
+    forcePathStyle: true
+    offsiteSecret: thesecret
+    path: xxx
+  openstackEndpoints:
+  - https://local.com
+  target_state: deployed
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/oslc-phases/testservice/wf-upgrade.yaml
+    subpath: .

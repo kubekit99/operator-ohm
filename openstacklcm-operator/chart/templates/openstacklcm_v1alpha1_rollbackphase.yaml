@@ -37,14 +37,9 @@ spec:
           type: object
         spec:
           properties:
-            openstackRevision:
-              description: OpenstackRevision is the revision of openstack's KV store
-                where the backup is performed on.
-              format: int32
-              type: integer
-            openstackVersion:
-              description: OpenstackVersion is the version of the backup openstack
-                server.
+            openstackServiceVersion:
+              description: OpenstackServiceVersion is the version of the openstack
+                service.
               type: string
             revisionHistoryLimit:
               description: revisionHistoryLimit is the maximum number of revisions
@@ -53,6 +48,32 @@ spec:
                 applied DeletePhaseSpec version. The default value is 10.
               format: int32
               type: integer
+            source:
+              description: provide a path to a ``git repo``, ``local dir``, or ``tarball
+                url`` chart
+              properties:
+                location:
+                  description: '``url`` or ``path`` to the chart''s parent directory'
+                  type: string
+                reference:
+                  description: (optional) branch, commit, or reference in the repo
+                    (``master`` if not specified)
+                  type: string
+                subpath:
+                  description: (optional) relative path to target chart from parent
+                    (``.`` if not specified)
+                  type: string
+                type:
+                  description: 'source to build the chart: ``git``, ``local``, or
+                    ``tar``'
+                  type: string
+              required:
+              - location
+              - subpath
+              - type
+              type: object
+          required:
+          - source
           type: object
         status:
           properties:

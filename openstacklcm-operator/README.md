@@ -1,50 +1,58 @@
 # Kubernetes Operator for Openstack LCM
 
-# Creation of openstacklcm-operator
+# Introduction
 
-## Initialising the openstacklcm-operator
+This README is mainly used a log / wiki of results and challenges encounted during the POC
 
-```bash
-operator-sdk new openstacklcm-operator --skip-git-init
-```
+## operator-sdk vs kubebuilder.
 
-## Coding the openstacklcm-operator
+Things to clean up:
+Did not had time to sort how to completly migrate from operator-sdh to kubebuilder.
+Most of the scaffolding is done using the operator-sdk but once the default files are created,
+the build process mainly relies on kubebuilder
 
-```bash
-operator-sdk add api --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackBackup
-operator-sdk add api --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackRestore
-operator-sdk add api --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackUpgrade
-operator-sdk add api --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackRollback
-operator-sdk add api --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackDeployment
-git add deploy/crds/
-git add pkg/apis/openstacklcm/
-git add pkg/apis/addtoscheme_openstacklcm_v1alpha1.go
-git add deploy/role.yaml
-```
+## openstacklcm-operator code directory structure
 
-```bash
-vi pkg/apis/openstacklcm/v1alpha1/*_types.go
-operator-sdk generate k8s
-```
+###  cmd
 
-```bash
-operator-sdk add controller --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackBackup
-operator-sdk add controller --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackRestore
-operator-sdk add controller --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackUpgrade
-operator-sdk add controller --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackRollback
-operator-sdk add controller --api-version=openstacklcm.airshipit.org/v1alpha1 --kind=OpenstackDeployment
-```
-## Adjusting crds
+Contains the main.go for the openstacklcm operator
 
-Don't understand yet how to build using operator-sdk operator with the same level of detailes than
+###  pkg/apis/
+
+Contains the golang definition of the CRDs. `make generate` will recreate the yaml definitions
+of the CRDs that have to be provided to kubectl in order to deploy the new CRDs.
+
+The first version of the golang code has generated using tool such as "schema-generate" from
+the schema definition provided with airship-armada project.
+
+###  pkg/services
+
+Contains the bulk of the interfaces used by the openstacklcm controller.
+
+###  pkg/osphases
+
+Mainly contain the code for xxxPhase handling
+
+###  pkg/oslc directory
+
+Mainly contain the code for Oslc (OpenstackServiceLifeCycle) handling
+
+###  pkg/controller directory
+
+Contains the controller and the "Reconcile" functions for Oslc and xxxPhase.
+
+# Code changes.
+
+## Adjusting the OpenstackServiceLifeCycle CRDs
+
+Upon change of the CRD golang definition, the yaml files have to be regenerated
+
+Note 1: Don't understand yet how to build using operator-sdk operator with the same level of detailes than
 controller-gen. Big hack that have to be included in Makefile.
 
-```bash
-go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/
-operator-sdk generate k8s
-```
-
-or
+Note 2: The generation tool seems to comply with some of OpenAPI specs. The "validation" schema added
+to in the CRD yaml definition does not contain fields using underscore. 
+Most of those fields containing underscore where defined such a way in the original airship-armada.
 
 ```bash
 make generate
@@ -52,65 +60,46 @@ make generate
 
 ## Compiling the openstacklcm-operator
 
+```bash
+dep ensure
 ```
+
+To build the version
+```bash
 make docker-build
 ```
+## Run unit test and preintegration tests.
 
-# Deploying
+If you installed kubebuilder on your system, you will have access
+to a standalone apiserver, etcd server and kubectl.
 
-## Deployment of operator using helm
+Because of a lack of time, the current makefile test statement,
+will attempt to stop your kubelet and associated container in your local
+kubernetes cluster, before starting apiserver, etcdserver.
+TODO: We still need to figure out if it necessary
 
+In order to run the unit tests and the e2e integration tests:
 ```bash
-helm install --name lcm-operator chart 
+make unittest
 ```
 
-## Openstack Service Phase CRD testing
+# Deploying the operator.
 
+Note the current deployment of the operator relies itself on helm.
 
+To install the version
 ```bash
-kubectl apply -f examples/upgrade/
-kubectl describe osupg
+make install
 ```
 
-```bash
-kubectl apply -f examples/rollback
-kubectl describe osrbck
-```
+# Openstack Service Invidual Phase CRD testing
+
+For testing purpose the current Docker file includes a dummy chart deliverd under armada-charts.
+
+## Invidual Phase CRD sanity tests
 
 ```bash
-kubectl apply -f examples/trafficrollout
-kubectl describe osroll
-```
-
-```bash
-kubectl apply -f examples/trafficdrain
-kubectl describe osdrain
-```
-
-```bash
-kubectl apply -f examples/test
-kubectl describe ostest
-```
-
-```bash
-kubectl apply -f examples/operational
-kubectl describe osplan
-```
-
-```bash
-kubectl apply -f examples/install
-kubectl describe osins
-```
-
-```bash
-kubectl apply -f examples/delete
-kubectl describe osdlt
-```
-
-# Simple sanity tests
-
-```bash
-for i in `cat phaselist.txt`; do kubectl apply -f examples/$i; done
+kubectl apply -f examples/phases/
 
 deletephase.openstacklcm.airshipit.org/delete created
 ginstallphase.openstacklcm.airshipit.org/install created
@@ -122,6 +111,18 @@ trafficdrainphase.openstacklcm.airshipit.org/trafficdrain created
 trafficrolloutphase.openstacklcm.airshipit.org/trafficrollout created
 upgradephase.openstacklcm.airshipit.org/upgrade created
 ```
+
+```bash
+kubectl describe osupg
+kubectl describe osrbck
+kubectl describe osroll
+kubectl describe osdrain
+kubectl describe ostest
+kubectl describe osplan
+kubectl describe osins
+kubectl describe osdlt
+```
+
 
 ```bash
 for i in `cat phaselist.txt`; do kubectl logs pod/${i}-wf main; done
@@ -280,7 +281,8 @@ replicaset.apps/openstacklcm-operator-6745fc85f4   1         1         1       4
 ```
 
 ```bash
-for i in `cat phaselist.txt`; do kubectl delete -f examples/$i; done
+kubectl delete -f examples/phases/
+
 deletephase.openstacklcm.airshipit.org "delete" deleted
 installphase.openstacklcm.airshipit.org "install" deleted
 operationalphase.openstacklcm.airshipit.org "operational" deleted

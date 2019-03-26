@@ -1,0 +1,11 @@
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: InstallPhase
+metadata:
+  name: install
+spec:
+  openstackServiceVersion: moc.version.to.install.to
+  target_state: deployed
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/oslc-phases/testservice/wf-install.yaml
+    subpath: .

@@ -1,8 +1,0 @@
-apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: TrafficRolloutPhase
-metadata:
-  name: trafficrollout
-spec:
-  openstackVersion: moc.version.to.trafficrollout.to
-  openstackRevision: 3
-  target_state: deployed

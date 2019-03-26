@@ -30,7 +30,7 @@ type deletemanager struct {
 // Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this DeletePhase CR
 func (m *deletemanager) Sync(ctx context.Context) error {
 
-	m.deployedSubResourceList = av1.NewSubResourceList(m.namespace, m.resourceName)
+	m.deployedSubResourceList = av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
 
 	rendered, deployed, err := m.sync(ctx)
 	if err != nil {

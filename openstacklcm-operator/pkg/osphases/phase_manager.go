@@ -27,20 +27,20 @@ import (
 )
 
 type phasemanager struct {
-	kubeClient   client.Client
-	renderer     *OwnerRefRenderer
-	resourceName string
-	namespace    string
+	kubeClient     client.Client
+	renderer       *OwnerRefRenderer
+	phaseName      string
+	phaseNamespace string
+	source         *av1.PhaseSource
 
 	isInstalled             bool
 	isUpdateRequired        bool
-	config                  *map[string]interface{}
 	deployedSubResourceList *av1.SubResourceList
 }
 
 // ResourceName returns the name of the release.
 func (m phasemanager) ResourceName() string {
-	return m.resourceName
+	return m.phaseName
 }
 
 func (m phasemanager) IsInstalled() bool {
@@ -53,9 +53,9 @@ func (m phasemanager) IsUpdateRequired() bool {
 
 // Attempts to compare the K8s object present with the rendered objects
 func (m phasemanager) sync(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
-	deployed := av1.NewSubResourceList(m.namespace, m.resourceName)
+	deployed := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
 
-	rendered, err := m.renderer.Render()
+	rendered, err := m.renderer.Render(m.phaseName, m.phaseNamespace, m.source.Location)
 	if err != nil {
 		return nil, deployed, err
 	}
@@ -86,7 +86,7 @@ func (m phasemanager) sync(ctx context.Context) (*av1.SubResourceList, *av1.SubR
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m phasemanager) installResource(ctx context.Context) (*av1.SubResourceList, error) {
-	rendered, err := m.renderer.Render()
+	rendered, err := m.renderer.Render(m.phaseName, m.phaseNamespace, m.source.Location)
 	if err != nil {
 		return m.deployedSubResourceList, err
 	}
