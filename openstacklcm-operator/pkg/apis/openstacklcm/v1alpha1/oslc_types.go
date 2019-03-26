@@ -31,16 +31,17 @@ func (x OslcPhase) String() string { return string(x) }
 // OslcSpec defines the desired state of Oslc
 type OslcSpec struct {
 	// Openstack Service Name
-	ServiceName string `json:"service_name"`
+	ServiceName string `json:"serviceName"`
+	// Openstack Service EndPoint
+	ServiceEndPoint string `json:"serviceEndPoint,omitempty"`
 
-	// File containing the OpenstackServiceLifeCycle templates
-	TemplateFile string `json:"template_file"`
-
+	// File containing the OpenstackServiceLifeCycle template
+	TemplateFile string `json:"templateFile"`
 	// Target phase of the OpenstackService
-	TargetPhase OslcPhase `json:"target_phase"`
+	TargetPhase OslcPhase `json:"targetPhase"`
 
 	// Target state of the Lcm Custom Resources
-	TargetState LcmResourceState `json:"target_state"`
+	TargetState LcmResourceState `json:"targetState"`
 	// revisionHistoryLimit is the maximum number of revisions that will
 	// be maintained in the DeletePhase's revision history. The revision history
 	// consists of all revisions not represented by a currently applied
@@ -51,7 +52,7 @@ type OslcSpec struct {
 // OslcStatus defines the observed state of Oslc
 type OslcStatus struct {
 	// Actual phase of the OpenstackService
-	ActualPhase OslcPhase `json:"actual_phase"`
+	ActualPhase OslcPhase `json:"actualPhase"`
 
 	OpenstackLcmStatus `json:",inline"`
 }

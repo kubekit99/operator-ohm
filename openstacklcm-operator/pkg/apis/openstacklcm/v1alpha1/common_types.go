@@ -330,12 +330,14 @@ func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, targe
 	}
 }
 
-// LcmSource describe the location of the CR to create during a Phase of an
+// PhaseSource describe the location of the CR to create during a Phase of an
 // Openstack Service Life Cycle.
 type PhaseSource struct {
+	// (optional) authentication method
 	AuthMethod string `json:"authMethod,omitempty"`
 	// ``url`` or ``path`` to the chart's parent directory
-	Location    string `json:"location"`
+	Location string `json:"location"`
+	// (optional) http proxy server
 	ProxyServer string `json:"proxyServer,omitempty"`
 	// (optional) branch, commit, or reference in the repo (``master`` if not specified)
 	Reference string `json:"reference,omitempty"`
@@ -345,22 +347,19 @@ type PhaseSource struct {
 	Type string `json:"type"`
 }
 
-// PhaseSpec defines the desired state of DeletePhase
+// PhaseSpec defines the desired state of Phase
 type PhaseSpec struct {
 	// provide a path to a ``git repo``, ``local dir``, or ``tarball url`` chart
 	Source *PhaseSource `json:"source"`
 	// Openstack Service Name
 	OpenstackServiceName string `json:"openstackServiceName"`
+	// Openstack Service EndPoint
+	OpenstackServiceEndPoint string `json:"openstackServiceEndPoint,omitempty"`
+
 	// OpenstackServiceVersion is the version of the openstack service.
 	TargetOpenstackServiceVersion string `json:"targetOpenstackServiceVersion,omitempty"`
-
 	// Target state of the Lcm Custom Resources
 	TargetState LcmResourceState `json:"targetState"`
-	// revisionHistoryLimit is the maximum number of revisions that will
-	// be maintained in the DeletePhase's revision history. The revision history
-	// consists of all revisions not represented by a currently applied
-	// DeletePhaseSpec version. The default value is 10.
-	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

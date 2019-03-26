@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
-#metadata:
-#  name: operational-wf
+metadata:
+  name: operational-wf
 spec:
   entrypoint: whalesay
   templates:

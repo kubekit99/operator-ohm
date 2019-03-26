@@ -37,26 +37,24 @@ spec:
           type: object
         spec:
           properties:
+            openstackServiceEndPoint:
+              description: Openstack Service EndPoint
+              type: string
             openstackServiceName:
               description: Openstack Service Name
               type: string
-            revisionHistoryLimit:
-              description: revisionHistoryLimit is the maximum number of revisions
-                that will be maintained in the DeletePhase's revision history. The
-                revision history consists of all revisions not represented by a currently
-                applied DeletePhaseSpec version. The default value is 10.
-              format: int32
-              type: integer
             source:
               description: provide a path to a ``git repo``, ``local dir``, or ``tarball
                 url`` chart
               properties:
                 authMethod:
+                  description: (optional) authentication method
                   type: string
                 location:
                   description: '``url`` or ``path`` to the chart''s parent directory'
                   type: string
                 proxyServer:
+                  description: (optional) http proxy server
                   type: string
                 reference:
                   description: (optional) branch, commit, or reference in the repo

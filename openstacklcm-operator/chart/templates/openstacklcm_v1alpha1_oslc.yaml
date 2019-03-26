@@ -44,9 +44,32 @@ spec:
                 applied DeletePhaseSpec version. The default value is 10.
               format: int32
               type: integer
+            serviceEndPoint:
+              description: Openstack Service EndPoint
+              type: string
+            serviceName:
+              description: Openstack Service Name
+              type: string
+            targetPhase:
+              description: Target phase of the OpenstackService
+              type: string
+            targetState:
+              description: Target state of the Lcm Custom Resources
+              type: string
+            templateFile:
+              description: File containing the OpenstackServiceLifeCycle template
+              type: string
+          required:
+          - serviceName
+          - templateFile
+          - targetPhase
+          - targetState
           type: object
         status:
           properties:
+            actualPhase:
+              description: Actual phase of the OpenstackService
+              type: string
             conditions:
               description: 'List of conditions and states related to the resource.
                 JEB: Feature kind of overlap with event recorder'
@@ -81,6 +104,7 @@ spec:
                 its target state
               type: boolean
           required:
+          - actualPhase
           - satisfied
           type: object
   version: v1alpha1

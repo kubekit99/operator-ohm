@@ -579,11 +579,6 @@ func (in *PhaseSpec) DeepCopyInto(out *PhaseSpec) {
 		*out = new(PhaseSource)
 		**out = **in
 	}
-	if in.RevisionHistoryLimit != nil {
-		in, out := &in.RevisionHistoryLimit, &out.RevisionHistoryLimit
-		*out = new(int32)
-		**out = **in
-	}
 	return
 }
 
