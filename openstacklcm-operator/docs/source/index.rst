@@ -20,6 +20,14 @@ OpenstackServiceLifeCycle
 
    lifecycle
 
+Greenfield and Brownfield
+=========================
+
+.. toctree::
+   :maxdepth: 2
+
+   flowcharts
+
 CRD Detailled Design
 ====================
 
