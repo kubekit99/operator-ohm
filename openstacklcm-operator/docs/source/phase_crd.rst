@@ -26,8 +26,11 @@ to weight the pros and cons of having only one PhaseCRD or one TestPhaseCRD, Tra
 SubResources
 ---------------------------
 
+The PhaseCRD is built using the following principles:
+
 1. The current PhaseCRD are currently standalone CRDs. This provides control to the phase-controller on those objects.
 At one point we will have to weight if we need to keep those CRDs or simply consider the Phase as nodes of an Argo Workflow. 
+
 2. The PhaseCRD is currently loading a yaml file. This could be a helm chart. The PhaseCRD is then owner of the subresources described
 in the yaml file.
 
