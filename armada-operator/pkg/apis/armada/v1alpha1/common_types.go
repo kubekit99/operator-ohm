@@ -21,20 +21,6 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// Administractive state of the reconcilation of a CRD by the corresponding controller
-type ArmadaAdminState string
-
-// Describe the Administrative State of the Chart
-const (
-	// StateUnknown indicates that a release/chart/chartgroup/manifest automatic reconcilation by the controller is enabled
-	StateEnabled ArmadaAdminState = "enabled"
-	// StateUnknown indicates that a release/chart/chartgroup/manifest automatic reconcilation by the controller is disabled
-	StateDisabled ArmadaAdminState = "disabled"
-)
-
-// String converts a ArmadaAdminState to a printable string
-func (x ArmadaAdminState) String() string { return string(x) }
-
 // HelmResourceState is the status of a release/chart/chartgroup/manifest
 type HelmResourceState string
 
@@ -60,7 +46,7 @@ func (x HelmResourceConditionReason) String() string { return string(x) }
 // Describe the status of a release
 const (
 	// StateUninitialied indicates that a release/chart/chartgroup/manifest exists, but has not been acted upon
-	StateUninitialied HelmResourceState = "uninitialized"
+	StateUninitialized HelmResourceState = "uninitialized"
 	// StateUnknown indicates that a release/chart/chartgroup/manifest is in an uncertain state.
 	StateUnknown HelmResourceState = "unknown"
 	// StateInitialized indicates that a release/chart/chartgroup/manifest is in an Kubernetes

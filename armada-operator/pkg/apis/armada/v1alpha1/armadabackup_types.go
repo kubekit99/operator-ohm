@@ -45,8 +45,6 @@ type ArmadaBackupSpec struct {
 
 	// Reference to impacted ArmadaCharts
 	Charts []string `json:"charts,omitempty"`
-	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
-	AdminState ArmadaAdminState `json:"adminState,omitempty"`
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"targetState,omitempty"`
 }

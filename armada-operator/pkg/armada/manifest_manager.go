@@ -120,7 +120,7 @@ func (m manifestmanager) ReconcileResource(ctx context.Context) (*av1.ArmadaChar
 		found := nextToEnable.FromArmadaChartGroup()
 		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, &nextToEnable)
 		if err == nil {
-			nextToEnable.Spec.AdminState = av1.StateEnabled
+			nextToEnable.Spec.TargetState = av1.StateDeployed
 			if err2 := m.kubeClient.Update(context.TODO(), &nextToEnable); err2 != nil {
 				acglog.Error(err, "Can't get enable of ArmadaChartGroup", "name", found.GetName())
 				errs = append(errs, err)
@@ -185,8 +185,7 @@ func (m manifestmanager) expectedChartGroupList() *av1.ArmadaChartGroups {
 					Name:        chartgroupname,
 					Sequenced:   false,
 					TestCharts:  false,
-					TargetState: av1.StateInitialized,
-					AdminState:  av1.StateDisabled,
+					TargetState: av1.StateUninitialized,
 				},
 			},
 		)

@@ -36,8 +36,6 @@ type ArmadaChartGroupSpec struct {
 	// run pre-defined helm tests in a ChartGroup (DEPRECATED)
 	TestCharts bool `json:"test_charts,omitempty"`
 
-	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
-	AdminState ArmadaAdminState `json:"admin_state"`
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`
 	// revisionHistoryLimit is the maximum number of revisions that will
@@ -69,6 +67,21 @@ type ArmadaChartGroup struct {
 
 	Spec   ArmadaChartGroupSpec   `json:"spec,omitempty"`
 	Status ArmadaChartGroupStatus `json:"status,omitempty"`
+}
+
+// Init is used to initialize an ArmadaChart. Namely, if the state has not been
+// specified, it will be set
+func (obj *ArmadaChartGroup) Init() {
+	if obj.Status.ActualState == "" {
+		obj.Status.ActualState = StateUninitialized
+	}
+	if obj.Spec.TargetState == "" {
+		obj.Spec.TargetState = StateDeployed
+	}
+	if obj.Spec.Charts == nil {
+		obj.Spec.Charts = make([]string, 0)
+	}
+	obj.Status.Satisfied = (obj.Spec.TargetState == obj.Status.ActualState)
 }
 
 // Return the list of dependent resources to watch
@@ -120,14 +133,9 @@ func (obj *ArmadaChartGroup) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsEnabled returns true if the chart group if managed by the reconcilier
-func (obj *ArmadaChartGroup) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
-}
-
-// IsDisabled returns true if the chart group is not managed by the reconcilier
-func (obj *ArmadaChartGroup) IsDisabled() bool {
-	return !obj.IsEnabled()
+// IsTargetStateUnitialized returns true if the chart is not managed by the reconcilier
+func (obj *ArmadaChartGroup) IsTargetStateUninitialized() bool {
+	return obj.Spec.TargetState == StateUninitialized
 }
 
 // Returns a GKV for ArmadaChartGroup
@@ -169,8 +177,7 @@ func (obj *ArmadaChartGroup) GetMockCharts() *ArmadaCharts {
 					Reference: "master",
 				},
 				Dependencies: make([]string, 0),
-				TargetState:  StateInitialized,
-				AdminState:   StateDisabled,
+				TargetState:  StateUninitialized,
 			},
 		})
 	}
@@ -255,11 +262,11 @@ func (obj *ArmadaChartGroups) GetName() string {
 // Loop through the ChartGroup and return the first disabled one
 func (obj *ArmadaChartGroups) GetNextToEnable() *ArmadaChartGroup {
 	for _, act := range obj.List.Items {
-		if act.IsEnabled() && !act.Status.Satisfied {
+		if !act.IsTargetStateUninitialized() && !act.Status.Satisfied {
 			// The ChartGroup has been enabled but is still deploying
 			return nil
 		}
-		if act.IsDisabled() {
+		if act.IsTargetStateUninitialized() {
 			// The ChartGroup has not been enabled yet
 			return &act
 		}
@@ -275,7 +282,7 @@ func (obj *ArmadaChartGroups) GetAllDisabledChartGroups() *ArmadaChartGroups {
 	var res = NewArmadaChartGroups(obj.Name)
 
 	for _, act := range obj.List.Items {
-		if act.IsDisabled() {
+		if act.IsTargetStateUninitialized() {
 			// The Chart has not been enabled yet
 			res.List.Items = append(res.List.Items, act)
 		}

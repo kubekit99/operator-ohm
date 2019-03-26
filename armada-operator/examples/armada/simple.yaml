@@ -19,7 +19,6 @@ spec:
     reference: 87aad18f7d8c6a1a08f3adc8866efd33bee6aa52
   dependencies: []
   target_state: deployed
-  admin_state: enabled
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChart
@@ -42,7 +41,6 @@ spec:
     reference: master
   dependencies: []
   target_state: deployed
-  admin_state: enabled
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChartGroup
@@ -55,7 +53,6 @@ spec:
     - blog-1
     - blog-2
   target_state: deployed
-  admin_state: enabled
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaManifest
@@ -66,4 +63,3 @@ spec:
   chart_groups:
     - blog-group
   target_state: deployed
-  admin_state: enabled

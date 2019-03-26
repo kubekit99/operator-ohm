@@ -23,8 +23,7 @@ spec:
     reference: master
   dependencies:
     - helm-toolkit
-  admin_state: disabled
-  target_state: deployed
+  target_state: uninitialized
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChart
@@ -50,8 +49,7 @@ spec:
     reference: master
   dependencies:
     - helm-toolkit
-  admin_state: disabled
-  target_state: deployed
+  target_state: uninitialized
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChart
@@ -79,8 +77,7 @@ spec:
     reference: master
   dependencies:
     - helm-toolkit
-  admin_state: disabled
-  target_state: deployed
+  target_state: uninitialized
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChart
@@ -123,5 +120,4 @@ spec:
     reference: master
   dependencies:
     - helm-toolkit
-  admin_state: disabled
-  target_state: deployed
+  target_state: uninitialized

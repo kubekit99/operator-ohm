@@ -134,7 +134,7 @@ func (m chartgroupmanager) ReconcileResource(ctx context.Context) (*av1.ArmadaCh
 		found := nextToEnable.FromArmadaChart()
 		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, &nextToEnable)
 		if err == nil {
-			nextToEnable.Spec.AdminState = av1.StateEnabled
+			nextToEnable.Spec.TargetState = av1.StateDeployed
 			if err2 := m.kubeClient.Update(context.TODO(), &nextToEnable); err2 != nil {
 				acglog.Error(err, "Can't get enable of ArmadaChart", "name", found.GetName())
 				errs = append(errs, err)
@@ -206,8 +206,7 @@ func (m chartgroupmanager) expectedChartList() *av1.ArmadaCharts {
 					Reference: "master",
 				},
 				Dependencies: make([]string, 0),
-				TargetState:  av1.StateInitialized,
-				AdminState:   av1.StateDisabled,
+				TargetState:  av1.StateUninitialized,
 			},
 		})
 	}

@@ -30,12 +30,12 @@ spec:
         metadata:
           name: memcached
         spec:
-          admin_state: enabled
+          target_state: deployed
 
   - name: memcached-ready-template
     resource:
       action: get
-      successCondition: status.satisfied == true
+      successCondition: status.actual_state == deployed
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart

@@ -56,8 +56,6 @@ type ArmadaChartSpec struct {
 	// See `ArmwadaWait`.
 	Wait *ArmadaWait `json:"wait,omitempty"`
 
-	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
-	AdminState ArmadaAdminState `json:"admin_state"`
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`
 
@@ -96,10 +94,10 @@ type ArmadaChart struct {
 // specified, it will be set
 func (obj *ArmadaChart) Init() {
 	if obj.Status.ActualState == "" {
-		obj.Status.ActualState = StateUninitialied
+		obj.Status.ActualState = StateUninitialized
 	}
 	if obj.Spec.TargetState == "" {
-		obj.Spec.TargetState = StateUninitialied
+		obj.Spec.TargetState = StateDeployed
 	}
 	obj.Status.Satisfied = (obj.Spec.TargetState == obj.Status.ActualState)
 }
@@ -149,14 +147,9 @@ func (obj *ArmadaChart) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsEnabled returns true if the chart if managed by the reconcilier
-func (obj *ArmadaChart) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
-}
-
-// IsDisabled returns true if the chart is not managed by the reconcilier
-func (obj *ArmadaChart) IsDisabled() bool {
-	return !obj.IsEnabled()
+// IsTargetStateUnitialized returns true if the chart is not managed by the reconcilier
+func (obj *ArmadaChart) IsTargetStateUninitialized() bool {
+	return obj.Spec.TargetState == StateUninitialized
 }
 
 // IsSatisfied returns true if the chart's actual state meets its target state
@@ -251,11 +244,11 @@ func (obj *ArmadaCharts) GetName() string {
 // Loop through the Chartand return the first disabled one
 func (obj *ArmadaCharts) GetNextToEnable() *ArmadaChart {
 	for _, act := range obj.List.Items {
-		if act.IsEnabled() && !act.Status.Satisfied {
+		if !act.IsTargetStateUninitialized() && !act.Status.Satisfied {
 			// The ChartGroup has been enabled but is still deploying
 			return nil
 		}
-		if act.IsDisabled() {
+		if act.IsTargetStateUninitialized() {
 			// The ChartGroup has not been enabled yet
 			return &act
 		}
@@ -269,7 +262,7 @@ func (obj *ArmadaCharts) GetAllDisabledCharts() *ArmadaCharts {
 	var res = NewArmadaCharts(obj.Name)
 
 	for _, act := range obj.List.Items {
-		if act.IsDisabled() {
+		if act.IsTargetStateUninitialized() {
 			// The Chart has not been enabled yet
 			res.List.Items = append(res.List.Items, act)
 		}

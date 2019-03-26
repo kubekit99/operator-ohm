@@ -10,8 +10,7 @@ spec:
     - mariadb
     - memcached
     - rabbitmq
-  admin_state: disabled
-  target_state: deployed
+  target_state: uninitialized
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaChartGroup
@@ -22,8 +21,7 @@ spec:
   sequenced: True
   chart_group:
     - keystone
-  admin_state: disabled
-  target_state: deployed
+  target_state: uninitialized
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaManifest
@@ -34,5 +32,4 @@ spec:
   chart_groups:
     - keystone-infra-services
     - openstack-keystone
-  admin_state: enabled
   target_state: deployed

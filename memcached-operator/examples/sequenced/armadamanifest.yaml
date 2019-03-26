@@ -8,8 +8,7 @@ spec:
   sequenced: True
   chart_group:
     - memcached
-  admin_state: disabled
-  target_state: deployed
+  target_state: uninitialized
 ---
 apiVersion: armada.airshipit.org/v1alpha1
 kind: ArmadaManifest
@@ -19,5 +18,4 @@ spec:
   release_prefix: armada
   chart_groups:
     - memcached-group
-  admin_state: enabled
   target_state: deployed

@@ -45,10 +45,6 @@ spec:
           type: object
         spec:
           properties:
-            adminState:
-              description: Administrative State of the resource. Is the reconcilation
-                of the CRD by its controller enabled
-              type: string
             armadaEndpoints:
               description: ArmadaEndpoints specifies the endpoints of an armada cluster.
                 When multiple endpoints are given, the backup operator retrieves the

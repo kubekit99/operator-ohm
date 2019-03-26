@@ -19,5 +19,4 @@ spec:
     subpath: .
     reference: master
   dependencies: []
-  target_state: deployed
-  admin_state: disabled
+  target_state: uninitialized

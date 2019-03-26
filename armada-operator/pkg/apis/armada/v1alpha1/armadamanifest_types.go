@@ -31,8 +31,6 @@ type ArmadaManifestSpec struct {
 	// Appends to the front of all charts released by the manifest in order to manage releases throughout their lifecycle
 	ReleasePrefix string `json:"release_prefix"`
 
-	// Administrative State of the resource. Is the reconcilation of the CRD by its controller enabled
-	AdminState ArmadaAdminState `json:"admin_state"`
 	// Target state of the Helm Custom Resources
 	TargetState HelmResourceState `json:"target_state"`
 	// revisionHistoryLimit is the maximum number of revisions that will
@@ -64,6 +62,19 @@ type ArmadaManifest struct {
 
 	Spec   ArmadaManifestSpec   `json:"spec,omitempty"`
 	Status ArmadaManifestStatus `json:"status,omitempty"`
+}
+
+func (obj *ArmadaManifest) Init() {
+	if obj.Status.ActualState == "" {
+		obj.Status.ActualState = StateUninitialized
+	}
+	if obj.Spec.TargetState == "" {
+		obj.Spec.TargetState = StateDeployed
+	}
+	if obj.Spec.ChartGroups == nil {
+		obj.Spec.ChartGroups = make([]string, 0)
+	}
+	obj.Status.Satisfied = (obj.Spec.TargetState == obj.Status.ActualState)
 }
 
 // Return the list of dependent resources to watch
@@ -115,14 +126,9 @@ func (obj *ArmadaManifest) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsEnabled returns true if the manifest if managed by the reconcilier
-func (obj *ArmadaManifest) IsEnabled() bool {
-	return (obj.Spec.AdminState == "") || (obj.Spec.AdminState == StateEnabled)
-}
-
-// IsDisabled returns true if the manifest is not managed by the reconcilier
-func (obj *ArmadaManifest) IsDisabled() bool {
-	return !obj.IsEnabled()
+// IsTargetStateUnitialized returns true if the chart is not managed by the reconcilier
+func (obj *ArmadaManifest) IsTargetStateUninitialized() bool {
+	return obj.Spec.TargetState == StateUninitialized
 }
 
 // GetChartGroups returns a list of mock ArmadaChartGroup matching
@@ -148,8 +154,7 @@ func (obj *ArmadaManifest) GetMockChartGroups() *ArmadaChartGroups {
 					Name:        chartgroupname,
 					Sequenced:   false,
 					TestCharts:  false,
-					TargetState: StateInitialized,
-					AdminState:  StateDisabled,
+					TargetState: StateUninitialized,
 				},
 			},
 		)

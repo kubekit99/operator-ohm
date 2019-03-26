@@ -23,5 +23,4 @@ spec:
     reference: master
   dependencies:
     - helm-toolkit
-  admin_state: disabled
-  target_state: deployed
+  target_state: uninitialized

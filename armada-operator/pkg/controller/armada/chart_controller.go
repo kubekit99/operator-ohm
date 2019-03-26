@@ -173,7 +173,6 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 	instance.SetName(request.Name)
 
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
-	instance.Init()
 
 	if apierrors.IsNotFound(err) {
 		// We are working asynchronously. By the time we receive the event,
@@ -186,6 +185,7 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
+	instance.Init()
 	mgr := r.managerFactory.NewArmadaChartManager(instance)
 	reclog = reclog.WithValues("release", mgr.ReleaseName())
 
@@ -211,7 +211,12 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
-	if instance.IsSatisfied() {
+	// TODO(jeb): IsStatified currently prevents UpdateResource and ReconcileResource from beeing
+	// invoked after success deployement (actual_state and target_state are equal).
+	// Delete still works because the IsDeleted test is not before IsStatisfied
+	// Temporarly replace IsStatified test with IsTargetStateUninitialized.
+	// if instance.IsSatisfied() {
+	if instance.IsTargetStateUninitialized() {
 		reclog.Info("Already satisfied; skipping")
 		err = r.updateResource(instance)
 		if err != nil {
@@ -496,30 +501,4 @@ func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance
 		return err
 	}
 	return nil
-}
-
-// isReconcileDisabled
-func (r ChartReconciler) isReconcileDisabled(instance *av1.ArmadaChart) bool {
-	// JEB: Not sure if we need to add this new ConditionEnabled
-	// or we can just used the ConditionInitialized
-	if instance.IsDisabled() {
-		hrc := av1.HelmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusFalse,
-			Reason: "Chart is disabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		_ = r.updateResourceStatus(instance)
-		return true
-	} else {
-		hrc := av1.HelmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusTrue,
-			Reason: "Chart is enabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		return false
-	}
 }

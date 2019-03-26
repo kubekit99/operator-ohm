@@ -10,4 +10,3 @@ spec:
     - blog-1
     - blog-2
   target_state: deployed
-  admin_state: enabled

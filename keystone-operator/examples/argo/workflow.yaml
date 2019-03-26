@@ -47,12 +47,12 @@ spec:
         metadata:
           name: mariadb
         spec:
-          admin_state: enabled
+          target_state: deployed
 
   - name: mariadb-ready-template
     resource:
       action: get
-      successCondition: status.satisfied == true
+      successCondition: status.actual_state == deployed
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
@@ -69,12 +69,12 @@ spec:
         metadata:
           name: memcached
         spec:
-          admin_state: enabled
+          target_state: deployed
 
   - name: memcached-ready-template
     resource:
       action: get
-      successCondition: status.satisfied == true
+      successCondition: status.actual_state == deployed
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
@@ -91,12 +91,12 @@ spec:
         metadata:
           name: rabbitmq
         spec:
-          admin_state: enabled
+          target_state: deployed
 
   - name: rabbitmq-ready-template
     resource:
       action: get
-      successCondition: status.satisfied == true
+      successCondition: status.actual_state == deployed
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
@@ -113,12 +113,12 @@ spec:
         metadata:
           name: keystone
         spec:
-          admin_state: enabled
+          target_state: deployed
 
   - name: keystone-ready-template
     resource:
       action: get
-      successCondition: status.satisfied == true
+      successCondition: status.actual_state == deployed
       manifest: |
         apiVersion: armada.airshipit.org/v1alpha1
         kind: ArmadaChart
