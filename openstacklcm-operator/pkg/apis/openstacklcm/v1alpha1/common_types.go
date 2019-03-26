@@ -176,9 +176,7 @@ type PhaseStatus struct {
 	OpenstackLcmStatus `json:",inline"`
 
 	// OpenstackVersion is the version of the backup openstack server.
-	OpenstackVersion string `json:"openstackVersion,omitempty"`
-	// OpenstackRevision is the revision of openstack's KV store where the backup is performed on.
-	OpenstackRevision int64 `json:"openstackRevision,omitempty"`
+	ActualOpenstackServiceVersion string `json:"actualOpenstackServiceVersion,omitempty"`
 }
 
 // SetCondition sets a condition on the status object. If the condition already
@@ -335,10 +333,10 @@ func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, targe
 // LcmSource describe the location of the CR to create during a Phase of an
 // Openstack Service Life Cycle.
 type PhaseSource struct {
-	AuthMethod string `json:"auth_method,omitempty"`
+	AuthMethod string `json:"authMethod,omitempty"`
 	// ``url`` or ``path`` to the chart's parent directory
 	Location    string `json:"location"`
-	ProxyServer string `json:"proxy_server,omitempty"`
+	ProxyServer string `json:"proxyServer,omitempty"`
 	// (optional) branch, commit, or reference in the repo (``master`` if not specified)
 	Reference string `json:"reference,omitempty"`
 	// (optional) relative path to target chart from parent (``.`` if not specified)
@@ -351,11 +349,13 @@ type PhaseSource struct {
 type PhaseSpec struct {
 	// provide a path to a ``git repo``, ``local dir``, or ``tarball url`` chart
 	Source *PhaseSource `json:"source"`
+	// Openstack Service Name
+	OpenstackServiceName string `json:"openstackServiceName"`
 	// OpenstackServiceVersion is the version of the openstack service.
-	OpenstackServiceVersion string `json:"openstackServiceVersion,omitempty"`
+	TargetOpenstackServiceVersion string `json:"targetOpenstackServiceVersion,omitempty"`
 
 	// Target state of the Lcm Custom Resources
-	TargetState LcmResourceState `json:"target_state"`
+	TargetState LcmResourceState `json:"targetState"`
 	// revisionHistoryLimit is the maximum number of revisions that will
 	// be maintained in the DeletePhase's revision history. The revision history
 	// consists of all revisions not represented by a currently applied

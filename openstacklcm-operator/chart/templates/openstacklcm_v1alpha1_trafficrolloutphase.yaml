@@ -37,9 +37,8 @@ spec:
           type: object
         spec:
           properties:
-            openstackServiceVersion:
-              description: OpenstackServiceVersion is the version of the openstack
-                service.
+            openstackServiceName:
+              description: Openstack Service Name
               type: string
             revisionHistoryLimit:
               description: revisionHistoryLimit is the maximum number of revisions
@@ -52,8 +51,12 @@ spec:
               description: provide a path to a ``git repo``, ``local dir``, or ``tarball
                 url`` chart
               properties:
+                authMethod:
+                  type: string
                 location:
                   description: '``url`` or ``path`` to the chart''s parent directory'
+                  type: string
+                proxyServer:
                   type: string
                 reference:
                   description: (optional) branch, commit, or reference in the repo
@@ -72,11 +75,24 @@ spec:
               - subpath
               - type
               type: object
+            targetOpenstackServiceVersion:
+              description: OpenstackServiceVersion is the version of the openstack
+                service.
+              type: string
+            targetState:
+              description: Target state of the Lcm Custom Resources
+              type: string
           required:
           - source
+          - openstackServiceName
+          - targetState
           type: object
         status:
           properties:
+            actualOpenstackServiceVersion:
+              description: OpenstackVersion is the version of the backup openstack
+                server.
+              type: string
             conditions:
               description: 'List of conditions and states related to the resource.
                 JEB: Feature kind of overlap with event recorder'
@@ -103,15 +119,6 @@ spec:
                 - status
                 type: object
               type: array
-            openstackRevision:
-              description: OpenstackRevision is the revision of openstack's KV store
-                where the backup is performed on.
-              format: int64
-              type: integer
-            openstackVersion:
-              description: OpenstackVersion is the version of the backup openstack
-                server.
-              type: string
             reason:
               description: Reason indicates the reason for any related failures.
               type: string
