@@ -55,8 +55,6 @@ docker-push:
 	docker push ${IMG}
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-install: install
-
 purge: setup
 	helm delete --purge openstacklcm-operator
 
