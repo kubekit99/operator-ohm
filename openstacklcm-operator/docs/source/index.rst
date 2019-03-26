@@ -10,7 +10,15 @@ CRD Overview
 .. toctree::
    :maxdepth: 2
 
-   operator
+   kubernetes
+
+OpenstackServiceLifeCycle
+=========================
+
+.. toctree::
+   :maxdepth: 2
+
+   lifecycle
 
 CRD Detailled Design
 ====================
@@ -18,8 +26,8 @@ CRD Detailled Design
 .. toctree::
    :maxdepth: 2
 
-   phase
-   oslc
+   phase_crd
+   oslc_crd
    usage
 
 Help Needed

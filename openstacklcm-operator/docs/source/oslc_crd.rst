@@ -1,6 +1,11 @@
 
-Oslc
-================
+LifeCycle Modelisation
+======================
+
+Design
+--------------------
+
+.. image:: diagrams/openstackservice_lifecycle_oslc_crd.png
 
 Oslc CRD
 --------------------
@@ -16,6 +21,13 @@ Oslc Controller
 ---------------------------
 
 TBD
+
+SubResources
+---------------------------
+
+The current PhaseCRD are currently standalone CRDs. This provides control to the phase-controller on those objects.
+At one point we will have to weight if we need to keep those CRDs or simply consider the Phase as nodes of an Argo Workflow. 
+
 
 .. toctree::
    :maxdepth: 2
