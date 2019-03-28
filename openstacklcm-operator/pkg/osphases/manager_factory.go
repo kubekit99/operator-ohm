@@ -28,6 +28,21 @@ type managerFactory struct {
 	kubeClient client.Client
 }
 
+// Simple function to init the renderFiles passed to the helm renderer
+func initRenderFiles(stage av1.OslcPhase) []string {
+	renderFiles := make([]string, 0)
+	return renderFiles
+}
+
+// Simple function to init the renderValues passed to the helm renderer
+func initRenderValues(stage av1.OslcPhase) map[string]interface{} {
+	oslcValues := map[string]interface{}{}
+	oslcValues["stage"] = stage.String()
+	renderValues := map[string]interface{}{}
+	renderValues["oslc"] = oslcValues
+	return renderValues
+}
+
 // NewManagerFactory returns a new factory.
 func NewManagerFactory(mgr manager.Manager) lcmif.PhaseManagerFactory {
 	return &managerFactory{kubeClient: mgr.GetClient()}
@@ -39,8 +54,9 @@ func (f managerFactory) NewPlanningPhaseManager(r *av1.PlanningPhase) lcmif.Plan
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
-	renderFiles := make([]string, 0)
-	renderValues := map[string]interface{}{}
+
+	renderFiles := initRenderFiles(av1.PhasePlanning)
+	renderValues := initRenderValues(av1.PhasePlanning)
 
 	return &planningmanager{
 		phasemanager: phasemanager{
@@ -61,8 +77,9 @@ func (f managerFactory) NewInstallPhaseManager(r *av1.InstallPhase) lcmif.Instal
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
-	renderFiles := make([]string, 0)
-	renderValues := map[string]interface{}{}
+
+	renderFiles := initRenderFiles(av1.PhaseInstall)
+	renderValues := initRenderValues(av1.PhaseInstall)
 
 	return &installmanager{
 		phasemanager: phasemanager{
@@ -83,8 +100,9 @@ func (f managerFactory) NewTestPhaseManager(r *av1.TestPhase) lcmif.TestPhaseMan
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
-	renderFiles := make([]string, 0)
-	renderValues := map[string]interface{}{}
+
+	renderFiles := initRenderFiles(av1.PhaseTest)
+	renderValues := initRenderValues(av1.PhaseTest)
 
 	return &testmanager{
 		phasemanager: phasemanager{
@@ -105,8 +123,9 @@ func (f managerFactory) NewTrafficRolloutPhaseManager(r *av1.TrafficRolloutPhase
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
-	renderFiles := make([]string, 0)
-	renderValues := map[string]interface{}{}
+
+	renderFiles := initRenderFiles(av1.PhaseTrafficRollout)
+	renderValues := initRenderValues(av1.PhaseTrafficRollout)
 
 	return &trafficrolloutmanager{
 		phasemanager: phasemanager{
@@ -127,8 +146,9 @@ func (f managerFactory) NewOperationalPhaseManager(r *av1.OperationalPhase) lcmi
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
-	renderFiles := make([]string, 0)
-	renderValues := map[string]interface{}{}
+
+	renderFiles := initRenderFiles(av1.PhaseOperational)
+	renderValues := initRenderValues(av1.PhaseOperational)
 
 	return &operationalmanager{
 		phasemanager: phasemanager{
@@ -149,8 +169,9 @@ func (f managerFactory) NewTrafficDrainPhaseManager(r *av1.TrafficDrainPhase) lc
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
-	renderFiles := make([]string, 0)
-	renderValues := map[string]interface{}{}
+
+	renderFiles := initRenderFiles(av1.PhaseTrafficDrain)
+	renderValues := initRenderValues(av1.PhaseTrafficDrain)
 
 	return &trafficdrainmanager{
 		phasemanager: phasemanager{
@@ -171,8 +192,9 @@ func (f managerFactory) NewUpgradePhaseManager(r *av1.UpgradePhase) lcmif.Upgrad
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
-	renderFiles := make([]string, 0)
-	renderValues := map[string]interface{}{}
+
+	renderFiles := initRenderFiles(av1.PhaseUpgrade)
+	renderValues := initRenderValues(av1.PhaseUpgrade)
 
 	return &upgrademanager{
 		phasemanager: phasemanager{
@@ -193,8 +215,9 @@ func (f managerFactory) NewRollbackPhaseManager(r *av1.RollbackPhase) lcmif.Roll
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
-	renderFiles := make([]string, 0)
-	renderValues := map[string]interface{}{}
+
+	renderFiles := initRenderFiles(av1.PhaseRollback)
+	renderValues := initRenderValues(av1.PhaseRollback)
 
 	return &rollbackmanager{
 		phasemanager: phasemanager{
@@ -215,8 +238,9 @@ func (f managerFactory) NewDeletePhaseManager(r *av1.DeletePhase) lcmif.DeletePh
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
-	renderFiles := make([]string, 0)
-	renderValues := map[string]interface{}{}
+
+	renderFiles := initRenderFiles(av1.PhaseDelete)
+	renderValues := initRenderValues(av1.PhaseDelete)
 
 	return &deletemanager{
 		phasemanager: phasemanager{

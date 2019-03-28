@@ -1147,6 +1147,7 @@
     "k8s.io/helm/pkg/chartutil",
     "k8s.io/helm/pkg/manifest",
     "k8s.io/helm/pkg/proto/hapi/chart",
+    "k8s.io/helm/pkg/releaseutil",
     "k8s.io/helm/pkg/renderutil",
     "k8s.io/helm/pkg/timeconv",
     "sigs.k8s.io/controller-runtime/pkg/client",

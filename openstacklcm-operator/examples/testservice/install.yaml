@@ -8,5 +8,5 @@ spec:
   targetState: deployed
   source:
     type: tar
-    location: /opt/openstacklcm-operator/helm-charts/rabbitmq
+    location: /opt/openstacklcm-operator/helm-charts/testservice
     subpath: .

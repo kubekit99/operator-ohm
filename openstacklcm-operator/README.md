@@ -96,7 +96,7 @@ make install
 
 For testing purpose the current Docker file includes a dummy chart deliverd under armada-charts.
 
-## Invidual Phase CRD sanity tests
+## Invidual Phase CRD sanity tests as standalone kubernetes objects
 
 ```bash
 kubectl apply -f examples/phases/
@@ -292,4 +292,175 @@ testphase.openstacklcm.airshipit.org "test" deleted
 trafficdrainphase.openstacklcm.airshipit.org "trafficdrain" deleted
 trafficrolloutphase.openstacklcm.airshipit.org "trafficrollout" deleted
 upgradephase.openstacklcm.airshipit.org "upgrade" deleted
+```
+
+## Invidual Phase CRD sanity tests as part of testservice Helm Chart.
+
+```bash
+kubectl apply -f examples/testservice/
+
+deletephase.openstacklcm.airshipit.org/delete-phase created
+installphase.openstacklcm.airshipit.org/install-phase created
+operationalphase.openstacklcm.airshipit.org/operational-phase created
+planningphase.openstacklcm.airshipit.org/planning-phase created
+rollbackphase.openstacklcm.airshipit.org/rollback-phase created
+testphase.openstacklcm.airshipit.org/test-phase created
+trafficdrainphase.openstacklcm.airshipit.org/trafficdrain-phase created
+trafficrolloutphase.openstacklcm.airshipit.org/trafficrollout-phase created
+upgradephase.openstacklcm.airshipit.org/upgrade-phase created
+```
+
+```bash
+for in `kubectl get pod | grep stage | awk '{print $1}' `; do kubectl logs $i main; done
+ _________________________________
+/ Executing delete:               \
+\ delete-phase-osdlt-delete-stage /
+ ---------------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ ___________________________________
+/ Executing install:                \
+\ install-phase-osins-install-stage /
+ -----------------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ _________________________________________
+/ Executing operational:                  \
+| operational-phase-osops-operational-sta |
+\ ge                                      /
+ -----------------------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ ______________________________________
+/ Executing planning:                  \
+\ planning-phase-osplan-planning-stage /
+ --------------------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ ______________________________________
+/ Executing rollback:                  \
+\ rollback-phase-osrbck-rollback-stage /
+ --------------------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ ______________________________
+/ Executing test:              \
+\ test-phase-ostest-test-stage /
+ ------------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ _________________________________________
+/ Executing trafficdrain:                 \
+| trafficdrain-phase-osdrain-trafficdrain |
+\ -stage                                  /
+ -----------------------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ _________________________________________
+/ Executing trafficrollout:               \
+| trafficrollout-phase-osroll-trafficroll |
+\ out-stage                               /
+ -----------------------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+ ___________________________________
+/ Executing upgrade:                \
+\ upgrade-phase-osupg-upgrade-stage /
+ -----------------------------------
+    \
+     \
+      \
+                    ##        .
+              ## ## ##       ==
+           ## ## ## ##      ===
+       /""""""""""""""""___/ ===
+  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+       \______ o          __/
+        \    \        __/
+          \____\______/
+```
+
+```bash
+kubectl delete -f examples/testservice/
+deletephase.openstacklcm.airshipit.org "delete-phase" deleted
+installphase.openstacklcm.airshipit.org "install-phase" deleted
+operationalphase.openstacklcm.airshipit.org "operational-phase" deleted
+planningphase.openstacklcm.airshipit.org "planning-phase" deleted
+rollbackphase.openstacklcm.airshipit.org "rollback-phase" deleted
+testphase.openstacklcm.airshipit.org "test-phase" deleted
+trafficdrainphase.openstacklcm.airshipit.org "trafficdrain-phase" deleted
+trafficrolloutphase.openstacklcm.airshipit.org "trafficrollout-phase" deleted
+upgradephase.openstacklcm.airshipit.org "upgrade-phase" deleted
 ```
