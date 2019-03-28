@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: keystone-operator
+  name: keystone-armada-operator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: keystone-operator
+      name: keystone-armada-operator
   template:
     metadata:
       labels:
-        name: keystone-operator
+        name: keystone-armada-operator
     spec:
-      serviceAccountName: armada-operator
+      serviceAccountName: operator
       containers:
-        - name: keystone-operator
+        - name: keystone-armada-operator
           # Replace this with the built image name
-          image: kubekit99/keystone-operator:poc
+          image: kubekit99/keystone-armada-operator:poc
           ports:
           - containerPort: 60000
             name: metrics
@@ -31,4 +31,4 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
-              value: "keystone-operator"
+              value: "keystone-armada-operator"

@@ -1,10 +1,13 @@
 
 # Image URL to use all building/pushing image targets
-COMPONENT        ?= keystone-operator
+COMPONENT_A      ?= keystone-armada-operator
+COMPONENT_O      ?= keystone-oslc-operator
 VERSION          ?= poc
-DHUBREPO         ?= kubekit99/${COMPONENT}
+DHUBREPO_A       ?= kubekit99/${COMPONENT_A}
+DHUBREPO_O       ?= kubekit99/${COMPONENT_O}
 DOCKER_NAMESPACE ?= kubekit99
-IMG              ?= ${DHUBREPO}:${VERSION}
+IMG_A            ?= ${DHUBREPO_A}:${VERSION}
+IMG_O            ?= ${DHUBREPO_O}:${VERSION}
 
 all: docker-build
 
@@ -26,16 +29,22 @@ docker-build: setup
 	rsync -avz ../mariadb-operator/helm-charts/mariadb helm-charts
 	rsync -avz ../memcached-operator/helm-charts/memcached helm-charts
 	rsync -avz ../rabbitmq-operator/helm-charts/rabbitmq helm-charts
-	docker build -t ${IMG} -f build/Dockerfile .
-	docker tag ${IMG} ${DHUBREPO}:latest
+	docker build -t ${IMG_A} -f build/Dockerfile.armada-operator .
+	docker tag ${IMG_A} ${DHUBREPO_A}:latest
+	docker build -t ${IMG_O} -f build/Dockerfile.oslc-operator .
+	docker tag ${IMG_O} ${DHUBREPO_O}:latest
 
 # Push the docker image
 docker-push:
-	docker push ${IMG}
-	docker push ${DHUBREPO}:latest
+	docker push ${IMG_A}
+	docker push ${DHUBREPO_A}:latest
+	docker push ${IMG_O}
+	docker push ${DHUBREPO_O}:latest
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-install: docker-build
+install: docker-build install-oslc
+
+install-armada:
 	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
 	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
 	kubectl apply -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
@@ -43,10 +52,29 @@ install: docker-build
 	kubectl apply -f ../armada-operator/chart/templates/role.yaml
 	kubectl apply -f ../armada-operator/chart/templates/service_account.yaml
 	kubectl apply -f ../armada-operator/chart/templates/argo_armada_role.yaml
-	kubectl create -f deploy/operator.yaml
+	kubectl create -f deploy/armada-operator.yaml
 
-purge: setup
-	kubectl delete -f deploy/operator.yaml
+install-oslc:
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_deletephase.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_installphase.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_operationalphase.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_planningphase.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_rollbackphase.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_testphase.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_trafficdrainphase.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_trafficrolloutphase.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_upgradephase.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_oslc.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/role_binding.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/roles.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/service_account.yaml
+	kubectl apply -f ../openstacklcm-operator/chart/templates/argo_openstacklcm_role.yaml
+	kubectl create -f deploy/oslc-operator.yaml
+
+purge: setup purge-oslc
+
+purge-armada:
+	kubectl delete -f deploy/armada-operator.yaml
 	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachartgroup.yaml
 	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadachart.yaml
 	kubectl delete -f ../armada-operator/chart/templates/armada_v1alpha1_armadamanifest.yaml
@@ -54,6 +82,24 @@ purge: setup
 	kubectl delete -f ../armada-operator/chart/templates/role.yaml
 	kubectl delete -f ../armada-operator/chart/templates/service_account.yaml
 	kubectl delete -f ../armada-operator/chart/templates/argo_armada_role.yaml
+
+purge-oslc:
+	kubectl delete -f deploy/oslc-operator.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_deletephase.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_installphase.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_operationalphase.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_planningphase.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_rollbackphase.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_testphase.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_trafficdrainphase.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_trafficrolloutphase.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_upgradephase.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/openstacklcm_v1alpha1_oslc.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/role_binding.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/roles.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/service_account.yaml
+	kubectl delete -f ../openstacklcm-operator/chart/templates/argo_openstacklcm_role.yaml
+
 
 installmanifest:
 	kubectl label nodes airship openstack-control-plane=enabled --overwrite
