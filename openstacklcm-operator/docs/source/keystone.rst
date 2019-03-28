@@ -1,11 +1,11 @@
 
-Greenfield Deployment
+Keystone Deployment
 ===========================
 
 Schema
 ----------------------
 
-.. image:: diagrams/openstackservice_greenfieldflow.png
+.. image:: diagrams/keystone_greenfieldflow.png
 
 Rationale
 ---------
@@ -14,13 +14,13 @@ Rationale
 2. If the service is unhealty, it gets removed.
 3. If the service is healty, it reaches the operational.
 
-Brownfield Change
+Keystone Change
 ==================
 
 Schema
 ------
 
-.. image:: diagrams/openstackservice_brownfieldflow.png
+.. image:: diagrams/keystone_brownfieldflow.png
 
 Rationale
 ---------

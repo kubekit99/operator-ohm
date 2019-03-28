@@ -1,11 +1,11 @@
 
-Greenfield Deployment
+Nova Deployment
 ===========================
 
 Schema
 ----------------------
 
-.. image:: diagrams/openstackservice_greenfieldflow.png
+.. image:: diagrams/nova_greenfieldflow.png
 
 Rationale
 ---------
@@ -14,13 +14,13 @@ Rationale
 2. If the service is unhealty, it gets removed.
 3. If the service is healty, it reaches the operational.
 
-Brownfield Change
+Nova Change
 ==================
 
 Schema
 ------
 
-.. image:: diagrams/openstackservice_brownfieldflow.png
+.. image:: diagrams/nova_brownfieldflow.png
 
 Rationale
 ---------
