@@ -51,11 +51,20 @@ func (m phasemanager) IsUpdateRequired() bool {
 	return m.isUpdateRequired
 }
 
+// Render a chart or just a file
+func (m phasemanager) render(ctx context.Context) (*av1.SubResourceList, error) {
+	if m.source.Type == "tar" {
+		return m.renderer.RenderChart(m.phaseName, m.phaseNamespace, m.source.Location)
+	} else {
+		return m.renderer.RenderFile(m.phaseName, m.phaseNamespace, m.source.Location)
+	}
+}
+
 // Attempts to compare the K8s object present with the rendered objects
 func (m phasemanager) sync(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
 	deployed := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
 
-	rendered, err := m.renderer.Render(m.phaseName, m.phaseNamespace, m.source.Location)
+	rendered, err := m.render(ctx)
 	if err != nil {
 		return nil, deployed, err
 	}
@@ -86,7 +95,8 @@ func (m phasemanager) sync(ctx context.Context) (*av1.SubResourceList, *av1.SubR
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m phasemanager) installResource(ctx context.Context) (*av1.SubResourceList, error) {
-	rendered, err := m.renderer.Render(m.phaseName, m.phaseNamespace, m.source.Location)
+
+	rendered, err := m.render(ctx)
 	if err != nil {
 		return m.deployedSubResourceList, err
 	}

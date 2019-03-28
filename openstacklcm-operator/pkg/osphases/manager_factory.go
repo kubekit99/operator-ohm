@@ -39,11 +39,13 @@ func (f managerFactory) NewPlanningPhaseManager(r *av1.PlanningPhase) lcmif.Plan
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
+	renderFiles := make([]string, 0)
+	renderValues := map[string]interface{}{}
 
 	return &planningmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osplan"),
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osplan", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
@@ -59,11 +61,13 @@ func (f managerFactory) NewInstallPhaseManager(r *av1.InstallPhase) lcmif.Instal
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
+	renderFiles := make([]string, 0)
+	renderValues := map[string]interface{}{}
 
 	return &installmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osins"),
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osins", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
@@ -79,11 +83,13 @@ func (f managerFactory) NewTestPhaseManager(r *av1.TestPhase) lcmif.TestPhaseMan
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
+	renderFiles := make([]string, 0)
+	renderValues := map[string]interface{}{}
 
 	return &testmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "ostest"),
+			renderer:       NewOwnerRefRenderer(ownerRefs, "ostest", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
@@ -99,11 +105,13 @@ func (f managerFactory) NewTrafficRolloutPhaseManager(r *av1.TrafficRolloutPhase
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
+	renderFiles := make([]string, 0)
+	renderValues := map[string]interface{}{}
 
 	return &trafficrolloutmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osroll"),
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osroll", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
@@ -119,11 +127,13 @@ func (f managerFactory) NewOperationalPhaseManager(r *av1.OperationalPhase) lcmi
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
+	renderFiles := make([]string, 0)
+	renderValues := map[string]interface{}{}
 
 	return &operationalmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osops"),
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osops", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
@@ -139,11 +149,13 @@ func (f managerFactory) NewTrafficDrainPhaseManager(r *av1.TrafficDrainPhase) lc
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
+	renderFiles := make([]string, 0)
+	renderValues := map[string]interface{}{}
 
 	return &trafficdrainmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osdrain"),
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osdrain", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
@@ -159,11 +171,13 @@ func (f managerFactory) NewUpgradePhaseManager(r *av1.UpgradePhase) lcmif.Upgrad
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
+	renderFiles := make([]string, 0)
+	renderValues := map[string]interface{}{}
 
 	return &upgrademanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osupg"),
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osupg", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
@@ -179,11 +193,13 @@ func (f managerFactory) NewRollbackPhaseManager(r *av1.RollbackPhase) lcmif.Roll
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
+	renderFiles := make([]string, 0)
+	renderValues := map[string]interface{}{}
 
 	return &rollbackmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osrbck"),
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osrbck", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
@@ -199,11 +215,13 @@ func (f managerFactory) NewDeletePhaseManager(r *av1.DeletePhase) lcmif.DeletePh
 	ownerRefs := []metav1.OwnerReference{
 		*controllerRef,
 	}
+	renderFiles := make([]string, 0)
+	renderValues := map[string]interface{}{}
 
 	return &deletemanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osdlt"),
+			renderer:       NewOwnerRefRenderer(ownerRefs, "osdlt", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},

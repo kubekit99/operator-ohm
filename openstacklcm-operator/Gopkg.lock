@@ -10,6 +10,38 @@
   version = "v0.36.0"
 
 [[projects]]
+  digest = "1:75d2b55b13298745ec068057251d05d65bbae0a668201fe45ad6986551a55601"
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005"
+  version = "v0.3.1"
+
+[[projects]]
+  digest = "1:25870183293a3fb61cc9afd060a61d63a486f091db72af01a8ea3449f5ca530d"
+  name = "github.com/Masterminds/goutils"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "41ac8693c5c10a92ea1ff5ac3a7f95646f6123b0"
+  version = "v1.1.0"
+
+[[projects]]
+  digest = "1:a26f8da48b22e6176c1c6a2459904bb30bd0c49ada04b2963c2c3a203e81a620"
+  name = "github.com/Masterminds/semver"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "c7af12943936e8c39859482e61f0574c2fd7fc75"
+  version = "v1.4.2"
+
+[[projects]]
+  digest = "1:876a1121171c083c4e3a4789683d02a40c0f644c8190da521d15b59799f556d6"
+  name = "github.com/Masterminds/sprig"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "9f8fceff796fb9f4e992cd2bece016be0121ab74"
+  version = "2.19.0"
+
+[[projects]]
   digest = "1:d8ebbd207f3d3266d4423ce4860c9f3794956306ded6c7ba312ecc69cdfbf04c"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -53,6 +85,14 @@
   pruneopts = "NT"
   revision = "72ec4b9b16ef11700724dc71fec77112536eed40"
   version = "v0.26.0"
+
+[[projects]]
+  digest = "1:8449bb0c1da0fd7ec4706afb5ae46ad0ad658fd87f17a7eb067c5a307ffe3818"
+  name = "github.com/cyphar/filepath-securejoin"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "a261ee33d7a517f054effbf451841abaafe3e0fd"
+  version = "v0.2.2"
 
 [[projects]]
   digest = "1:4b8b5811da6970495e04d1f4e98bb89518cc3cfc3b3f456bdb876ed7b6c74049"
@@ -136,6 +176,23 @@
   pruneopts = "NT"
   revision = "fa0dfdc10b5366ce365b7d9d1755a03e4e797bc5"
   version = "v1.6.15"
+
+[[projects]]
+  digest = "1:fb7b2a3e97946b9886007313497664ab2842c7b6473c33460e97157a38935f5d"
+  name = "github.com/gobwas/glob"
+  packages = [
+    ".",
+    "compiler",
+    "match",
+    "syntax",
+    "syntax/ast",
+    "syntax/lexer",
+    "util/runes",
+    "util/strings",
+  ]
+  pruneopts = "NT"
+  revision = "5ccd90ef52e1e632236f7326478d4faa74f99438"
+  version = "v0.2.3"
 
 [[projects]]
   digest = "1:932970e69f16e127aa0653b8263ae588cd127fa53273e19ba44332902c9826f2"
@@ -249,6 +306,14 @@
   pruneopts = "NT"
   revision = "a30252cb686a21eb2d0b98132633053ec2f7f1e5"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:dc54242755f5b6721dd880843de6e45fe234838ea9149ec8249951880fd5802f"
+  name = "github.com/huandu/xstrings"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "f02667b379e2fb5916c3cda2cf31e0eb885d79f8"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:aaa38889f11896ee3644d77e17dc7764cc47f5f3d3b488268df2af2b52541c5f"
@@ -538,7 +603,11 @@
   branch = "master"
   digest = "1:ac2aca57313c6183eee8ae3bb09bafb99e8249652aaa233aad5739b830636646"
   name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
+  packages = [
+    "pbkdf2",
+    "scrypt",
+    "ssh/terminal",
+  ]
   pruneopts = "NT"
   revision = "74369b46fc6756741c016591724fd1cb8e26845f"
 
@@ -934,6 +1003,27 @@
   revision = "0689ccc1d7d65d9dd1bedcc3b0b1ed7df91ba266"
 
 [[projects]]
+  digest = "1:051b8d6d2aba59a6a52d920d4c901ec6d785a3e3fa777072c447819abc706206"
+  name = "k8s.io/helm"
+  packages = [
+    "pkg/chartutil",
+    "pkg/engine",
+    "pkg/ignore",
+    "pkg/manifest",
+    "pkg/proto/hapi/chart",
+    "pkg/proto/hapi/release",
+    "pkg/proto/hapi/version",
+    "pkg/releaseutil",
+    "pkg/renderutil",
+    "pkg/sympath",
+    "pkg/timeconv",
+    "pkg/version",
+  ]
+  pruneopts = "NT"
+  revision = "79d07943b03aea2b76c12644b4b54733bc5958d6"
+  version = "v2.13.0"
+
+[[projects]]
   digest = "1:29f93bb84d907a2c035e729e19d66fe52165d8c905cb3ef1920140d76ae6afaf"
   name = "k8s.io/klog"
   packages = ["."]
@@ -1054,6 +1144,11 @@
     "k8s.io/code-generator/cmd/lister-gen",
     "k8s.io/code-generator/cmd/openapi-gen",
     "k8s.io/gengo/args",
+    "k8s.io/helm/pkg/chartutil",
+    "k8s.io/helm/pkg/manifest",
+    "k8s.io/helm/pkg/proto/hapi/chart",
+    "k8s.io/helm/pkg/renderutil",
+    "k8s.io/helm/pkg/timeconv",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",

@@ -1,10 +1,12 @@
 
 # Image URL to use all building/pushing image targets
 COMPONENT        ?= openstacklcm-operator
-VERSION          ?= 0.0.1
+VERSION_V2       ?= 2.13.0
+VERSION_V3       ?= 3.0.0
 DHUBREPO         ?= kubekit99/${COMPONENT}-dev
 DOCKER_NAMESPACE ?= kubekit99
-IMG              ?= ${DHUBREPO}:v${VERSION}
+IMG_V2           ?= ${DHUBREPO}:v${VERSION_V2}
+IMG_V3           ?= ${DHUBREPO}:v${VERSION_V3}
 
 all: docker-build
 
@@ -13,6 +15,8 @@ ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
 	# JEB: dep ensure
+	# JEB: mkdir -p vendor/helm.sh
+	# JEB: cd vendor/helm.sh && git clone -b dev-v3 https://github.com/helm/helm.git
 
 clean:
 	rm -fr vendor
@@ -21,7 +25,7 @@ clean:
 	rm -fr config/crds
 
 # Run tests
-unittest: setup fmt vet
+unittest: setup fmt vet-v2
 	echo "sudo systemctl stop kubelet"
 	echo -e 'docker stop $$(docker ps -qa)'
 	echo -e 'export PATH=$${PATH}:/usr/local/kubebuilder/bin'
@@ -34,8 +38,11 @@ fmt: setup
 	go fmt ./pkg/... ./cmd/...
 
 # Run go vet against code
-vet: setup
+vet-v2: setup
 	go vet -composites=false -tags=v2 ./pkg/... ./cmd/...
+
+vet-v3: setup
+	go vet -composites=false -tags=v3 ./pkg/... ./cmd/...
 
 # Generate code
 generate: setup
@@ -44,22 +51,41 @@ generate: setup
 	operator-sdk generate k8s
 
 # Build the docker image
-docker-build: fmt vet
-	# JEB: operator-sdk build ${IMG}
+docker-build: fmt docker-build-v2
+
+docker-build-v2: vet-v2
+	# JEB: operator-sdk build ${IMG_V2}
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o build/_output/bin/openstacklcm-operator -gcflags all=-trimpath=${GOPATH} -asmflags all=-trimpath=${GOPATH} -tags=v2 ./cmd/...
-	docker build . -f build/Dockerfile -t ${IMG}
-	docker tag ${IMG} ${DHUBREPO}:latest
+	docker build . -f build/Dockerfile -t ${IMG_V2}
+	docker tag ${IMG_V2} ${DHUBREPO}:latest
+
+docker-build-v3: vet-v3
+	# JEB: operator-sdk build ${IMG_V2}
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o build/_output/bin/openstacklcm-operator -gcflags all=-trimpath=${GOPATH} -asmflags all=-trimpath=${GOPATH} -tags=v3 ./cmd/...
+	docker build . -f build/Dockerfile -t ${IMG_V3}
+	docker tag ${IMG_V3} ${DHUBREPO}:latest
+
 
 # Push the docker image
-docker-push:
-	docker push ${IMG}
+docker-push: docker-push-v2
+
+docker-push-v2:
+	docker push ${IMG_V2}
+
+docker-push-v3:
+	docker push ${IMG_V3}
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
+install: install-v2
+
 purge: setup
 	helm delete --purge openstacklcm-operator
 
-install: docker-build
-	helm install --name openstacklcm-operator chart --set images.tags.operator=${IMG}
+install-v2: docker-build-v2
+	helm install --name openstacklcm-operator chart --set images.tags.operator=${IMG_V2}
+
+install-v3: docker-build-v3
+	helm install --name openstacklcm-operator chart --set images.tags.operator=${IMG_V3}
 
 # Deploy and purge procedure which do not rely on helm itself
 install-kubectl: docker-build
