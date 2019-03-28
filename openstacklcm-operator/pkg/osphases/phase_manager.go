@@ -105,9 +105,10 @@ func (m phasemanager) installResource(ctx context.Context) (*av1.SubResourceList
 	for _, toCreate := range rendered.Items {
 		err := m.kubeClient.Create(context.TODO(), &toCreate)
 		if err != nil {
-			log.Error(err, "Can't not Create Resource")
+			log.Error(err, "Can't not Create Resource", "kind", toCreate.GetKind(), "name", toCreate.GetName())
 			errs = append(errs, err)
 		} else {
+			log.Info("Created Resource", "kind", toCreate.GetKind(), "name", toCreate.GetName())
 			m.deployedSubResourceList.Items = append(m.deployedSubResourceList.Items, toCreate)
 		}
 	}

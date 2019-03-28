@@ -38,10 +38,10 @@ fmt: setup
 	go fmt ./pkg/... ./cmd/...
 
 # Run go vet against code
-vet-v2: setup
+vet-v2: fmt
 	go vet -composites=false -tags=v2 ./pkg/... ./cmd/...
 
-vet-v3: setup
+vet-v3: fmt
 	go vet -composites=false -tags=v3 ./pkg/... ./cmd/...
 
 # Generate code

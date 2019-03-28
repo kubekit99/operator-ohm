@@ -16,9 +16,10 @@ package helmv3
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-	"io/ioutil"
+	"sort"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -26,13 +27,14 @@ import (
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/manifest"
 	"k8s.io/helm/pkg/proto/hapi/chart"
+	"k8s.io/helm/pkg/releaseutil"
 	"k8s.io/helm/pkg/renderutil"
 	"k8s.io/helm/pkg/timeconv"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
@@ -53,22 +55,15 @@ type OwnerRefHelmv3Renderer struct {
 // Adds the ownerrefs to all the documents in a YAML file
 func (o *OwnerRefHelmv3Renderer) RenderFile(name string, namespace string, fileName string) (*av1.SubResourceList, error) {
 
-	ownedRenderedFiles := av1.NewSubResourceList(namespace, name)
-
 	yamlfmt, ferr := ioutil.ReadFile(fileName)
 	if ferr != nil {
 		log.Error(ferr, "Can not read file")
-		return ownedRenderedFiles, ferr
+		return av1.NewSubResourceList(namespace, name), ferr
 	}
-	unstructured, err := o.fromYaml(name, namespace, string(yamlfmt))
+	ownedRenderedFiles, err := o.fromYaml(name, namespace, string(yamlfmt))
 	if err != nil {
-		log.Info("Can not convert from yaml to unstructured", "filename", fileName)
+		log.Info("Can not convert malformed yaml to unstructured", "filename", fileName)
 		return ownedRenderedFiles, err
-	} else if unstructured != nil {
-		log.Info("Converted from yaml to unstructured", "filename", fileName)
-		ownedRenderedFiles.Items = append(ownedRenderedFiles.Items, *unstructured)
-	} else {
-		log.Info("Can not convert from yaml to unstructured", "filename", fileName)
 	}
 
 	return ownedRenderedFiles, nil
@@ -104,7 +99,7 @@ func (o *OwnerRefHelmv3Renderer) RenderChart(name string, namespace string, char
 
 	renderOpts := renderutil.Options{
 		ReleaseOptions: chartutil.ReleaseOptions{
-		    Name:      name + "-" + o.suffix,
+			Name:      name + "-" + o.suffix,
 			IsInstall: true,
 			IsUpgrade: false,
 			Time:      timeconv.Now(),
@@ -168,14 +163,9 @@ func (o *OwnerRefHelmv3Renderer) RenderChart(name string, namespace string, char
 			continue
 		}
 		if strings.HasSuffix(fileName, ".yaml") {
-			unstructured, err := o.fromYaml(name, namespace, m.Content)
-			if err != nil {
-				log.Info("Can not convert from yaml to unstructured", "filename", fileName)
-			} else if unstructured != nil {
-				log.Info("Converted from yaml to unstructured", "filename", fileName)
-				ownedRenderedFiles.Items = append(ownedRenderedFiles.Items, *unstructured)
-			} else {
-				log.Info("Can not convert from yaml to unstructured", "filename", fileName)
+			parsed, _ := o.fromYaml(name, namespace, m.Content)
+			for _, u := range parsed.Items {
+				ownedRenderedFiles.Items = append(ownedRenderedFiles.Items, u)
 			}
 		}
 	}
@@ -183,55 +173,79 @@ func (o *OwnerRefHelmv3Renderer) RenderChart(name string, namespace string, char
 	return ownedRenderedFiles, nil
 }
 
+func sortManifests(in map[string]string) []string {
+	var keys []string
+	for k := range in {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var manifests []string
+	for _, k := range keys {
+		manifests = append(manifests, in[k])
+	}
+	return manifests
+}
+
 // Reads a yaml file and converts into an Unstructured object
-func (o *OwnerRefHelmv3Renderer) fromYaml(name string, namespace string, fileContent string) (*unstructured.Unstructured, error) {
+func (o *OwnerRefHelmv3Renderer) fromYaml(name string, namespace string, filecontent string) (*av1.SubResourceList, error) {
 
-	manifestMap := chartutil.FromYaml(fileContent)
+	ownedRenderedFiles := av1.NewSubResourceList(namespace, name)
 
-	if errors, ok := manifestMap["Error"]; ok {
-		return nil, fmt.Errorf("error parsing rendered template to add ownerrefs: %v", errors)
+	manifests := releaseutil.SplitManifests(filecontent)
+	for _, manifest := range sortManifests(manifests) {
+		manifestMap := chartutil.FromYaml(manifest)
+
+		if _, ok := manifestMap["Error"]; ok {
+			log.Error(nil, "error parsing rendered template to add ownerrefs")
+			continue
+		}
+
+		// Check if the document is empty
+		if len(manifestMap) == 0 {
+			continue	
+		}
+
+		unst, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&manifestMap)
+		if err != nil {
+			log.Error(err, "error converting to Unstructured")
+			continue
+		}
+
+		u := &unstructured.Unstructured{Object: unst}
+		u.SetOwnerReferences(o.refs)
+
+		// Init name and namespace
+		if u.GetName() == "" {
+		 	u.SetName(name + "-" + o.suffix)
+		}
+
+		if u.GetNamespace() == "" {
+			u.SetNamespace(namespace)
+		}
+
+		// Add OwnerReferences
+		u.SetOwnerReferences(o.refs)
+
+		// Add labels
+		// labels := map[string]string{
+		// 	"app": name,
+		// }
+		// u.SetLabels(labels)
+
+		ownedRenderedFiles.Items = append(ownedRenderedFiles.Items, *u)
 	}
 
-	// Check if the document is empty
-	if len(manifestMap) == 0 {
-		return nil, nil
-	}
-
-	unst, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&manifestMap)
-	if err != nil {
-		return nil, err
-	}
-
-	u := &unstructured.Unstructured{Object: unst}
-	u.SetOwnerReferences(o.refs)
-
-	// Init name and namespace
-	if u.GetName() == "" {
-		u.SetName(name + "-" + o.suffix)
-	}
-	if u.GetNamespace() == "" {
-		u.SetNamespace(namespace)
-	}
-
-	// Add OwnerReferences
-	u.SetOwnerReferences(o.refs)
-
-	// Add labels
-	labels := map[string]string{
-		"app": name,
-	}
-	u.SetLabels(labels)
-
-	return u, nil
+	return ownedRenderedFiles, nil
 }
 
 // NewOwnerRefHelmv3Renderer creates a new OwnerRef engine with a set of metav1.OwnerReferences to be added to assets
-func NewOwnerRefHelmv3Renderer(refs []metav1.OwnerReference, suffix string, 
-		renderFiles []string, renderValues map[string]interface{}) *OwnerRefHelmv3Renderer {
+func NewOwnerRefHelmv3Renderer(refs []metav1.OwnerReference, suffix string,
+	renderFiles []string, renderValues map[string]interface{}) *OwnerRefHelmv3Renderer {
 	return &OwnerRefHelmv3Renderer{
-		refs:   refs,
-		suffix: suffix,
-		renderFiles: renderFiles,
-	    renderValues:  renderValues,
+		refs:         refs,
+		suffix:       suffix,
+		renderFiles:  renderFiles,
+		renderValues: renderValues,
 	}
 }
