@@ -1167,3 +1167,6 @@ manifests:
   secret_rabbitmq: true
   service_ingress_api: true
   service_api: true
+
+oslc:
+  stage: ""
