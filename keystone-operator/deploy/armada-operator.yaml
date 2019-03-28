@@ -12,7 +12,7 @@ spec:
       labels:
         name: keystone-armada-operator
     spec:
-      serviceAccountName: operator
+      serviceAccountName: armada-operator
       containers:
         - name: keystone-armada-operator
           # Replace this with the built image name
