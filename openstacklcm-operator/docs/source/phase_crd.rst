@@ -40,5 +40,7 @@ in the yaml file.
 
 3. The key aspect here is to be able to monitor the end of those tasks as well as the success/failure.
 
+4. The HelmV2 renderer is supported. HelmV3 POC support has been added
+
 .. toctree::
    :maxdepth: 2
