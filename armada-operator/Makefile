@@ -54,13 +54,11 @@ generate: setup
 docker-build: fmt docker-build-v2
 
 docker-build-v2: vet-v2
-	# JEB: operator-sdk build ${IMG_V2}
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o build/_output/bin/armada-operator -gcflags all=-trimpath=${GOPATH} -asmflags all=-trimpath=${GOPATH} -tags=v2 ./cmd/...
 	docker build . -f build/Dockerfile -t ${IMG_V2}
 	docker tag ${IMG_V2} ${DHUBREPO}:latest
 
 docker-build-v3: vet-v3
-	# JEB: operator-sdk build ${IMG_V2}
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o build/_output/bin/armada-operator -gcflags all=-trimpath=${GOPATH} -asmflags all=-trimpath=${GOPATH} -tags=v3 ./cmd/...
 	docker build . -f build/Dockerfile -t ${IMG_V3}
 	docker tag ${IMG_V3} ${DHUBREPO}:latest

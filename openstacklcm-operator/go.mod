@@ -69,7 +69,7 @@ require (
 	golang.org/x/net v0.0.0-20190213061140-3a22650c66bd
 	golang.org/x/oauth2 v0.0.0-20190212230446-3e8b2be13635
 	golang.org/x/sys v0.0.0-20190213121743-983097b1a8a3
-	golang.org/x/text v0.3.0
+	golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 	golang.org/x/tools v0.0.0-20190214043641-508f945e1a9b
 	google.golang.org/appengine v1.4.0

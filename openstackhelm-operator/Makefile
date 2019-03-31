@@ -34,7 +34,8 @@ generate: setup
 
 # Build the docker image
 docker-build: unittest
-	operator-sdk build ${IMG}
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o build/_output/bin/openstackhelm-operator -gcflags all=-trimpath=${GOPATH} -asmflags all=-trimpath=${GOPATH} -tags=v2 ./cmd/...
+	docker build . -f build/Dockerfile -t ${IMG}
 	docker tag ${IMG} ${DHUBREPO}:latest
 
 # Push the docker image
