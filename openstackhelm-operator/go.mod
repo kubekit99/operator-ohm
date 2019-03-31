@@ -49,7 +49,7 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/json-iterator/go v1.1.5
 	github.com/konsorten/go-windows-terminal-sequences v1.0.1
-	github.com/kubekit99/operator-ohm v0.1.0
+	github.com/kubekit99/operator-ohm v0.1.1
 	github.com/mailru/easyjson v0.0.0-20190221075403-6243d8e04c3f
 	github.com/markbates/inflect v1.0.4
 	github.com/martinlindhe/base36 v0.0.0-20180729042928-5cda0030da17
