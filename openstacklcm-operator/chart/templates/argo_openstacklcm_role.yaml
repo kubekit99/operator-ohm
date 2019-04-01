@@ -28,16 +28,24 @@ rules:
   - apiGroups:
       - openstacklcm.airshipit.org
     resources:
-      - openstackbackups
-      - openstackbackups/finalizers
-      - openstackrestores
-      - openstackrestores/finalizers
-      - openstackupgrades
-      - openstackupgrades/finalizers
-      - openstackrollbacks
-      - openstackrollbacks/finalizers
-      - openstackdeployments
-      - openstackdeployments/finalizers
+      - deletephases
+      - deletephases/finalizers
+      - installphases
+      - installphases/finalizers
+      - operationalphases
+      - operationalphases/finalizers
+      - planningphases
+      - planningphases/finalizers
+      - rollbackphases
+      - rollbackphases/finalizers
+      - testphases
+      - testphases/finalizers
+      - trafficdrainphases
+      - trafficdrainphases/finalizers
+      - trafficrolloutphases
+      - trafficrolloutphases/finalizers
+      - upgradephases
+      - upgradephases/finalizers
       - oslcs
       - oslcs/finalizers
     verbs:

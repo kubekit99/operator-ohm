@@ -1,0 +1,244 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: wf-all-phases
+spec:
+  entrypoint: wf-all-phases
+  serviceAccountName: openstacklcm-argo-sa
+  templates:
+  - name: wf-all-phases
+    steps:
+    - - name: enable-phase-delete
+        template: enable-phase-delete-template
+    - - name: phase-delete-ready
+        template: phase-delete-ready-template
+    - - name: enable-phase-install
+        template: enable-phase-install-template
+    - - name: phase-install-ready
+        template: phase-install-ready-template
+    - - name: enable-phase-operational
+        template: enable-phase-operational-template
+    - - name: phase-operational-ready
+        template: phase-operational-ready-template
+    - - name: enable-phase-planning
+        template: enable-phase-planning-template
+    - - name: phase-planning-ready
+        template: phase-planning-ready-template
+    - - name: enable-phase-rollback
+        template: enable-phase-rollback-template
+    - - name: phase-rollback-ready
+        template: phase-rollback-ready-template
+    - - name: enable-phase-test
+        template: enable-phase-test-template
+    - - name: phase-test-ready
+        template: phase-test-ready-template
+    - - name: enable-phase-trafficdrain
+        template: enable-phase-trafficdrain-template
+    - - name: phase-trafficdrain-ready
+        template: phase-trafficdrain-ready-template
+    - - name: enable-phase-trafficrollout
+        template: enable-phase-trafficrollout-template
+    - - name: phase-trafficrollout-ready
+        template: phase-trafficrollout-ready-template
+    - - name: enable-phase-upgrade
+        template: enable-phase-upgrade-template
+    - - name: phase-upgrade-ready
+        template: phase-upgrade-ready-template
+
+  - name: enable-phase-delete-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: DeletePhase
+        metadata:
+          name: delete-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-delete-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: DeletePhase
+        metadata:
+          name: delete-phase
+
+  - name: enable-phase-install-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: InstallPhase
+        metadata:
+          name: install-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-install-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: InstallPhase
+        metadata:
+          name: install-phase
+
+  - name: enable-phase-operational-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: OperationalPhase
+        metadata:
+          name: operational-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-operational-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: OperationalPhase
+        metadata:
+          name: operational-phase
+
+  - name: enable-phase-planning-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: PlanningPhase
+        metadata:
+          name: planning-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-planning-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: PlanningPhase
+        metadata:
+          name: planning-phase
+
+  - name: enable-phase-rollback-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: RollbackPhase
+        metadata:
+          name: rollback-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-rollback-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: RollbackPhase
+        metadata:
+          name: rollback-phase
+
+  - name: enable-phase-test-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TestPhase
+        metadata:
+          name: test-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-test-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TestPhase
+        metadata:
+          name: test-phase
+
+  - name: enable-phase-trafficdrain-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficDrainPhase
+        metadata:
+          name: trafficdrain-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-trafficdrain-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficDrainPhase
+        metadata:
+          name: trafficdrain-phase
+
+  - name: enable-phase-trafficrollout-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficRolloutPhase
+        metadata:
+          name: trafficrollout-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-trafficrollout-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficRolloutPhase
+        metadata:
+          name: trafficrollout-phase
+
+  - name: enable-phase-upgrade-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: UpgradePhase
+        metadata:
+          name: upgrade-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-upgrade-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: UpgradePhase
+        metadata:
+          name: upgrade-phase

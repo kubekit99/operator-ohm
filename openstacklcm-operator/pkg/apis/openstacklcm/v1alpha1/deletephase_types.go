@@ -25,7 +25,9 @@ type DeletePhaseStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=deletephases,shortName=osdlt
-// +kubebuilder:printcolumn:name="Succeeded",type="boolean",JSONPath=".status.succeeded",description="Succeeded"
+// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.actualState",description="State"
+// +kubebuilder:printcolumn:name="Target State",type="string",JSONPath=".spec.targetState",description="Target State"
+// +kubebuilder:printcolumn:name="Satisfied",type="boolean",JSONPath=".status.satisfied",description="Satisfied"
 type DeletePhase struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -38,10 +40,10 @@ type DeletePhase struct {
 // specified, it will be set
 func (obj *DeletePhase) Init() {
 	if obj.Status.ActualState == "" {
-		obj.Status.ActualState = StateUninitialied
+		obj.Status.ActualState = StateUninitialized
 	}
 	if obj.Spec.TargetState == "" {
-		obj.Spec.TargetState = StateUninitialied
+		obj.Spec.TargetState = StateDeployed
 	}
 	obj.Status.Succeeded = (obj.Spec.TargetState == obj.Status.ActualState)
 }
@@ -78,16 +80,22 @@ func (obj *DeletePhase) FromDeletePhase() *unstructured.Unstructured {
 	return u
 }
 
-// IsDeleted returns true if the chart group has been deleted
+// IsDeleted returns true if the phase has been deleted
 func (obj *DeletePhase) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsSatisfied returns true if the chart's actual state meets its target state
+// IsTargetStateUnitialized returns true if the phase is not managed by the reconcilier
+func (obj *DeletePhase) IsTargetStateUninitialized() bool {
+	return obj.Spec.TargetState == StateUninitialized
+}
+
+// IsSatisfied returns true if the phase's actual state meets its target state
 func (obj *DeletePhase) IsSatisfied() bool {
 	return obj.Spec.TargetState == obj.Status.ActualState
 }
 
+// Name of the Phase
 func (obj *DeletePhase) GetName() string {
 	return obj.ObjectMeta.Name
 }

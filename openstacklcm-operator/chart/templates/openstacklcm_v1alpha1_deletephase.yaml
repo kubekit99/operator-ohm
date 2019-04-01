@@ -7,9 +7,17 @@ metadata:
   name: deletephases.openstacklcm.airshipit.org
 spec:
   additionalPrinterColumns:
-  - JSONPath: .status.succeeded
-    description: Succeeded
-    name: Succeeded
+  - JSONPath: .status.actualState
+    description: State
+    name: State
+    type: string
+  - JSONPath: .spec.targetState
+    description: Target State
+    name: Target State
+    type: string
+  - JSONPath: .status.satisfied
+    description: Satisfied
+    name: Satisfied
     type: boolean
   group: openstacklcm.airshipit.org
   names:
@@ -91,6 +99,9 @@ spec:
               description: OpenstackVersion is the version of the backup openstack
                 server.
               type: string
+            actualState:
+              description: Actual state of the Lcm Custom Resources
+              type: string
             conditions:
               description: 'List of conditions and states related to the resource.
                 JEB: Feature kind of overlap with event recorder'
@@ -126,6 +137,7 @@ spec:
               type: boolean
           required:
           - satisfied
+          - actualState
           type: object
   version: v1alpha1
 status:

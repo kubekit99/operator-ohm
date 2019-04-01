@@ -61,7 +61,7 @@ func (x LcmResourceConditionReason) String() string { return string(x) }
 // Describe the status of a release
 const (
 	// StateUninitialied indicates that a release/chart/chartgroup/manifest exists, but has not been acted upon
-	StateUninitialied LcmResourceState = "uninitialized"
+	StateUninitialized LcmResourceState = "uninitialized"
 	// StateUnknown indicates that a release/chart/chartgroup/manifest is in an uncertain state.
 	StateUnknown LcmResourceState = "unknown"
 	// StateInitialized indicates that a release/chart/chartgroup/manifest is in an Kubernetes
@@ -166,7 +166,7 @@ type OpenstackLcmStatus struct {
 	// Reason indicates the reason for any related failures.
 	Reason string `json:"reason,omitempty"`
 	// Actual state of the Lcm Custom Resources
-	ActualState LcmResourceState `json:"actual_state"`
+	ActualState LcmResourceState `json:"actualState"`
 	// List of conditions and states related to the resource. JEB: Feature kind of overlap with event recorder
 	Conditions []LcmResourceCondition `json:"conditions,omitempty"`
 }

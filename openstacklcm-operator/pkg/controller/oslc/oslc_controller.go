@@ -211,8 +211,8 @@ func (r *OslcReconciler) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
-	if instance.IsSatisfied() {
-		reclog.Info("Already satisfied; skipping")
+	if instance.IsTargetStateUninitialized() {
+		reclog.Info("TargetState uninitialized; skipping")
 		err = r.updateResource(instance)
 		if err != nil {
 			return reconcile.Result{}, err

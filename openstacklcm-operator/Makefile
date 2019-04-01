@@ -48,7 +48,7 @@ vet-v3: fmt
 generate: setup
 	# JEB: go generate ./pkg/... ./cmd/...
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/ --domain airshipit.org
-	operator-sdk generate k8s
+	go run vendor/k8s.io/code-generator/cmd/deepcopy-gen/main.go --input-dirs github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1 -O zz_generated.deepcopy --bounding-dirs github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis
 
 # Build the docker image
 docker-build: fmt docker-build-v2

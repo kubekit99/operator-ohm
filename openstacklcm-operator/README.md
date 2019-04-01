@@ -113,6 +113,17 @@ upgradephase.openstacklcm.airshipit.org/upgrade created
 ```
 
 ```bash
+kubectl get osupg
+kubectl get osrbck
+kubectl get osroll
+kubectl get osdrain
+kubectl get ostest
+kubectl get osplan
+kubectl get osins
+kubectl get osdlt
+```
+
+```bash
 kubectl describe osupg
 kubectl describe osrbck
 kubectl describe osroll

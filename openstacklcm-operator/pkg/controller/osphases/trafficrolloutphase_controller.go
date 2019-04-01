@@ -203,8 +203,8 @@ func (r *TrafficRolloutPhaseReconciler) Reconcile(request reconcile.Request) (re
 		return reconcile.Result{}, err
 	}
 
-	if instance.IsSatisfied() {
-		reclog.Info("Already satisfied; skipping")
+	if instance.IsTargetStateUninitialized() {
+		reclog.Info("TargetState unitialized; skipping")
 		err = r.updateResource(instance)
 		if err != nil {
 			return reconcile.Result{}, err

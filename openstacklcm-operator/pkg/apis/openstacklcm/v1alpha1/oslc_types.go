@@ -63,7 +63,9 @@ type OslcStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=oslcs,shortName=oslc
-// +kubebuilder:printcolumn:name="Succeeded",type="boolean",JSONPath=".status.succeeded",description="Succeeded"
+// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.actual_state",description="State"
+// +kubebuilder:printcolumn:name="Target State",type="string",JSONPath=".spec.target_state",description="Target State"
+// +kubebuilder:printcolumn:name="Satisfied",type="boolean",JSONPath=".status.satisfied",description="Satisfied"
 type Oslc struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -76,10 +78,10 @@ type Oslc struct {
 // specified, it will be set
 func (obj *Oslc) Init() {
 	if obj.Status.ActualState == "" {
-		obj.Status.ActualState = StateUninitialied
+		obj.Status.ActualState = StateUninitialized
 	}
 	if obj.Spec.TargetState == "" {
-		obj.Spec.TargetState = StateUninitialied
+		obj.Spec.TargetState = StateDeployed
 	}
 	obj.Status.Succeeded = (obj.Spec.TargetState == obj.Status.ActualState)
 }
@@ -116,12 +118,17 @@ func (obj *Oslc) FromOslc() *unstructured.Unstructured {
 	return u
 }
 
-// IsDeleted returns true if the chart group has been deleted
+// IsDeleted returns true if the oscl has been deleted
 func (obj *Oslc) IsDeleted() bool {
 	return obj.GetDeletionTimestamp() != nil
 }
 
-// IsSatisfied returns true if the chart's actual state meets its target state
+// IsTargetStateUnitialized returns true if the oscl is not managed by the reconcilier
+func (obj *Oslc) IsTargetStateUninitialized() bool {
+	return obj.Spec.TargetState == StateUninitialized
+}
+
+// IsSatisfied returns true if the oscl's actual state meets its target state
 func (obj *Oslc) IsSatisfied() bool {
 	return obj.Spec.TargetState == obj.Status.ActualState
 }

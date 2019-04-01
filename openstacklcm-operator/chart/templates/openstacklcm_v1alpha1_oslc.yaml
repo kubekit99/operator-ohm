@@ -7,9 +7,17 @@ metadata:
   name: oslcs.openstacklcm.airshipit.org
 spec:
   additionalPrinterColumns:
-  - JSONPath: .status.succeeded
-    description: Succeeded
-    name: Succeeded
+  - JSONPath: .status.actual_state
+    description: State
+    name: State
+    type: string
+  - JSONPath: .spec.target_state
+    description: Target State
+    name: Target State
+    type: string
+  - JSONPath: .status.satisfied
+    description: Satisfied
+    name: Satisfied
     type: boolean
   group: openstacklcm.airshipit.org
   names:
@@ -70,6 +78,9 @@ spec:
             actualPhase:
               description: Actual phase of the OpenstackService
               type: string
+            actualState:
+              description: Actual state of the Lcm Custom Resources
+              type: string
             conditions:
               description: 'List of conditions and states related to the resource.
                 JEB: Feature kind of overlap with event recorder'
@@ -106,6 +117,7 @@ spec:
           required:
           - actualPhase
           - satisfied
+          - actualState
           type: object
   version: v1alpha1
 status:

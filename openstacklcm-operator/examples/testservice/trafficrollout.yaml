@@ -5,7 +5,7 @@ metadata:
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.trafficrollout.to
-  targetState: deployed
+  targetState: uninitialized
   source:
     type: tar
     location: /opt/openstacklcm-operator/helm-charts/testservice
