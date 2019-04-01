@@ -1,0 +1,380 @@
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: DeletePhase
+metadata:
+  name: mockservice-delete-phase
+spec:
+  openstackServiceName: mockservice
+  targetOpenstackServiceVersion: moc.version.to.delete.to
+  targetState: uninitialized
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-delete.yaml
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: InstallPhase
+metadata:
+  name: mockservice-install-phase
+spec:
+  openstackServiceName: mockservice
+  targetOpenstackServiceVersion: moc.version.to.install.to
+  targetState: uninitialized
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-install.yaml
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: OperationalPhase
+metadata:
+  name: mockservice-operational-phase
+spec:
+  openstackServiceName: mockservice
+  targetOpenstackServiceVersion: moc.version.to.operational.to
+  targetState: uninitialized
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-operational.yaml
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: PlanningPhase
+metadata:
+  name: mockservice-planning-phase
+spec:
+  openstackServiceName: mockservice
+  targetOpenstackServiceVersion: moc.version.to.planning.to
+  targetState: uninitialized
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-planning.yaml
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: RollbackPhase
+metadata:
+  name: mockservice-rollback-phase
+spec:
+  openstackServiceName: mockservice
+  targetOpenstackServiceVersion: moc.version.to.rollback.to
+  targetState: uninitialized
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-rollback.yaml
+
+  backupStorageType: offsite
+  # ceph:
+  #   cephSecret: thesecret
+  #   path: example
+  offsite:
+    endpoint: sftp://foo.bar
+    forcePathStyle: true
+    offsiteSecret: thesecret
+    path: xxx
+  openstackEndpoints:
+  - https://local.com
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: TestPhase
+metadata:
+  name: mockservice-test-phase
+spec:
+  openstackServiceName: mockservice
+  targetOpenstackServiceVersion: moc.version.to.test.to
+  targetState: uninitialized
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-test.yaml
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: TrafficDrainPhase
+metadata:
+  name: mockservice-trafficdrain-phase
+spec:
+  openstackServiceName: mockservice
+  targetOpenstackServiceVersion: moc.version.to.trafficdrain.to
+  targetState: uninitialized
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-trafficdrain.yaml
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: TrafficRolloutPhase
+metadata:
+  name: mockservice-trafficrollout-phase
+spec:
+  openstackServiceName: mockservice
+  targetOpenstackServiceVersion: moc.version.to.trafficrollout.to
+  targetState: uninitialized
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-trafficrollout.yaml
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: UpgradePhase
+metadata:
+  name: mockservice-upgrade-phase
+spec:
+  openstackServiceName: mockservice
+  targetOpenstackServiceVersion: moc.version.to.upgrade.to
+  targetState: uninitialized
+  source:
+    type: local
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-upgrade.yaml
+
+  storageType: offsite
+  backupPolicy:
+    timeoutInSecond: 3
+  # ceph:
+  #   cephSecret: thesecret
+  #   path: example
+  clientTLSSecret: client.crt
+  offsite:
+    endpoint: sftp://foo.bar
+    forcePathStyle: true
+    offsiteSecret: thesecret
+    path: xxx
+  openstackEndpoints:
+  - https://local.com
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: mockservice-all-phases
+spec:
+  entrypoint: mockservice-all-phases
+  serviceAccountName: openstacklcm-argo-sa
+  templates:
+  - name: mockservice-all-phases
+    steps:
+    - - name: mockservice-enable-phase-delete
+        template: enable-phase-delete-template
+    - - name: mockservice-phase-delete-ready
+        template: phase-delete-ready-template
+    - - name: mockservice-enable-phase-install
+        template: enable-phase-install-template
+    - - name: mockservice-phase-install-ready
+        template: phase-install-ready-template
+    - - name: mockservice-enable-phase-operational
+        template: enable-phase-operational-template
+    - - name: mockservice-phase-operational-ready
+        template: phase-operational-ready-template
+    - - name: mockservice-enable-phase-planning
+        template: enable-phase-planning-template
+    - - name: mockservice-phase-planning-ready
+        template: phase-planning-ready-template
+    - - name: mockservice-enable-phase-rollback
+        template: enable-phase-rollback-template
+    - - name: mockservice-phase-rollback-ready
+        template: phase-rollback-ready-template
+    - - name: mockservice-enable-phase-test
+        template: enable-phase-test-template
+    - - name: mockservice-phase-test-ready
+        template: phase-test-ready-template
+    - - name: mockservice-enable-phase-trafficdrain
+        template: enable-phase-trafficdrain-template
+    - - name: mockservice-phase-trafficdrain-ready
+        template: phase-trafficdrain-ready-template
+    - - name: mockservice-enable-phase-trafficrollout
+        template: enable-phase-trafficrollout-template
+    - - name: mockservice-phase-trafficrollout-ready
+        template: phase-trafficrollout-ready-template
+    - - name: mockservice-enable-phase-upgrade
+        template: enable-phase-upgrade-template
+    - - name: mockservice-phase-upgrade-ready
+        template: phase-upgrade-ready-template
+
+  - name: enable-phase-delete-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: DeletePhase
+        metadata:
+          name: mockservice-delete-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-delete-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: DeletePhase
+        metadata:
+          name: mockservice-delete-phase
+
+  - name: enable-phase-install-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: InstallPhase
+        metadata:
+          name: mockservice-install-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-install-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: InstallPhase
+        metadata:
+          name: mockservice-install-phase
+
+  - name: enable-phase-operational-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: OperationalPhase
+        metadata:
+          name: mockservice-operational-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-operational-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: OperationalPhase
+        metadata:
+          name: mockservice-operational-phase
+
+  - name: enable-phase-planning-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: PlanningPhase
+        metadata:
+          name: mockservice-planning-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-planning-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: PlanningPhase
+        metadata:
+          name: mockservice-planning-phase
+
+  - name: enable-phase-rollback-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: RollbackPhase
+        metadata:
+          name: mockservice-rollback-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-rollback-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: RollbackPhase
+        metadata:
+          name: mockservice-rollback-phase
+
+  - name: enable-phase-test-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TestPhase
+        metadata:
+          name: mockservice-test-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-test-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TestPhase
+        metadata:
+          name: mockservice-test-phase
+
+  - name: enable-phase-trafficdrain-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficDrainPhase
+        metadata:
+          name: mockservice-trafficdrain-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-trafficdrain-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficDrainPhase
+        metadata:
+          name: mockservice-trafficdrain-phase
+
+  - name: enable-phase-trafficrollout-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficRolloutPhase
+        metadata:
+          name: mockservice-trafficrollout-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-trafficrollout-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficRolloutPhase
+        metadata:
+          name: mockservice-trafficrollout-phase
+
+  - name: enable-phase-upgrade-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: UpgradePhase
+        metadata:
+          name: mockservice-upgrade-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-upgrade-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: UpgradePhase
+        metadata:
+          name: mockservice-upgrade-phase

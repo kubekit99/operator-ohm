@@ -14,6 +14,12 @@ ifndef GOPATH
 endif
 	# dep ensure
 
+clean:
+	rm -fr vendor
+	rm -fr cover.out
+	rm -fr build/_output
+	rm -fr config/crds
+
 # Run tests
 unittest: setup generate fmt vet
 	go test ./pkg/... ./cmd/... -coverprofile cover.out

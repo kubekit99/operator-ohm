@@ -1,63 +1,66 @@
+{{- if eq .Values.oslc.flow_kind "all-phases" }}
+{{- $envAll := . }}
+
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: DeletePhase
 metadata:
-  name: mockservice-delete-phase
+  name: keystone-delete-phase
 spec:
-  openstackServiceName: mockservice
+  openstackServiceName: keystone
   targetOpenstackServiceVersion: moc.version.to.delete.to
   targetState: uninitialized
   source:
-    type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/wf-delete.yaml
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/keystone
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: InstallPhase
 metadata:
-  name: mockservice-install-phase
+  name: keystone-install-phase
 spec:
-  openstackServiceName: mockservice
+  openstackServiceName: keystone
   targetOpenstackServiceVersion: moc.version.to.install.to
   targetState: uninitialized
   source:
-    type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/wf-install.yaml
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/keystone
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: OperationalPhase
 metadata:
-  name: mockservice-operational-phase
+  name: keystone-operational-phase
 spec:
-  openstackServiceName: mockservice
+  openstackServiceName: keystone
   targetOpenstackServiceVersion: moc.version.to.operational.to
   targetState: uninitialized
   source:
-    type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/wf-operational.yaml
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/keystone
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: PlanningPhase
 metadata:
-  name: mockservice-planning-phase
+  name: keystone-planning-phase
 spec:
-  openstackServiceName: mockservice
+  openstackServiceName: keystone
   targetOpenstackServiceVersion: moc.version.to.planning.to
   targetState: uninitialized
   source:
-    type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/wf-planning.yaml
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/keystone
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: RollbackPhase
 metadata:
-  name: mockservice-rollback-phase
+  name: keystone-rollback-phase
 spec:
-  openstackServiceName: mockservice
+  openstackServiceName: keystone
   targetOpenstackServiceVersion: moc.version.to.rollback.to
   targetState: uninitialized
   source:
-    type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/wf-rollback.yaml
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/keystone
 
   backupStorageType: offsite
   # ceph:
@@ -69,55 +72,55 @@ spec:
     offsiteSecret: thesecret
     path: xxx
   openstackEndpoints:
-  - https://local.com
+  - https://tar.com
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TestPhase
 metadata:
-  name: mockservice-test-phase
+  name: keystone-test-phase
 spec:
-  openstackServiceName: mockservice
+  openstackServiceName: keystone
   targetOpenstackServiceVersion: moc.version.to.test.to
   targetState: uninitialized
   source:
-    type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/wf-test.yaml
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/keystone
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficDrainPhase
 metadata:
-  name: mockservice-trafficdrain-phase
+  name: keystone-trafficdrain-phase
 spec:
-  openstackServiceName: mockservice
+  openstackServiceName: keystone
   targetOpenstackServiceVersion: moc.version.to.trafficdrain.to
   targetState: uninitialized
   source:
-    type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/wf-trafficdrain.yaml
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/keystone
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficRolloutPhase
 metadata:
-  name: mockservice-trafficrollout-phase
+  name: keystone-trafficrollout-phase
 spec:
-  openstackServiceName: mockservice
+  openstackServiceName: keystone
   targetOpenstackServiceVersion: moc.version.to.trafficrollout.to
   targetState: uninitialized
   source:
-    type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/wf-trafficrollout.yaml
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/keystone
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: UpgradePhase
 metadata:
-  name: mockservice-upgrade-phase
+  name: keystone-upgrade-phase
 spec:
-  openstackServiceName: mockservice
+  openstackServiceName: keystone
   targetOpenstackServiceVersion: moc.version.to.upgrade.to
   targetState: uninitialized
   source:
-    type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/wf-upgrade.yaml
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/keystone
 
   storageType: offsite
   backupPolicy:
@@ -132,53 +135,53 @@ spec:
     offsiteSecret: thesecret
     path: xxx
   openstackEndpoints:
-  - https://local.com
+  - https://tar.com
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: mockservice-all-phases
+  name: keystone-all-phases
 spec:
-  entrypoint: mockservice-all-phases
+  entrypoint: keystone-all-phases
   serviceAccountName: openstacklcm-argo-sa
   templates:
-  - name: mockservice-all-phases
+  - name: keystone-all-phases
     steps:
-    - - name: mockservice-enable-phase-delete
+    - - name: keystone-enable-phase-delete
         template: enable-phase-delete-template
-    - - name: mockservice-phase-delete-ready
+    - - name: keystone-phase-delete-ready
         template: phase-delete-ready-template
-    - - name: mockservice-enable-phase-install
+    - - name: keystone-enable-phase-install
         template: enable-phase-install-template
-    - - name: mockservice-phase-install-ready
+    - - name: keystone-phase-install-ready
         template: phase-install-ready-template
-    - - name: mockservice-enable-phase-operational
+    - - name: keystone-enable-phase-operational
         template: enable-phase-operational-template
-    - - name: mockservice-phase-operational-ready
+    - - name: keystone-phase-operational-ready
         template: phase-operational-ready-template
-    - - name: mockservice-enable-phase-planning
+    - - name: keystone-enable-phase-planning
         template: enable-phase-planning-template
-    - - name: mockservice-phase-planning-ready
+    - - name: keystone-phase-planning-ready
         template: phase-planning-ready-template
-    - - name: mockservice-enable-phase-rollback
+    - - name: keystone-enable-phase-rollback
         template: enable-phase-rollback-template
-    - - name: mockservice-phase-rollback-ready
+    - - name: keystone-phase-rollback-ready
         template: phase-rollback-ready-template
-    - - name: mockservice-enable-phase-test
+    - - name: keystone-enable-phase-test
         template: enable-phase-test-template
-    - - name: mockservice-phase-test-ready
+    - - name: keystone-phase-test-ready
         template: phase-test-ready-template
-    - - name: mockservice-enable-phase-trafficdrain
+    - - name: keystone-enable-phase-trafficdrain
         template: enable-phase-trafficdrain-template
-    - - name: mockservice-phase-trafficdrain-ready
+    - - name: keystone-phase-trafficdrain-ready
         template: phase-trafficdrain-ready-template
-    - - name: mockservice-enable-phase-trafficrollout
+    - - name: keystone-enable-phase-trafficrollout
         template: enable-phase-trafficrollout-template
-    - - name: mockservice-phase-trafficrollout-ready
+    - - name: keystone-phase-trafficrollout-ready
         template: phase-trafficrollout-ready-template
-    - - name: mockservice-enable-phase-upgrade
+    - - name: keystone-enable-phase-upgrade
         template: enable-phase-upgrade-template
-    - - name: mockservice-phase-upgrade-ready
+    - - name: keystone-phase-upgrade-ready
         template: phase-upgrade-ready-template
 
   - name: enable-phase-delete-template
@@ -189,7 +192,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: DeletePhase
         metadata:
-          name: mockservice-delete-phase
+          name: keystone-delete-phase
         spec:
           targetState: deployed
 
@@ -201,7 +204,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: DeletePhase
         metadata:
-          name: mockservice-delete-phase
+          name: keystone-delete-phase
 
   - name: enable-phase-install-template
     resource:
@@ -211,7 +214,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: InstallPhase
         metadata:
-          name: mockservice-install-phase
+          name: keystone-install-phase
         spec:
           targetState: deployed
 
@@ -223,7 +226,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: InstallPhase
         metadata:
-          name: mockservice-install-phase
+          name: keystone-install-phase
 
   - name: enable-phase-operational-template
     resource:
@@ -233,7 +236,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: OperationalPhase
         metadata:
-          name: mockservice-operational-phase
+          name: keystone-operational-phase
         spec:
           targetState: deployed
 
@@ -245,7 +248,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: OperationalPhase
         metadata:
-          name: mockservice-operational-phase
+          name: keystone-operational-phase
 
   - name: enable-phase-planning-template
     resource:
@@ -255,7 +258,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: PlanningPhase
         metadata:
-          name: mockservice-planning-phase
+          name: keystone-planning-phase
         spec:
           targetState: deployed
 
@@ -267,7 +270,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: PlanningPhase
         metadata:
-          name: mockservice-planning-phase
+          name: keystone-planning-phase
 
   - name: enable-phase-rollback-template
     resource:
@@ -277,7 +280,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: RollbackPhase
         metadata:
-          name: mockservice-rollback-phase
+          name: keystone-rollback-phase
         spec:
           targetState: deployed
 
@@ -289,7 +292,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: RollbackPhase
         metadata:
-          name: mockservice-rollback-phase
+          name: keystone-rollback-phase
 
   - name: enable-phase-test-template
     resource:
@@ -299,7 +302,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TestPhase
         metadata:
-          name: mockservice-test-phase
+          name: keystone-test-phase
         spec:
           targetState: deployed
 
@@ -311,7 +314,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TestPhase
         metadata:
-          name: mockservice-test-phase
+          name: keystone-test-phase
 
   - name: enable-phase-trafficdrain-template
     resource:
@@ -321,7 +324,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficDrainPhase
         metadata:
-          name: mockservice-trafficdrain-phase
+          name: keystone-trafficdrain-phase
         spec:
           targetState: deployed
 
@@ -333,7 +336,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficDrainPhase
         metadata:
-          name: mockservice-trafficdrain-phase
+          name: keystone-trafficdrain-phase
 
   - name: enable-phase-trafficrollout-template
     resource:
@@ -343,7 +346,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: mockservice-trafficrollout-phase
+          name: keystone-trafficrollout-phase
         spec:
           targetState: deployed
 
@@ -355,7 +358,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: mockservice-trafficrollout-phase
+          name: keystone-trafficrollout-phase
 
   - name: enable-phase-upgrade-template
     resource:
@@ -365,7 +368,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: UpgradePhase
         metadata:
-          name: mockservice-upgrade-phase
+          name: keystone-upgrade-phase
         spec:
           targetState: deployed
 
@@ -377,4 +380,5 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: UpgradePhase
         metadata:
-          name: mockservice-upgrade-phase
+          name: keystone-upgrade-phase
+{{ end }}
