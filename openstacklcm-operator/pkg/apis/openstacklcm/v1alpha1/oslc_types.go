@@ -218,6 +218,57 @@ func NewOslcListVersionKind(namespace string, name string) *unstructured.Unstruc
 	return u
 }
 
+// LifecycleFlow represent the list of Phase for that Service
+type LifecycleFlow struct {
+	Name      string
+	Namespace string
+	FlowKind  OslcFlowKind
+
+	// Main workflow
+	Main *unstructured.Unstructured
+	// Phases organized by name
+	Phases map[string](unstructured.Unstructured)
+}
+
+// Returns the Name for the LifecycleFlow
+func (obj *LifecycleFlow) GetName() string {
+	return obj.Name
+}
+
+// Returns the Namespace for this LifecycleFlow
+func (obj *LifecycleFlow) GetNamespace() string {
+	return obj.Namespace
+}
+
+// Returns the FlowKind for this LifecycleFlow
+func (obj *LifecycleFlow) GetFlowKind() OslcFlowKind {
+	return obj.FlowKind
+}
+
+// Returns the DependentResource for this LifecycleFlow
+func (obj *LifecycleFlow) GetDependentResources() []unstructured.Unstructured {
+	res := make([]unstructured.Unstructured, 0)
+
+	// Add the Worflow itself
+	if obj.Main != nil {
+		res = append(res, *obj.Main)
+	}
+
+	// Add all the depending Phases
+	for _, item := range obj.Phases {
+		res = append(res, item)
+	}
+	return res
+}
+
+// Returns a new LifecycleFlow
+func NewLifecycleFlow(namespace string, name string) *LifecycleFlow {
+	res := &LifecycleFlow{Namespace: namespace, Name: name}
+	res.Main = nil
+	res.Phases = make(map[string]unstructured.Unstructured)
+	return res
+}
+
 func init() {
 	SchemeBuilder.Register(&Oslc{}, &OslcList{})
 }

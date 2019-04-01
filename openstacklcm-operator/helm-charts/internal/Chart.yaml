@@ -1,0 +1,4 @@
+apiVersion: v1
+description: Internal Chart.
+name: internal
+version: 0.1.0

@@ -30,15 +30,15 @@ type oslcmanager struct {
 // Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this Oslc CR
 func (m *oslcmanager) Sync(ctx context.Context) error {
 
-	m.deployedPhaseList = av1.NewPhaseList(m.serviceNamespace, m.serviceName)
+	m.deployedLifecycleFlow = av1.NewLifecycleFlow(m.serviceNamespace, m.serviceName)
 
 	rendered, deployed, err := m.sync(ctx)
 	if err != nil {
 		return err
 	}
 
-	m.deployedPhaseList = deployed
-	if len(rendered.Items) != len(deployed.Items) {
+	m.deployedLifecycleFlow = deployed
+	if len(rendered.Phases) != len(deployed.Phases) {
 		m.isInstalled = false
 		m.isUpdateRequired = false
 	} else {
@@ -50,21 +50,21 @@ func (m *oslcmanager) Sync(ctx context.Context) error {
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Oslc CR
-func (m oslcmanager) InstallResource(ctx context.Context) (*av1.PhaseList, error) {
+func (m oslcmanager) InstallResource(ctx context.Context) (*av1.LifecycleFlow, error) {
 	return m.installResource(ctx)
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this Oslc CR
-func (m oslcmanager) UpdateResource(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, error) {
+func (m oslcmanager) UpdateResource(ctx context.Context) (*av1.LifecycleFlow, *av1.LifecycleFlow, error) {
 	return m.updateResource(ctx)
 }
 
 // ReconcileResource creates or patches resources as necessary to match this Oslc CR
-func (m oslcmanager) ReconcileResource(ctx context.Context) (*av1.PhaseList, error) {
+func (m oslcmanager) ReconcileResource(ctx context.Context) (*av1.LifecycleFlow, error) {
 	return m.reconcileResource(ctx)
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this Oslc CR
-func (m oslcmanager) UninstallResource(ctx context.Context) (*av1.PhaseList, error) {
+func (m oslcmanager) UninstallResource(ctx context.Context) (*av1.LifecycleFlow, error) {
 	return m.uninstallResource(ctx)
 }

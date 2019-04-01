@@ -33,9 +33,9 @@ type basemanager struct {
 	serviceNamespace string
 	source           av1.FlowSource
 
-	isInstalled       bool
-	isUpdateRequired  bool
-	deployedPhaseList *av1.PhaseList
+	isInstalled           bool
+	isUpdateRequired      bool
+	deployedLifecycleFlow *av1.LifecycleFlow
 }
 
 // ResourceName returns the name of the release.
@@ -52,7 +52,7 @@ func (m basemanager) IsUpdateRequired() bool {
 }
 
 // Render a chart or just a file
-func (m basemanager) render(ctx context.Context) (*av1.PhaseList, error) {
+func (m basemanager) render(ctx context.Context) (*av1.LifecycleFlow, error) {
 	var err error
 	var subResourceList *av1.SubResourceList
 
@@ -62,18 +62,23 @@ func (m basemanager) render(ctx context.Context) (*av1.PhaseList, error) {
 		subResourceList, err = m.renderer.RenderFile(m.serviceName, m.serviceNamespace, m.source.Location)
 	}
 
-	phaseList := av1.NewPhaseList(m.serviceNamespace, m.serviceName)
+	phaseList := av1.NewLifecycleFlow(m.serviceNamespace, m.serviceName)
 	if subResourceList != nil {
 		for _, item := range subResourceList.Items {
-			phaseList.Items = append(phaseList.Items, item)
+			log.Info(item.GetAPIVersion())
+			if item.GetAPIVersion() == "openstacklcm.airshipit.org/v1alpha1" {
+				phaseList.Phases[item.GetKind()] = item
+			} else {
+				phaseList.Main = &item
+			}
 		}
 	}
 	return phaseList, err
 }
 
 // Attempts to compare the K8s object present with the rendered objects
-func (m basemanager) sync(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, error) {
-	deployed := av1.NewPhaseList(m.serviceNamespace, m.serviceName)
+func (m basemanager) sync(ctx context.Context) (*av1.LifecycleFlow, *av1.LifecycleFlow, error) {
+	deployed := av1.NewLifecycleFlow(m.serviceNamespace, m.serviceName)
 
 	rendered, err := m.render(ctx)
 	if err != nil {
@@ -81,8 +86,27 @@ func (m basemanager) sync(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, 
 	}
 
 	errs := make([]error, 0)
-	for _, renderedResource := range rendered.Items {
-		// TODO(jeb): Don't undestand why need to code such a klduge
+
+	if rendered.Main != nil {
+		existingResource := unstructured.Unstructured{}
+		existingResource.SetAPIVersion(rendered.Main.GetAPIVersion())
+		existingResource.SetKind(rendered.Main.GetKind())
+		existingResource.SetName(rendered.Main.GetName())
+		existingResource.SetNamespace(rendered.Main.GetNamespace())
+
+		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.GetName(), Namespace: existingResource.GetNamespace()}, &existingResource)
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				// Don't want to trace is the error is not a NotFound.
+				log.Error(err, "Can't not retrieve main workflow")
+			}
+			errs = append(errs, err)
+		} else {
+			deployed.Main = &existingResource
+		}
+	}
+
+	for phaseName, renderedResource := range rendered.Phases {
 		existingResource := unstructured.Unstructured{}
 		existingResource.SetAPIVersion(renderedResource.GetAPIVersion())
 		existingResource.SetKind(renderedResource.GetKind())
@@ -93,11 +117,11 @@ func (m basemanager) sync(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, 
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
 				// Don't want to trace is the error is not a NotFound.
-				log.Error(err, "Can't not retrieve Resource")
+				log.Error(err, "Can't not retrieve phase")
 			}
 			errs = append(errs, err)
 		} else {
-			deployed.Items = append(deployed.Items, existingResource)
+			deployed.Phases[phaseName] = existingResource
 		}
 	}
 
@@ -105,51 +129,71 @@ func (m basemanager) sync(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, 
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
-func (m basemanager) installResource(ctx context.Context) (*av1.PhaseList, error) {
+func (m basemanager) installResource(ctx context.Context) (*av1.LifecycleFlow, error) {
 
 	rendered, err := m.render(ctx)
 	if err != nil {
-		return m.deployedPhaseList, err
+		return m.deployedLifecycleFlow, err
 	}
 
 	errs := make([]error, 0)
-	for _, toCreate := range rendered.Items {
+
+	for phaseName, toCreate := range rendered.Phases {
 		err := m.kubeClient.Create(context.TODO(), &toCreate)
 		if err != nil {
-			log.Error(err, "Can't not Create Resource")
+			log.Error(err, "Can't not create phase")
 			errs = append(errs, err)
 		} else {
-			m.deployedPhaseList.Items = append(m.deployedPhaseList.Items, toCreate)
+			m.deployedLifecycleFlow.Phases[phaseName] = toCreate
 		}
+	}
+
+	if rendered.Main != nil {
+		err := m.kubeClient.Create(context.TODO(), rendered.Main)
+		if err != nil {
+			log.Error(err, "Can't not create main flow")
+			errs = append(errs, err)
+		}
+
+		m.deployedLifecycleFlow.Main = rendered.Main
 	}
 
 	if len(errs) != 0 {
 		if apierrors.IsNotFound(errs[0]) {
-			return m.deployedPhaseList, lcmif.ErrNotFound
+			return m.deployedLifecycleFlow, lcmif.ErrNotFound
 		} else {
-			return m.deployedPhaseList, errs[0]
+			return m.deployedLifecycleFlow, errs[0]
 		}
 	}
-	return m.deployedPhaseList, nil
+	return m.deployedLifecycleFlow, nil
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
-func (m basemanager) updateResource(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, error) {
-	return m.deployedPhaseList, &av1.PhaseList{}, nil
+func (m basemanager) updateResource(ctx context.Context) (*av1.LifecycleFlow, *av1.LifecycleFlow, error) {
+	return m.deployedLifecycleFlow, &av1.LifecycleFlow{}, nil
 }
 
 // ReconcileResource creates or patches resources as necessary to match this Phase CR
-func (m basemanager) reconcileResource(ctx context.Context) (*av1.PhaseList, error) {
-	return m.deployedPhaseList, nil
+func (m basemanager) reconcileResource(ctx context.Context) (*av1.LifecycleFlow, error) {
+	return m.deployedLifecycleFlow, nil
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this Phase CR
-func (m basemanager) uninstallResource(ctx context.Context) (*av1.PhaseList, error) {
+func (m basemanager) uninstallResource(ctx context.Context) (*av1.LifecycleFlow, error) {
 	errs := make([]error, 0)
-	for _, toDelete := range m.deployedPhaseList.Items {
+
+	if m.deployedLifecycleFlow.Main != nil {
+		err := m.kubeClient.Delete(context.TODO(), m.deployedLifecycleFlow.Main)
+		if err != nil {
+			log.Error(err, "Can't not delete main flow")
+			errs = append(errs, err)
+		}
+	}
+
+	for _, toDelete := range m.deployedLifecycleFlow.Phases {
 		err := m.kubeClient.Delete(context.TODO(), &toDelete)
 		if err != nil {
-			log.Error(err, "Can't not Delete Resource")
+			log.Error(err, "Can't not delete phase")
 			errs = append(errs, err)
 		}
 	}
@@ -161,5 +205,5 @@ func (m basemanager) uninstallResource(ctx context.Context) (*av1.PhaseList, err
 			return nil, errs[0]
 		}
 	}
-	return m.deployedPhaseList, nil
+	return m.deployedLifecycleFlow, nil
 }

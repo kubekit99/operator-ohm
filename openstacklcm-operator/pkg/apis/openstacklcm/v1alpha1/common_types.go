@@ -401,7 +401,7 @@ type SubResourceList struct {
 	Version   int32
 
 	// Items is the list of Resources deployed in the K8s cluster
-	Items [](unstructured.Unstructured) `json:"items"`
+	Items [](unstructured.Unstructured)
 }
 
 // Returns the Name for the SubResourceList
@@ -432,49 +432,6 @@ func (obj *SubResourceList) GetDependentResources() []unstructured.Unstructured 
 // Returns a new SubResourceList
 func NewSubResourceList(namespace string, name string) *SubResourceList {
 	res := &SubResourceList{Namespace: namespace, Name: name}
-	res.Items = make([]unstructured.Unstructured, 0)
-	return res
-}
-
-// PhaseList represent the list of Phase for that Service
-type PhaseList struct {
-	Name      string
-	Namespace string
-	Notes     string
-	Version   int32
-
-	// Items is the list of Resources deployed in the K8s cluster
-	Items [](unstructured.Unstructured) `json:"items"`
-}
-
-// Returns the Name for the PhaseList
-func (obj *PhaseList) GetName() string {
-	return obj.Name
-}
-
-// Returns the Namespace for this PhaseList
-func (obj *PhaseList) GetNamespace() string {
-	return obj.Namespace
-}
-
-// Returns the Notes for this PhaseList
-func (obj *PhaseList) GetNotes() string {
-	return obj.Notes
-}
-
-// Returns the Version for this PhaseList
-func (obj *PhaseList) GetVersion() int32 {
-	return obj.Version
-}
-
-// Returns the DependentResource for this PhaseList
-func (obj *PhaseList) GetDependentResources() []unstructured.Unstructured {
-	return obj.Items
-}
-
-// Returns a new PhaseList
-func NewPhaseList(namespace string, name string) *PhaseList {
-	res := &PhaseList{Namespace: namespace, Name: name}
 	res.Items = make([]unstructured.Unstructured, 0)
 	return res
 }

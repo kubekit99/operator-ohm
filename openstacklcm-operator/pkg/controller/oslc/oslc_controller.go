@@ -320,7 +320,7 @@ func (r OslcReconciler) updateFinalizers(instance *av1.Oslc) (bool, error) {
 }
 
 // watchDependentResources updates all resources which are dependent on this one
-func (r OslcReconciler) watchDependentResources(resource *av1.PhaseList) error {
+func (r OslcReconciler) watchDependentResources(resource *av1.LifecycleFlow) error {
 	if r.depResourceWatchUpdater != nil {
 		if err := r.depResourceWatchUpdater(resource.GetDependentResources()); err != nil {
 			return err
@@ -411,12 +411,11 @@ func (r OslcReconciler) installOslc(mgr services.OslcManager, instance *av1.Oslc
 	}
 
 	hrc := av1.LcmResourceCondition{
-		Type:            av1.ConditionDeployed,
-		Status:          av1.ConditionStatusTrue,
-		Reason:          av1.ReasonInstallSuccessful,
-		Message:         installedResource.GetNotes(),
-		ResourceName:    installedResource.GetName(),
-		ResourceVersion: installedResource.GetVersion(),
+		Type:         av1.ConditionDeployed,
+		Status:       av1.ConditionStatusTrue,
+		Reason:       av1.ReasonInstallSuccessful,
+		Message:      installedResource.GetFlowKind().String(),
+		ResourceName: installedResource.GetName(),
 	}
 	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
@@ -456,12 +455,11 @@ func (r OslcReconciler) updateOslc(mgr services.OslcManager, instance *av1.Oslc)
 	}
 
 	hrc := av1.LcmResourceCondition{
-		Type:            av1.ConditionDeployed,
-		Status:          av1.ConditionStatusTrue,
-		Reason:          av1.ReasonUpdateSuccessful,
-		Message:         updatedResource.GetNotes(),
-		ResourceName:    updatedResource.GetName(),
-		ResourceVersion: updatedResource.GetVersion(),
+		Type:         av1.ConditionDeployed,
+		Status:       av1.ConditionStatusTrue,
+		Reason:       av1.ReasonUpdateSuccessful,
+		Message:      updatedResource.GetFlowKind().String(),
+		ResourceName: updatedResource.GetName(),
 	}
 	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)

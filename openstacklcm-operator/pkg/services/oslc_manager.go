@@ -25,8 +25,8 @@ type OslcManager interface {
 	IsInstalled() bool
 	IsUpdateRequired() bool
 	Sync(context.Context) error
-	InstallResource(context.Context) (*av1.PhaseList, error)
-	UpdateResource(context.Context) (*av1.PhaseList, *av1.PhaseList, error)
-	ReconcileResource(context.Context) (*av1.PhaseList, error)
-	UninstallResource(context.Context) (*av1.PhaseList, error)
+	InstallResource(context.Context) (*av1.LifecycleFlow, error)
+	UpdateResource(context.Context) (*av1.LifecycleFlow, *av1.LifecycleFlow, error)
+	ReconcileResource(context.Context) (*av1.LifecycleFlow, error)
+	UninstallResource(context.Context) (*av1.LifecycleFlow, error)
 }
