@@ -1,0 +1,4 @@
+apiVersion: v1
+description: Mock chart to test individual phase
+name: mockservice
+version: 0.1.0

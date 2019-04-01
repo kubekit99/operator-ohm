@@ -55,22 +55,8 @@ spec:
               description: provide a path to a ``git repo``, ``local dir``, or ``tarball
                 url`` chart
               properties:
-                authMethod:
-                  description: (optional) authentication method
-                  type: string
                 location:
                   description: '``url`` or ``path`` to the chart''s parent directory'
-                  type: string
-                proxyServer:
-                  description: (optional) http proxy server
-                  type: string
-                reference:
-                  description: (optional) branch, commit, or reference in the repo
-                    (``master`` if not specified)
-                  type: string
-                subpath:
-                  description: (optional) relative path to target chart from parent
-                    (``.`` if not specified)
                   type: string
                 type:
                   description: 'source to build the chart: ``git``, ``local``, or
@@ -78,7 +64,6 @@ spec:
                   type: string
               required:
               - location
-              - subpath
               - type
               type: object
             targetOpenstackServiceVersion:

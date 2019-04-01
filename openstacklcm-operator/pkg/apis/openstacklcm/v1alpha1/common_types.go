@@ -333,16 +333,8 @@ func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, targe
 // PhaseSource describe the location of the CR to create during a Phase of an
 // Openstack Service Life Cycle.
 type PhaseSource struct {
-	// (optional) authentication method
-	AuthMethod string `json:"authMethod,omitempty"`
 	// ``url`` or ``path`` to the chart's parent directory
 	Location string `json:"location"`
-	// (optional) http proxy server
-	ProxyServer string `json:"proxyServer,omitempty"`
-	// (optional) branch, commit, or reference in the repo (``master`` if not specified)
-	Reference string `json:"reference,omitempty"`
-	// (optional) relative path to target chart from parent (``.`` if not specified)
-	Subpath string `json:"subpath"`
 	// source to build the chart: ``git``, ``local``, or ``tar``
 	Type string `json:"type"`
 }

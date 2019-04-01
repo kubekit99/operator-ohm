@@ -1,9 +1,0 @@
-apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: Oslc
-metadata:
-  name: all-phases-oslc
-spec:
-  serviceName: wip
-  templateFile: /opt/openstacklcm-operator/oslc-templates/wf-all-phases.yaml
-  targetPhase: operational
-  targetState: deployed

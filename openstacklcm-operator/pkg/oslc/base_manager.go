@@ -31,7 +31,7 @@ type basemanager struct {
 	renderer         *OwnerRefRenderer
 	serviceName      string
 	serviceNamespace string
-	templateFile     string
+	source           av1.FlowSource
 
 	isInstalled       bool
 	isUpdateRequired  bool
@@ -51,11 +51,31 @@ func (m basemanager) IsUpdateRequired() bool {
 	return m.isUpdateRequired
 }
 
+// Render a chart or just a file
+func (m basemanager) render(ctx context.Context) (*av1.PhaseList, error) {
+	var err error
+	var subResourceList *av1.SubResourceList
+
+	if m.source.Type == "tar" {
+		subResourceList, err = m.renderer.RenderChart(m.serviceName, m.serviceNamespace, m.source.Location)
+	} else {
+		subResourceList, err = m.renderer.RenderFile(m.serviceName, m.serviceNamespace, m.source.Location)
+	}
+
+	phaseList := av1.NewPhaseList(m.serviceNamespace, m.serviceName)
+	if subResourceList != nil {
+		for _, item := range subResourceList.Items {
+			phaseList.Items = append(phaseList.Items, item)
+		}
+	}
+	return phaseList, err
+}
+
 // Attempts to compare the K8s object present with the rendered objects
 func (m basemanager) sync(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, error) {
 	deployed := av1.NewPhaseList(m.serviceNamespace, m.serviceName)
 
-	rendered, err := m.renderer.Render(m.serviceName, m.serviceNamespace, m.templateFile)
+	rendered, err := m.render(ctx)
 	if err != nil {
 		return nil, deployed, err
 	}
@@ -87,7 +107,7 @@ func (m basemanager) sync(ctx context.Context) (*av1.PhaseList, *av1.PhaseList, 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m basemanager) installResource(ctx context.Context) (*av1.PhaseList, error) {
 
-	rendered, err := m.renderer.Render(m.serviceName, m.serviceNamespace, m.templateFile)
+	rendered, err := m.render(ctx)
 	if err != nil {
 		return m.deployedPhaseList, err
 	}

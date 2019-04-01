@@ -33,6 +33,21 @@ func NewManagerFactory(mgr manager.Manager) lcmif.OslcManagerFactory {
 	return &managerFactory{kubeClient: mgr.GetClient()}
 }
 
+// Simple function to init the renderFiles passed to the helm renderer
+func initRenderFiles(stage av1.OslcFlowKind) []string {
+	renderFiles := make([]string, 0)
+	return renderFiles
+}
+
+// Simple function to init the renderValues passed to the helm renderer
+func initRenderValues(stage av1.OslcFlowKind) map[string]interface{} {
+	oslcValues := map[string]interface{}{}
+	oslcValues["flow_kind"] = stage.String()
+	renderValues := map[string]interface{}{}
+	renderValues["oslc"] = oslcValues
+	return renderValues
+}
+
 // NewOslcManager returns a new manager capable of controlling Oslc phase of the service lifecyle
 func (f managerFactory) NewOslcManager(r *av1.Oslc) lcmif.OslcManager {
 	controllerRef := metav1.NewControllerRef(r, r.GroupVersionKind())
@@ -40,11 +55,14 @@ func (f managerFactory) NewOslcManager(r *av1.Oslc) lcmif.OslcManager {
 		*controllerRef,
 	}
 
+	renderFiles := initRenderFiles(r.Spec.FlowKind)
+	renderValues := initRenderValues(r.Spec.FlowKind)
+
 	return &oslcmanager{
 		basemanager: basemanager{
 			kubeClient:       f.kubeClient,
-			renderer:         NewOwnerRefRenderer(ownerRefs, "oslc"),
-			templateFile:     r.Spec.TemplateFile,
+			renderer:         NewOwnerRefRenderer(ownerRefs, "oslc", renderFiles, renderValues),
+			source:           r.Spec.Source,
 			serviceName:      r.GetName(),
 			serviceNamespace: r.GetNamespace()},
 

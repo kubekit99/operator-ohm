@@ -45,6 +45,9 @@ spec:
           type: object
         spec:
           properties:
+            flowKind:
+              description: Kind of flow applied to the OpenstackService.
+              type: string
             revisionHistoryLimit:
               description: revisionHistoryLimit is the maximum number of revisions
                 that will be maintained in the DeletePhase's revision history. The
@@ -58,19 +61,27 @@ spec:
             serviceName:
               description: Openstack Service Name
               type: string
-            targetPhase:
-              description: Target phase of the OpenstackService
-              type: string
+            source:
+              description: Points to chart or location
+              properties:
+                location:
+                  description: '``url`` or ``path`` to the flow''s parent directory'
+                  type: string
+                type:
+                  description: 'source to build the flow: ``generated``, ``local``,
+                    or ``tar``'
+                  type: string
+              required:
+              - location
+              - type
+              type: object
             targetState:
               description: Target state of the Lcm Custom Resources
               type: string
-            templateFile:
-              description: File containing the OpenstackServiceLifeCycle template
-              type: string
           required:
           - serviceName
-          - templateFile
-          - targetPhase
+          - source
+          - flowKind
           - targetState
           type: object
         status:

@@ -28,6 +28,29 @@ const (
 // String converts a OslcPhase to a printable string
 func (x OslcPhase) String() string { return string(x) }
 
+// Phase of the Openstack Service Life Cyle
+type OslcFlowKind string
+
+// Describe the Kind of the Openstack Service Life Cycle Flow
+const (
+	KindGreenfield OslcFlowKind = "greenfield"
+	KindBrownfield OslcFlowKind = "browfield"
+	KindRollback   OslcFlowKind = "rollback"
+	KindUninstall  OslcFlowKind = "uninstall"
+)
+
+// String converts a OslcPhase to a printable string
+func (x OslcFlowKind) String() string { return string(x) }
+
+// FlowSource describe the location of the CR to create during a Flow of an
+// Openstack Service Life Cycle.
+type FlowSource struct {
+	// ``url`` or ``path`` to the flow's parent directory
+	Location string `json:"location"`
+	// source to build the flow: ``generated``, ``local``, or ``tar``
+	Type string `json:"type"`
+}
+
 // OslcSpec defines the desired state of Oslc
 type OslcSpec struct {
 	// Openstack Service Name
@@ -35,10 +58,10 @@ type OslcSpec struct {
 	// Openstack Service EndPoint
 	ServiceEndPoint string `json:"serviceEndPoint,omitempty"`
 
-	// File containing the OpenstackServiceLifeCycle template
-	TemplateFile string `json:"templateFile"`
-	// Target phase of the OpenstackService
-	TargetPhase OslcPhase `json:"targetPhase"`
+	// Points to chart or location
+	Source FlowSource `json:"source"`
+	// Kind of flow applied to the OpenstackService.
+	FlowKind OslcFlowKind `json:"flowKind"`
 
 	// Target state of the Lcm Custom Resources
 	TargetState LcmResourceState `json:"targetState"`
