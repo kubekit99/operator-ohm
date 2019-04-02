@@ -206,7 +206,7 @@ func (o *OwnerRefHelmv3Renderer) fromYaml(name string, namespace string, filecon
 
 		// Check if the document is empty
 		if len(manifestMap) == 0 {
-			continue	
+			continue
 		}
 
 		unst, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&manifestMap)
@@ -220,7 +220,7 @@ func (o *OwnerRefHelmv3Renderer) fromYaml(name string, namespace string, filecon
 
 		// Init name and namespace
 		if u.GetName() == "" {
-		 	u.SetName(name + "-" + o.suffix)
+			u.SetName(name + "-" + o.suffix)
 		}
 
 		if u.GetNamespace() == "" {

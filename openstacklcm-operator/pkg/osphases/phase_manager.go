@@ -102,6 +102,7 @@ func (m phasemanager) installResource(ctx context.Context) (*av1.SubResourceList
 	}
 
 	errs := make([]error, 0)
+	rendered.Items = lcmif.SortByInstallOrder(rendered.Items)
 	for _, toCreate := range rendered.Items {
 		err := m.kubeClient.Create(context.TODO(), &toCreate)
 		if err != nil {
@@ -136,6 +137,8 @@ func (m phasemanager) reconcileResource(ctx context.Context) (*av1.SubResourceLi
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m phasemanager) uninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
 	errs := make([]error, 0)
+
+	m.deployedSubResourceList.Items = lcmif.SortByUninstallOrder(m.deployedSubResourceList.Items)
 	for _, toDelete := range m.deployedSubResourceList.Items {
 		err := m.kubeClient.Delete(context.TODO(), &toDelete)
 		if err != nil {
