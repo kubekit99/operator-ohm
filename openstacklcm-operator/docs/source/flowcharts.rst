@@ -61,3 +61,132 @@ Notes
     - How does Openstack service itself to do a rolling upgrade.
     - Is comple
 
+
+LCM Phase Breakdown
+===================
+
+The following list attempts provide a fine
+grain view of the K8s resources required during
+the LCM phases.
+
+Install phase
+-------------
+
+Following Jobs need to be performed:
+
+- svc/templates/job-db-init.yaml
+
+Access to the following resources is needed:
+
+- svc/templates/secret-db.yaml
+- svc/templates/secret-ingress-tls.yaml
+- svc/templates/secret-keystone.yaml
+- svc/templates/configmap-bin.yaml
+- svc/templates/configmap-etc.yaml
+
+
+Upgrade phase
+-------------
+
+Following Jobs need to be performed:
+
+- svc/templates/job-db-backup.yaml (TODO)
+
+Access to the following resources is needed:
+
+- svc/templates/secret-db.yaml
+- svc/templates/secret-ingress-tls.yaml
+- svc/templates/secret-keystone.yaml
+- svc/templates/configmap-bin.yaml
+- svc/templates/configmap-etc.yaml
+
+
+Rollback phase
+--------------
+
+Following Jobs need to be performed:
+
+- svc/templates/job-db-restore.yaml (TODO)
+
+Access to the following resources is needed:
+
+- svc/templates/secret-db.yaml
+- svc/templates/secret-ingress-tls.yaml
+- svc/templates/secret-keystone.yaml
+- svc/templates/configmap-bin.yaml
+- svc/templates/configmap-etc.yaml
+
+TrafficRollout phase
+--------------------
+
+Following Jobs need to be performed:
+
+- tbd
+
+Access to the following resources is needed:
+
+- svc/templates/secret-db.yaml
+- svc/templates/secret-ingress-tls.yaml
+- svc/templates/secret-keystone.yaml
+- svc/templates/configmap-bin.yaml
+- svc/templates/configmap-etc.yaml
+
+TrafficDrain phase
+--------------------
+
+Following Jobs need to be performed:
+
+- tbd
+
+Access to the following resources is needed:
+
+- svc/templates/secret-db.yaml
+- svc/templates/secret-ingress-tls.yaml
+- svc/templates/secret-keystone.yaml
+- svc/templates/configmap-bin.yaml
+- svc/templates/configmap-etc.yaml
+
+Uninstall phase
+---------------
+
+Following Jobs need to be performed:
+
+- svc/templates/job-db-drop.yaml
+
+Access to the following resources is needed:
+
+- svc/templates/secret-db.yaml
+- svc/templates/secret-ingress-tls.yaml
+- svc/templates/secret-keystone.yaml
+- svc/templates/configmap-bin.yaml
+- svc/templates/configmap-etc.yaml
+
+Test phase
+-------------
+
+Following Jobs need to be performed:
+
+- tbd
+
+Access to the following resources is needed:
+
+- svc/templates/secret-db.yaml
+- svc/templates/secret-ingress-tls.yaml
+- svc/templates/secret-keystone.yaml
+- svc/templates/configmap-bin.yaml
+- svc/templates/configmap-etc.yaml
+
+To sort
+-------------
+
+- svc/templates/bin/_bootstrap.sh.tpl
+- svc/templates/bin/_db-sync.sh.tpl
+- svc/templates/job-bootstrap.yaml
+- svc/templates/job-db-sync.yaml
+- svc/templates/job-image-repo-sync.yaml
+- svc/templates/job-ks-endpoints.yaml
+- svc/templates/job-ks-service.yaml
+- svc/templates/job-ks-user.yaml
+- svc/templates/job-rabbit-init.yaml
+- svc/templates/network_policy.yaml
+- svc/templates/pod-rally-test.yaml
