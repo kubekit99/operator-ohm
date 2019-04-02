@@ -15,6 +15,8 @@
 package oslc
 
 import (
+	"strings"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -58,13 +60,25 @@ func (f managerFactory) NewOslcManager(r *av1.Oslc) lcmif.OslcManager {
 	renderFiles := initRenderFiles(r.Spec.FlowKind)
 	renderValues := initRenderValues(r.Spec.FlowKind)
 
+	sourceType := r.Spec.Source.Type
+	sourceLocation := r.Spec.Source.Location
+	serviceName := r.Spec.ServiceName
+
+	// TODO(jeb): Kind of kludgy
+	if sourceType == "generate" {
+		sourceLocation = strings.ReplaceAll(r.Spec.Source.Location, r.Spec.ServiceName, "internal")
+		renderValues["serviceName"] = serviceName
+	}
+
 	return &oslcmanager{
 		basemanager: basemanager{
-			kubeClient:       f.kubeClient,
-			renderer:         NewOwnerRefRenderer(ownerRefs, "oslc", renderFiles, renderValues),
-			source:           r.Spec.Source,
-			serviceName:      r.GetName(),
-			serviceNamespace: r.GetNamespace()},
+			kubeClient:     f.kubeClient,
+			renderer:       NewOwnerRefRenderer(ownerRefs, "oslc", renderFiles, renderValues),
+			serviceName:    serviceName,
+			sourceType:     sourceType,
+			sourceLocation: sourceLocation,
+			oslcName:       r.GetName(),
+			oslcNamespace:  r.GetNamespace()},
 
 		spec:   r.Spec,
 		status: &r.Status,

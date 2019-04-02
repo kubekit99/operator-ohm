@@ -1,6 +1,18 @@
-{{- if eq .Values.oslc.flow_kind "upgrade" }}
+{{- if eq .Values.oslc.flow_kind "install" }}
 {{- $envAll := . }}
 
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: InstallPhase
+metadata:
+  name: {{ .Values.serviceName }}-install-phase
+spec:
+  openstackServiceName: {{ .Values.serviceName }}
+  targetOpenstackServiceVersion: moc.version.to.install.to
+  targetState: uninitialized
+  source:
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/{{ .Values.serviceName }}
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TestPhase
@@ -9,18 +21,6 @@ metadata:
 spec:
   openstackServiceName: {{ .Values.serviceName }}
   targetOpenstackServiceVersion: moc.version.to.test.to
-  targetState: uninitialized
-  source:
-    type: tar
-    location: /opt/openstacklcm-operator/helm-charts/{{ .Values.serviceName }}
----
-apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: TrafficDrainPhase
-metadata:
-  name: {{ .Values.serviceName }}-trafficdrain-phase
-spec:
-  openstackServiceName: {{ .Values.serviceName }}
-  targetOpenstackServiceVersion: moc.version.to.trafficdrain.to
   targetState: uninitialized
   source:
     type: tar
@@ -38,63 +38,50 @@ spec:
     type: tar
     location: /opt/openstacklcm-operator/helm-charts/{{ .Values.serviceName }}
 ---
-apiVersion: openstacklcm.airshipit.org/v1alpha1
-kind: UpgradePhase
-metadata:
-  name: {{ .Values.serviceName }}-upgrade-phase
-spec:
-  openstackServiceName: {{ .Values.serviceName }}
-  targetOpenstackServiceVersion: moc.version.to.upgrade.to
-  targetState: uninitialized
-  source:
-    type: tar
-    location: /opt/openstacklcm-operator/helm-charts/{{ .Values.serviceName }}
-
-  storageType: offsite
-  backupPolicy:
-    timeoutInSecond: 3
-  # ceph:
-  #   cephSecret: thesecret
-  #   path: example
-  clientTLSSecret: client.crt
-  offsite:
-    endpoint: sftp://foo.bar
-    forcePathStyle: true
-    offsiteSecret: thesecret
-    path: xxx
-  openstackEndpoints:
-  - https://tar.com
----
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: {{ .Values.serviceName }}-upgrade
+  name: {{ .Values.serviceName }}-install
 spec:
-  entrypoint: {{ .Values.serviceName }}-upgrade
+  entrypoint: {{ .Values.serviceName }}-install
   serviceAccountName: openstacklcm-argo-sa
   templates:
-  - name: {{ .Values.serviceName }}-upgrade
+  - name: {{ .Values.serviceName }}-install
     steps:
-    - - name: {{ .Values.serviceName }}-enable-phase-trafficdrain
-        template: enable-phase-trafficdrain-template
-    - - name: {{ .Values.serviceName }}-phase-trafficdrain-ready
-        template: phase-trafficdrain-ready-template
-
-    - - name: {{ .Values.serviceName }}-enable-phase-upgrade
-        template: enable-phase-upgrade-template
-    - - name: {{ .Values.serviceName }}-phase-upgrade-ready
-        template: phase-upgrade-ready-template
-
+    - - name: {{ .Values.serviceName }}-enable-phase-install
+        template: enable-phase-install-template
+    - - name: {{ .Values.serviceName }}-phase-install-ready
+        template: phase-install-ready-template
     - - name: {{ .Values.serviceName }}-enable-phase-test
         template: enable-phase-test-template
     - - name: {{ .Values.serviceName }}-phase-test-ready
         template: phase-test-ready-template
-
     - - name: {{ .Values.serviceName }}-enable-phase-trafficrollout
         template: enable-phase-trafficrollout-template
     - - name: {{ .Values.serviceName }}-phase-trafficrollout-ready
         template: phase-trafficrollout-ready-template
 
+  - name: enable-phase-install-template
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: InstallPhase
+        metadata:
+          name: {{ .Values.serviceName }}-install-phase
+        spec:
+          targetState: deployed
+
+  - name: phase-install-ready-template
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: InstallPhase
+        metadata:
+          name: {{ .Values.serviceName }}-install-phase
 
   - name: enable-phase-test-template
     resource:
@@ -118,28 +105,6 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-test-phase
 
-  - name: enable-phase-trafficdrain-template
-    resource:
-      action: patch
-      mergeStrategy: merge
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TrafficDrainPhase
-        metadata:
-          name: {{ .Values.serviceName }}-trafficdrain-phase
-        spec:
-          targetState: deployed
-
-  - name: phase-trafficdrain-ready-template
-    resource:
-      action: get
-      successCondition: status.actualState == deployed
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TrafficDrainPhase
-        metadata:
-          name: {{ .Values.serviceName }}-trafficdrain-phase
-
   - name: enable-phase-trafficrollout-template
     resource:
       action: patch
@@ -161,26 +126,4 @@ spec:
         kind: TrafficRolloutPhase
         metadata:
           name: {{ .Values.serviceName }}-trafficrollout-phase
-
-  - name: enable-phase-upgrade-template
-    resource:
-      action: patch
-      mergeStrategy: merge
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: UpgradePhase
-        metadata:
-          name: {{ .Values.serviceName }}-upgrade-phase
-        spec:
-          targetState: deployed
-
-  - name: phase-upgrade-ready-template
-    resource:
-      action: get
-      successCondition: status.actualState == deployed
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: UpgradePhase
-        metadata:
-          name: {{ .Values.serviceName }}-upgrade-phase
 {{ end }}

@@ -27,11 +27,13 @@ import (
 )
 
 type basemanager struct {
-	kubeClient       client.Client
-	renderer         *OwnerRefRenderer
-	serviceName      string
-	serviceNamespace string
-	source           av1.FlowSource
+	kubeClient     client.Client
+	renderer       *OwnerRefRenderer
+	oslcName       string
+	oslcNamespace  string
+	sourceType     string
+	sourceLocation string
+	serviceName    string
 
 	isInstalled           bool
 	isUpdateRequired      bool
@@ -40,7 +42,7 @@ type basemanager struct {
 
 // ResourceName returns the name of the release.
 func (m basemanager) ResourceName() string {
-	return m.serviceName
+	return m.oslcName
 }
 
 func (m basemanager) IsInstalled() bool {
@@ -56,20 +58,26 @@ func (m basemanager) render(ctx context.Context) (*av1.LifecycleFlow, error) {
 	var err error
 	var subResourceList *av1.SubResourceList
 
-	if m.source.Type == "tar" {
-		subResourceList, err = m.renderer.RenderChart(m.serviceName, m.serviceNamespace, m.source.Location)
+	if m.sourceType == "generate" {
+		// In order to use the generic flow, we instantiate on internal chart
+		subResourceList, err = m.renderer.RenderChart(m.oslcName, m.oslcNamespace, m.sourceLocation)
+	} else if m.sourceType == "tar" {
+		subResourceList, err = m.renderer.RenderChart(m.oslcName, m.oslcNamespace, m.sourceLocation)
 	} else {
-		subResourceList, err = m.renderer.RenderFile(m.serviceName, m.serviceNamespace, m.source.Location)
+		subResourceList, err = m.renderer.RenderFile(m.oslcName, m.oslcNamespace, m.sourceLocation)
 	}
 
-	phaseList := av1.NewLifecycleFlow(m.serviceNamespace, m.serviceName)
+	phaseList := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
 	if subResourceList != nil {
 		for _, item := range subResourceList.Items {
-			log.Info(item.GetAPIVersion())
 			if item.GetAPIVersion() == "openstacklcm.airshipit.org/v1alpha1" {
+				// TODO(jeb): We should filter on Phase here.
 				phaseList.Phases[item.GetKind()] = item
-			} else {
+			} else if item.GetAPIVersion() == "argoproj.io/v1alpha1" {
+				// TODO(jeb): We should filter on workflow here.
 				phaseList.Main = &item
+			} else {
+				log.Info("Filtering ", "kind", item.GetKind())
 			}
 		}
 	}
@@ -78,7 +86,7 @@ func (m basemanager) render(ctx context.Context) (*av1.LifecycleFlow, error) {
 
 // Attempts to compare the K8s object present with the rendered objects
 func (m basemanager) sync(ctx context.Context) (*av1.LifecycleFlow, *av1.LifecycleFlow, error) {
-	deployed := av1.NewLifecycleFlow(m.serviceNamespace, m.serviceName)
+	deployed := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
 
 	rendered, err := m.render(ctx)
 	if err != nil {

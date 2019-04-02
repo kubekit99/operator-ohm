@@ -33,10 +33,10 @@ type OslcFlowKind string
 
 // Describe the Kind of the Openstack Service Life Cycle Flow
 const (
-	KindGreenfield OslcFlowKind = "greenfield"
-	KindBrownfield OslcFlowKind = "browfield"
-	KindRollback   OslcFlowKind = "rollback"
-	KindUninstall  OslcFlowKind = "uninstall"
+	KindInstall   OslcFlowKind = "install"
+	KindUpgrade   OslcFlowKind = "upgrade"
+	KindRollback  OslcFlowKind = "rollback"
+	KindUninstall OslcFlowKind = "uninstall"
 )
 
 // String converts a OslcPhase to a printable string
