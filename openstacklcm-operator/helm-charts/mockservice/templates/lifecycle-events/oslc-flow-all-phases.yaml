@@ -9,7 +9,7 @@ spec:
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-delete.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-delete.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: InstallPhase
@@ -21,7 +21,7 @@ spec:
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-install.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-install.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: OperationalPhase
@@ -33,7 +33,7 @@ spec:
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-operational.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-operational.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: PlanningPhase
@@ -45,7 +45,7 @@ spec:
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-planning.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-planning.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: RollbackPhase
@@ -57,7 +57,7 @@ spec:
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-rollback.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-rollback.yaml
 
   backupStorageType: offsite
   # ceph:
@@ -81,7 +81,7 @@ spec:
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-test.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-test.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficDrainPhase
@@ -93,7 +93,7 @@ spec:
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-trafficdrain.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-trafficdrain.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficRolloutPhase
@@ -105,7 +105,7 @@ spec:
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-trafficrollout.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-trafficrollout.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: UpgradePhase
@@ -117,7 +117,7 @@ spec:
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle/wf-upgrade.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-upgrade.yaml
 
   storageType: offsite
   backupPolicy:

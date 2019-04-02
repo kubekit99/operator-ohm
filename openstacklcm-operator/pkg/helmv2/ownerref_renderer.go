@@ -164,7 +164,7 @@ func (o *OwnerRefHelmv2Renderer) RenderChart(name string, namespace string, char
 		}
 
 		// TODO(jeb): We need to figure how to reuse configmap
-		if strings.HasSuffix(fileName, ".yaml") && strings.Contains(m.Name, "templates/lifecycle") {
+		if strings.HasSuffix(fileName, ".yaml") && strings.Contains(m.Name, "templates/lifecycle-events") {
 			parsed, _ := o.fromYaml(name, namespace, m.Content)
 
 			for _, u := range parsed.Items {
