@@ -1,16 +1,17 @@
 {{- define "keystone.templates.steps._db_dump.ignore" -}}
+{{- $envAll := . }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: keystone-db-dump
-  namespace: openstack
+  namespace: {{ $envAll.Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
   name: release-name-keystone-db-dump
-  namespace: openstack
+  namespace: {{ $envAll.Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -18,13 +19,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: keystone-db-dump
-    namespace: openstack
+    namespace: {{ $envAll.Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
 metadata:
   name: release-name-default-keystone-db-dump
-  namespace: openstack
+  namespace: {{ $envAll.Release.Namespace }}
 rules:
   - apiGroups:
       - ""

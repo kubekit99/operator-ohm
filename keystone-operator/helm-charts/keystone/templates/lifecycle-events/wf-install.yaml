@@ -25,7 +25,7 @@ metadata:
 spec:
   chart_name: mariadb
   release: mariadb
-  namespace: openstack
+  namespace: {{ $envAll.Release.Namespace }}
   wait:
     timeout: 3600
     labels:
@@ -51,7 +51,7 @@ metadata:
 spec:
   chart_name: memcached
   release: memcached
-  namespace: openstack
+  namespace: {{ $envAll.Release.Namespace }}
   wait:
     timeout: 100
     labels:
@@ -79,7 +79,7 @@ spec:
   test:
     enabled: true
   release: rabbitmq
-  namespace: openstack
+  namespace: {{ $envAll.Release.Namespace }}
   wait:
     timeout: 100
     labels:
@@ -107,7 +107,7 @@ spec:
   test:
     enabled: true
   release: keystone
-  namespace: openstack
+  namespace: {{ $envAll.Release.Namespace }}
   wait:
     timeout: 100
     labels:

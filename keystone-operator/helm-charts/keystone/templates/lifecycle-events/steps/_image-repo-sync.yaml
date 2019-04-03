@@ -1,17 +1,18 @@
 ---
 {{- define "keystone.templates.steps._image_repo_sync.ignore" -}}
+{{- $envAll := . }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: keystone-image-repo-sync
-  namespace: default
+  namespace: {{ $envAll.Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
   name: openstack-keystone-image-repo-sync
-  namespace: docker-registry
+  namespace: {{ $envAll.Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -19,13 +20,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: keystone-image-repo-sync
-    namespace: docker-registry
+    namespace: {{ $envAll.Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
 metadata:
   name: openstack-docker-registry-keystone-image-repo-sync
-  namespace: docker-registry
+  namespace: {{ $envAll.Release.Namespace }}
 rules:
   - apiGroups:
       - ""

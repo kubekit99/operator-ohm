@@ -1,0 +1,12 @@
+---
+apiVersion: armada.airshipit.org/v1alpha1
+kind: ArmadaChartGroup
+metadata:
+  name: keystone-infra-services
+spec:
+  description: "Keystone Infra Services"
+  sequenced: True
+  chart_group:
+    - mariadb
+    - memcached
+    - rabbitmq

@@ -1,11 +1,12 @@
 ---
 {{- define "keystone.templates.steps._fernet_setup.ignore" -}}
+{{- $envAll := . }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: keystone-fernet-setup
-  namespace: openstack
+  namespace: {{ $envAll.Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
@@ -33,7 +34,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: keystone-fernet-setup
-    namespace: openstack
+    namespace: {{ $envAll.Release.Namespace }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -101,7 +102,7 @@ env:
 - name: KEYSTONE_GROUP
   value: "keystone"
 - name: KUBERNETES_NAMESPACE
-  value: "openstack"
+  value: {{ .Release.Namespace | quote }}
 - name: KEYSTONE_KEYS_REPOSITORY
   value: "/etc/keystone/fernet-keys/"
 command:
