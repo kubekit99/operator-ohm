@@ -1,0 +1,5 @@
+{{- if eq .Values.lifecycle "install" }}
+{{- include "keystone.templates.lifecycle.install" . }}
+{{- else if eq .Values.lifecycle "upgrade" }}
+{{- include "keystone.templates.lifecycle.upgrade" . }}
+{{- end }}

@@ -1,0 +1,13 @@
+{{- if or (eq .Values.lifecycle "upgrade") (eq .Values.lifecycle "rollback") }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+{{- end}}

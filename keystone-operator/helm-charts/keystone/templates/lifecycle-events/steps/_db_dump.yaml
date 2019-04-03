@@ -1,0 +1,114 @@
+{{- define "keystone.templates.steps._db_dump.ignore" -}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: keystone-db-dump
+  namespace: openstack
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: release-name-keystone-db-dump
+  namespace: openstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: release-name-default-keystone-db-dump
+subjects:
+  - kind: ServiceAccount
+    name: keystone-db-dump
+    namespace: openstack
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: release-name-default-keystone-db-dump
+  namespace: openstack
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+      - batch
+      - apps
+    verbs:
+      - get
+      - list
+    resources:
+      - services
+      - endpoints
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "keystone-db-dump"
+spec:
+  template:
+    metadata:
+      labels:
+        release_group: release-name
+        application: keystone
+        component: db-dump
+    spec:
+      serviceAccountName: keystone-db-dump
+      restartPolicy: OnFailure
+      nodeSelector:
+        openstack-control-plane: enabled
+      containers:
+        - name: "keystone-db-dump-0"
+{{- end }}
+
+{{- define "keystone.templates.steps._db_dump.container" -}}
+name: "keystone-db-dump-0"
+image: "docker.io/library/mysql:5.5"
+imagePullPolicy: "IfNotPresent"
+
+env:
+  - name: PATH
+    value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/mysql/bin:/usr/local/mysql/scripts"
+  - name: DB_USER
+    value: {{ .Values.endpoints.oslo_db.auth.keystone.username }}
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: {{ .Values.secrets.oslo_db.keystone }}
+        key: DB_PASSWORD
+  - name: DB_HOST
+    value: {{ tuple "oslo_db" "default" . | include "helm-toolkit.endpoints.hostname_fqdn_endpoint_lookup" }}
+
+command:
+  - /tmp/db-dump.sh
+volumeMounts:
+  - name: db-dump-sh
+    mountPath: /tmp/db-dump.sh
+    subPath: db-dump.sh
+    readOnly: true
+  - name: etc-service
+    mountPath: "/etc/keystone"
+  - name: db-dump-conf
+    mountPath: "/etc/keystone/keystone.conf"
+    subPath: "keystone.conf"
+    readOnly: true
+  - name: db-dump-conf
+    mountPath: "/etc/keystone/logging.conf"
+    subPath: "logging.conf"
+    readOnly: true
+  - mountPath: "/etc/keystone/backups"
+    name: pv-storage
+{{- end }}
+
+{{- define "keystone.templates.steps._db_dump.volumes" -}}
+- name: db-dump-sh
+  configMap:
+    name: "keystone-bin"
+    defaultMode: 0555
+- name: etc-service
+  emptyDir: {}
+- name: db-dump-conf
+  secret:
+    secretName: "keystone-etc"
+    defaultMode: 0444
+- name: pv-storage
+  persistentVolumeClaim:
+    claimName: pv-claim
+{{- end }}
