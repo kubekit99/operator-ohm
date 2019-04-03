@@ -113,6 +113,8 @@ dependencies:
             service: local_image_registry
   static:
     api:
+      jobs: null
+      services: null
       custom_resources:
         - apiVersion: argoproj.io/v1alpha1
           kind: Workflow
@@ -138,6 +140,7 @@ dependencies:
     db_init:
       services: null
     db_sync:
+      jobs: null
       services: null
     rabbit_init:
       services: null
