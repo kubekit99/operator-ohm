@@ -14,8 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-[client]
-user = {{ .Values.endpoints.oslo_db.auth.exporter.username }}
-password = {{ .Values.endpoints.oslo_db.auth.exporter.password }}
-host = {{ tuple "oslo_db" "direct" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
-port = {{ tuple "oslo_db" "direct" "mysql" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+{{- if and .Values.volume.backup.enabled .Values.manifests.pvc_backup }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: mariadb-backup-data
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: {{ .Values.volume.backup.size }}
+  storageClassName: {{ .Values.volume.backup.class_name }}
+{{- end }}
+

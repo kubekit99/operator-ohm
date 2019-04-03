@@ -73,6 +73,7 @@ metadata:
     {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
     configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
     configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
+    mariadb-dbadmin-password-hash: {{ tuple "secret-dbadmin-password.yaml" . | include "helm-toolkit.utils.hash" }}
   labels:
 {{ tuple $envAll "mariadb" "server" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
 spec:
@@ -87,7 +88,7 @@ spec:
       labels:
 {{ tuple $envAll "mariadb" "server" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
       annotations:
-        {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
+{{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" | indent 8 }}
         configmap-bin-hash: {{ tuple "configmap-bin.yaml" . | include "helm-toolkit.utils.hash" }}
         configmap-etc-hash: {{ tuple "configmap-etc.yaml" . | include "helm-toolkit.utils.hash" }}
     spec:
@@ -135,11 +136,13 @@ spec:
               value: {{ tuple "oslo_db" "direct" "wsrep" . | include "helm-toolkit.endpoints.endpoint_port_lookup" | quote }}
             - name: STATE_CONFIGMAP
               value: {{ printf "%s-%s" .Release.Name "mariadb-state" | quote }}
-            - name: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_DBADMIN_USERNAME
+              value: {{ .Values.endpoints.oslo_db.auth.admin.username }}
+            - name: MYSQL_DBADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mariadb-db-root-password
-                  key: MYSQL_ROOT_PASSWORD
+                  name: mariadb-dbadmin-password
+                  key: MYSQL_DBADMIN_PASSWORD
           ports:
             - name: mysql
               protocol: TCP
