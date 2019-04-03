@@ -118,7 +118,10 @@ dependencies:
       custom_resources:
         - apiVersion: argoproj.io/v1alpha1
           kind: Workflow
-          namespace: null
+          # TODO(Jeb): toolkit template could need 
+          # improvments so that we are not forced to specify
+          # the namespace
+          namespace: default
           name: wf-keystone-api
           fields:
             - key: "status.phase"
