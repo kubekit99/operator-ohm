@@ -64,15 +64,6 @@ bootstrap:
           --project="${OS_PROJECT_NAME}" \
           "member"
 
-    #NOTE(portdirect): required for all users who operate heat stacks
-    openstack role create --or-show heat_stack_owner
-    openstack role add \
-          --user="${OS_USERNAME}" \
-          --user-domain="${OS_USER_DOMAIN_NAME}" \
-          --project-domain="${OS_PROJECT_DOMAIN_NAME}" \
-          --project="${OS_PROJECT_NAME}" \
-          "heat_stack_owner"
-
 network:
   api:
     ingress:
@@ -161,9 +152,14 @@ dependencies:
           service: local_image_registry
 
 pod:
-  user:
+  security_context:
     keystone:
-      uid: 42424
+      pod:
+        runAsUser: 42424
+      container:
+        keystone_api:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
   affinity:
     anti:
       type:
@@ -174,33 +170,53 @@ pod:
     keystone_db_init:
       init_container: null
       keystone_db_init:
+        volumeMounts:
+        volumes:
     keystone_db_sync:
       init_container: null
       keystone_db_sync:
+        volumeMounts:
+        volumes:
     keystone_api:
       init_container: null
       keystone_api:
+        volumeMounts:
+        volumes:
     keystone_tests:
       init_container: null
       keystone_tests:
+        volumeMounts:
+        volumes:
     keystone_bootstrap:
       init_container: null
       keystone_bootstrap:
+        volumeMounts:
+        volumes:
     keystone_fernet_setup:
       init_container: null
       keystone_fernet_setup:
+        volumeMounts:
+        volumes:
     keystone_fernet_rotate:
       init_container: null
       keystone_fernet_rotate:
+        volumeMounts:
+        volumes:
     keystone_credential_setup:
       init_container: null
       keystone_credential_setup:
+        volumeMounts:
+        volumes:
     keystone_credential_rotate:
       init_container: null
       keystone_credential_rotate:
+        volumeMounts:
+        volumes:
     keystone_domain_manage:
       init_container: null
       keystone_domain_manage:
+        volumeMounts:
+        volumes:
   replicas:
     api: 1
   lifecycle:
@@ -395,6 +411,9 @@ network_policy:
         - podSelector:
             matchLabels:
               application: placement
+        - podSelector:
+            matchLabels:
+              application: prometheus-openstack-exporter
         ports:
         - protocol: TCP
           port: 80
@@ -679,6 +698,7 @@ conf:
           ha-sync-mode: "automatic"
           #70s
           message-ttl: 70000
+        priority: 0
         apply-to: all
         pattern: '(notifications)\.'
   rally_tests:
@@ -932,7 +952,7 @@ conf:
         - default
     logger_root:
       level: WARNING
-      handlers: 'null'
+      handlers: stdout
     logger_keystone:
       level: INFO
       handlers:
@@ -972,8 +992,10 @@ conf:
       formatter: context
     formatter_context:
       class: oslo_log.formatters.ContextFormatter
+      datefmt: "%Y-%m-%d %H:%M:%S"
     formatter_default:
       format: "%(message)s"
+      datefmt: "%Y-%m-%d %H:%M:%S"
 
 # Names of secrets used by bootstrap and environmental checks
 secrets:
