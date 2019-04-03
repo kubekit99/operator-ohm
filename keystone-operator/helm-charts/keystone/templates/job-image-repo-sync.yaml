@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{- if (eq .Values.lifecycle "nil") }}
 {{- if and .Values.manifests.job_image_repo_sync .Values.images.local_registry.active }}
 {{- $imageRepoSyncJob := dict "envAll" . "serviceName" "keystone" -}}
 {{ $imageRepoSyncJob | include "helm-toolkit.manifests.job_image_repo_sync" }}
+{{- end }}
 {{- end }}

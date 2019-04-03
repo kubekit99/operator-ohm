@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{- if (eq .Values.lifecycle "nil") }}
 {{- if and .Values.manifests.job_bootstrap .Values.bootstrap.enabled }}
 {{- $bootstrapJob := dict "envAll" . "serviceName" "keystone" "keystoneUser" .Values.bootstrap.ks_user "logConfigFile" .Values.conf.keystone.DEFAULT.log_config_append -}}
 {{ $bootstrapJob | include "helm-toolkit.manifests.job_bootstrap" }}
+{{- end }}
 {{- end }}

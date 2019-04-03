@@ -42,8 +42,7 @@ images:
     keystone_credential_rotate: docker.io/openstackhelm/keystone:ocata
     keystone_api: docker.io/openstackhelm/keystone:ocata
     keystone_domain_manage: docker.io/openstackhelm/keystone:ocata
-    #TODO(howell): This will need to be changed at some point. For now, it works as a POC
-    dep_check: ianhowell/kubernetes-entrypoint:latest
+    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
     image_repo_sync: docker.io/docker:17.07.0
   pull_policy: "IfNotPresent"
   local_registry:
@@ -84,25 +83,6 @@ network:
       port: 30357
 
 dependencies:
-  timeout:
-    services:
-      mariadb: 120
-      memcached: 120
-      rabbitmq: 120
-    tasks:
-      credential_setup: 120
-      fernet_setup: 120
-      rabbit_init: 120
-      db_init: 120
-      db_sync: 120
-      db_dump: 120
-  retries:
-    credential_setup: 15
-    fernet_setup: 15
-    rabbit_init: 15
-    db_init: 15
-    db_sync: 15
-    db_dump: 15
   dynamic:
     common:
       local_image_registry:
@@ -113,19 +93,16 @@ dependencies:
             service: local_image_registry
   static:
     api:
-      jobs: null
-      services: null
-      custom_resources:
-        - apiVersion: argoproj.io/v1alpha1
-          kind: Workflow
-          # TODO(Jeb): toolkit template could need 
-          # improvments so that we are not forced to specify
-          # the namespace
-          namespace: default
-          name: wf-keystone-api
-          fields:
-            - key: "status.phase"
-              value: "Succeeded"
+      jobs:
+        - keystone-db-sync
+        - keystone-credential-setup
+        - keystone-fernet-setup
+        - keystone-rabbit-init
+      services:
+        - endpoint: internal
+          service: oslo_cache
+        - endpoint: internal
+          service: oslo_db
     bootstrap:
       jobs:
         - keystone-domain-manage
@@ -141,12 +118,22 @@ dependencies:
         - endpoint: internal
           service: oslo_db
     db_init:
-      services: null
+      services:
+        - endpoint: internal
+          service: oslo_db
     db_sync:
-      jobs: null
-      services: null
+      jobs:
+        - keystone-db-init
+        - keystone-credential-setup
+        - keystone-fernet-setup
+        - keystone-rabbit-init
+      services:
+        - endpoint: internal
+          service: oslo_db
     rabbit_init:
-      services: null
+      services:
+        - service: oslo_messaging
+          endpoint: internal
     domain_manage:
       services:
         - endpoint: internal
@@ -1207,7 +1194,7 @@ manifests:
 # lifecycle even (install, upgrade, delete, backup), it creates a workflow to
 # establish that event. Workflows should never be created by Helm, however,
 # helm still needs something to compare against
-lifecycle: "install"
+lifecycle: "nil"
 
 oslc:
   stage: ""

@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{- if (eq .Values.lifecycle "nil") }}
 {{- if .Values.manifests.job_db_init }}
 {{- $dbInitJob := dict "envAll" . "serviceName" "keystone" -}}
 {{ $dbInitJob | include "helm-toolkit.manifests.job_db_init_mysql" }}
+{{- end }}
 {{- end }}

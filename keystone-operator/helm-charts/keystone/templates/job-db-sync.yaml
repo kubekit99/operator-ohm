@@ -54,6 +54,7 @@ volumes:
       secretName: keystone-fernet-keys
 {{- end }}
 
+{{- if (eq .Values.lifecycle "nil") }}
 {{- if .Values.manifests.job_db_sync }}
 {{- $local := dict "podVolMounts" false "podVols" false -}}
 {{- if eq .Values.conf.keystone.token.provider "fernet" }}
@@ -63,4 +64,5 @@ volumes:
 {{- $podEnvVars := tuple . | include "keystone.templates._job_db_sync.env_vars" | toString | fromYaml }}
 {{- $dbSyncJob := dict "envAll" . "serviceName" "keystone" "podVolMounts" $local.podVolMounts "podVols" $local.podVols "podEnvVars" $podEnvVars.env -}}
 {{ $dbSyncJob | include "helm-toolkit.manifests.job_db_sync" }}
+{{- end }}
 {{- end }}

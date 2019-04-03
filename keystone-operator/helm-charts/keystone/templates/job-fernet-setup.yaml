@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{- if (eq .Values.lifecycle "nil") }}
 {{- if .Values.manifests.job_fernet_setup }}
 {{- if eq .Values.conf.keystone.token.provider "fernet" }}
 {{- $envAll := . }}
@@ -117,5 +118,6 @@ spec:
           name: keystone-bin
           defaultMode: 0555
 {{ if $mounts_keystone_fernet_setup.volumes }}{{ toYaml $mounts_keystone_fernet_setup.volumes | indent 6 }}{{ end }}
+{{- end }}
 {{- end }}
 {{- end }}
