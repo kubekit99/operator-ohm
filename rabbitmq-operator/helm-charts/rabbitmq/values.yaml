@@ -27,14 +27,18 @@ labels:
   test:
     node_selector_key: openstack-control-plane
     node_selector_value: enabled
+  jobs:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
 
 images:
   tags:
     prometheus_rabbitmq_exporter: docker.io/kbudde/rabbitmq-exporter:v0.21.0
-    prometheus_rabbitmq_exporter_helm_tests: docker.io/openstackhelm/heat:newton
-    rabbitmq: docker.io/rabbitmq:3.7.4
+    prometheus_rabbitmq_exporter_helm_tests: docker.io/openstackhelm/heat:ocata
+    rabbitmq_init: docker.io/openstackhelm/heat:ocata
+    rabbitmq: docker.io/rabbitmq:3.7.13
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
-    scripted_test: docker.io/rabbitmq:3.7.4-management
+    scripted_test: docker.io/rabbitmq:3.7.13-management
     image_repo_sync: docker.io/docker:17.07.0
   pull_policy: "IfNotPresent"
   local_registry:
@@ -123,6 +127,7 @@ conf:
     cluster_partition_handling: autoheal
     queue_master_locator: min-masters
     loopback_users.guest: "false"
+    management.load_definitions: "/var/lib/rabbitmq/definitions.json"
 
 dependencies:
   dynamic:
@@ -147,6 +152,14 @@ dependencies:
     rabbitmq:
       jobs: null
     tests:
+      services:
+        - endpoint: internal
+          service: oslo_messaging
+      # NOTE (portdirect): this key is somewhat special, if set to the string
+      # `cluster_wait` then the job dep will be populated with a single value
+      # containing the generated name for the `cluster_wait` job name.
+      jobs: cluster_wait
+    cluster_wait:
       services:
         - endpoint: internal
           service: oslo_messaging
@@ -281,6 +294,7 @@ manifests:
   configmap_bin: true
   configmap_etc: true
   ingress_management: true
+  job_cluster_wait: true
   job_image_repo_sync: true
   pod_test: true
   monitoring:
@@ -289,6 +303,8 @@ manifests:
       deployment_exporter: false
       service_exporter: false
   network_policy: false
+  secret_erlang_cookie: true
+  secret_admin_user: true
   service_discovery: true
   service_ingress_management: true
   service: true

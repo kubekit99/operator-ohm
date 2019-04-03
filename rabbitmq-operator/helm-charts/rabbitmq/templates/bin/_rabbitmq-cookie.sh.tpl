@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 {{/*
 Copyright 2017 The Openstack-Helm Authors.
@@ -16,10 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-set -e
+set -ex
 
-if [ -f /run/rabbit-disable-liveness-probe ]; then
-   exit 0
-else
-   exec rabbitmqctl status
-fi
+cp -vf /run/lib/rabbitmq/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie
+chown "rabbitmq" /var/lib/rabbitmq/.erlang.cookie
+chmod 0600 /var/lib/rabbitmq/.erlang.cookie
