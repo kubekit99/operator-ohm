@@ -40,6 +40,7 @@ func initRenderValues(stage av1.OslcPhase) map[string]interface{} {
 	oslcValues["stage"] = stage.String()
 	renderValues := map[string]interface{}{}
 	renderValues["oslc"] = oslcValues
+	renderValues["lifecycle"] = stage.String()
 	return renderValues
 }
 

@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{- if or (eq .Values.lifecycle "nil") (eq .Values.lifecycle "install") }}
 {{- if and .Values.manifests.ingress_api .Values.network.api.ingress.public }}
 {{- $ingressOpts := dict "envAll" . "backendServiceType" "identity" "backendPort" "ks-pub" -}}
 {{ $ingressOpts | include "helm-toolkit.manifests.ingress" }}
+{{- end }}
 {{- end }}

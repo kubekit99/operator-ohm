@@ -1,0 +1,4 @@
+{{- if or (eq .Values.oslc.stage "upgrade") (eq .Values.lifecycle "upgrade") }}
+{{- $envAll := . }}
+{{- include "keystone.templates.lifecycle.upgrade" . }}
+{{ end }}

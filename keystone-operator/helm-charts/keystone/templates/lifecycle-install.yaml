@@ -1,0 +1,4 @@
+{{- if or (eq .Values.oslc.stage "install") (eq .Values.lifecycle "install") }}
+{{- $envAll := . }}
+{{- include "keystone.templates.lifecycle.install" . }}
+{{ end }}

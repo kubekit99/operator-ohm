@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{- if or (eq .Values.lifecycle "nil") (eq .Values.lifecycle "test") }}
 {{- if .Values.manifests.pod_rally_test }}
 {{- $envAll := . }}
 
@@ -97,4 +98,5 @@ spec:
     - name: rally-db
       emptyDir: {}
 {{ if $mounts_tests.volumes }}{{ toYaml $mounts_tests.volumes | indent 4 }}{{ end }}
+{{- end }}
 {{- end }}

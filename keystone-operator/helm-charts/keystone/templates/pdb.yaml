@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{- if or (eq .Values.lifecycle "nil") (eq .Values.lifecycle "install") }}
 {{- if .Values.manifests.pdb_api }}
 {{- $envAll := . }}
 ---
@@ -26,4 +27,5 @@ spec:
   selector:
     matchLabels:
 {{ tuple $envAll "keystone" "api" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 6 }}
+{{- end }}
 {{- end }}

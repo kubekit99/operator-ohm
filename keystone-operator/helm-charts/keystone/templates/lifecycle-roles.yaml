@@ -1,4 +1,4 @@
-{{- if or (eq .Values.lifecycle "install") (eq .Values.lifecycle "upgrade") (eq .Values.lifecycle "rollback") }}
+{{- if not (eq .Values.lifecycle "nil") }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
