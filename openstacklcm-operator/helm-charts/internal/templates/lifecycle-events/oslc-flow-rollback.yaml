@@ -5,7 +5,7 @@
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: RollbackPhase
 metadata:
-  name: {{ .Values.serviceName }}-rollback-phase
+  name: {{ .Values.serviceName }}-rollback
 spec:
   openstackServiceName: {{ .Values.serviceName }}
   targetOpenstackServiceVersion: moc.version.to.rollback.to
@@ -29,7 +29,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficDrainPhase
 metadata:
-  name: {{ .Values.serviceName }}-trafficdrain-phase
+  name: {{ .Values.serviceName }}-trafficdrain
 spec:
   openstackServiceName: {{ .Values.serviceName }}
   targetOpenstackServiceVersion: moc.version.to.trafficdrain.to
@@ -41,7 +41,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficRolloutPhase
 metadata:
-  name: {{ .Values.serviceName }}-trafficrollout-phase
+  name: {{ .Values.serviceName }}-trafficrollout
 spec:
   openstackServiceName: {{ .Values.serviceName }}
   targetOpenstackServiceVersion: moc.version.to.trafficrollout.to
@@ -53,30 +53,33 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: {{ .Values.serviceName }}-rollback
+  name: {{ $envAll.Release.Name }}
 spec:
-  entrypoint: {{ .Values.serviceName }}-rollback
+  entrypoint: {{ $envAll.Release.Name }}
   serviceAccountName: openstacklcm-argo-sa
   templates:
-  - name: {{ .Values.serviceName }}-rollback
+  - name: {{ $envAll.Release.Name }}
     steps:
-    - - name: {{ .Values.serviceName }}-enable-phase-trafficdrain
-        template: enable-phase-trafficdrain-template
-    - - name: {{ .Values.serviceName }}-phase-trafficdrain-ready
+    - - name: {{ .Values.serviceName }}-enable-trafficdrain
+        template: enable-trafficdrain-template
+    - - name: {{ .Values.serviceName }}-trafficdrain-ready
         template: phase-trafficdrain-ready-template
 
 
-    - - name: {{ .Values.serviceName }}-enable-phase-rollback
-        template: enable-phase-rollback-template
-    - - name: {{ .Values.serviceName }}-phase-rollback-ready
+    - - name: {{ .Values.serviceName }}-enable-rollback
+        template: enable-rollback-template
+    - - name: {{ .Values.serviceName }}-rollback-ready
         template: phase-rollback-ready-template
 
-    - - name: {{ .Values.serviceName }}-enable-phase-trafficrollout
-        template: enable-phase-trafficrollout-template
-    - - name: {{ .Values.serviceName }}-phase-trafficrollout-ready
+    - - name: {{ .Values.serviceName }}-enable-trafficrollout
+        template: enable-trafficrollout-template
+    - - name: {{ .Values.serviceName }}-trafficrollout-ready
         template: phase-trafficrollout-ready-template
 
-  - name: enable-phase-rollback-template
+  - name: enable-rollback-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_rollback }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_rollback }}
     resource:
       action: patch
       mergeStrategy: merge
@@ -84,21 +87,28 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: RollbackPhase
         metadata:
-          name: {{ .Values.serviceName }}-rollback-phase
+          name: {{ .Values.serviceName }}-rollback
         spec:
           targetState: deployed
 
   - name: phase-rollback-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_rollback }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_rollback }}
     resource:
       action: get
       successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: RollbackPhase
         metadata:
-          name: {{ .Values.serviceName }}-rollback-phase
+          name: {{ .Values.serviceName }}-rollback
 
-  - name: enable-phase-trafficdrain-template
+  - name: enable-trafficdrain-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficdrain }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_trafficdrain }}
     resource:
       action: patch
       mergeStrategy: merge
@@ -106,21 +116,28 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficDrainPhase
         metadata:
-          name: {{ .Values.serviceName }}-trafficdrain-phase
+          name: {{ .Values.serviceName }}-trafficdrain
         spec:
           targetState: deployed
 
   - name: phase-trafficdrain-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficdrain }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_trafficdrain }}
     resource:
       action: get
       successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficDrainPhase
         metadata:
-          name: {{ .Values.serviceName }}-trafficdrain-phase
+          name: {{ .Values.serviceName }}-trafficdrain
 
-  - name: enable-phase-trafficrollout-template
+  - name: enable-trafficrollout-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
     resource:
       action: patch
       mergeStrategy: merge
@@ -128,18 +145,22 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: {{ .Values.serviceName }}-trafficrollout-phase
+          name: {{ .Values.serviceName }}-trafficrollout
         spec:
           targetState: deployed
 
   - name: phase-trafficrollout-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
     resource:
       action: get
       successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: {{ .Values.serviceName }}-trafficrollout-phase
+          name: {{ .Values.serviceName }}-trafficrollout
 
 {{ end }}

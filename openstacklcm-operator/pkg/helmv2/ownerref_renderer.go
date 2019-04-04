@@ -99,7 +99,7 @@ func (o *OwnerRefHelmv2Renderer) RenderChart(name string, namespace string, char
 
 	renderOpts := renderutil.Options{
 		ReleaseOptions: chartutil.ReleaseOptions{
-			Name:      name + "-" + o.suffix,
+			Name:      name,
 			IsInstall: true,
 			IsUpgrade: false,
 			Time:      timeconv.Now(),

@@ -5,7 +5,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: {{ printf "%s-%s-%s" $envAll.Release.Name "trafficdrain" "stage" | quote }}
+  name: {{ $envAll.Release.Name }}
 spec:
   entrypoint: whalesay
   templates:
@@ -13,5 +13,5 @@ spec:
     container:
       image: docker/whalesay:latest
       command: [cowsay]
-      args: [{{ printf "%s %s-%s-%s" "Executing trafficdrain:" $envAll.Release.Name "trafficdrain" "stage" | quote }}]
+      args: [{{ printf "%s %s-%s" "Executing trafficdrain:" $envAll.Release.Name "trafficdrain" | quote }}]
 {{ end }}

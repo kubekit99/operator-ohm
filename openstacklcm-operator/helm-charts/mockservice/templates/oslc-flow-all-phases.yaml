@@ -2,62 +2,62 @@
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: DeletePhase
 metadata:
-  name: mockservice-delete-phase
+  name: mockservice-delete
 spec:
   openstackServiceName: mockservice
   targetOpenstackServiceVersion: moc.version.to.delete.to
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-delete.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-delete.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: InstallPhase
 metadata:
-  name: mockservice-install-phase
+  name: mockservice-install
 spec:
   openstackServiceName: mockservice
   targetOpenstackServiceVersion: moc.version.to.install.to
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-install.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-install.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: OperationalPhase
 metadata:
-  name: mockservice-operational-phase
+  name: mockservice-operational
 spec:
   openstackServiceName: mockservice
   targetOpenstackServiceVersion: moc.version.to.operational.to
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-operational.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-operational.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: PlanningPhase
 metadata:
-  name: mockservice-planning-phase
+  name: mockservice-planning
 spec:
   openstackServiceName: mockservice
   targetOpenstackServiceVersion: moc.version.to.planning.to
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-planning.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-planning.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: RollbackPhase
 metadata:
-  name: mockservice-rollback-phase
+  name: mockservice-rollback
 spec:
   openstackServiceName: mockservice
   targetOpenstackServiceVersion: moc.version.to.rollback.to
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-rollback.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-rollback.yaml
 
   backupStorageType: offsite
   # ceph:
@@ -74,50 +74,50 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TestPhase
 metadata:
-  name: mockservice-test-phase
+  name: mockservice-test
 spec:
   openstackServiceName: mockservice
   targetOpenstackServiceVersion: moc.version.to.test.to
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-test.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-test.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficDrainPhase
 metadata:
-  name: mockservice-trafficdrain-phase
+  name: mockservice-trafficdrain
 spec:
   openstackServiceName: mockservice
   targetOpenstackServiceVersion: moc.version.to.trafficdrain.to
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-trafficdrain.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-trafficdrain.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficRolloutPhase
 metadata:
-  name: mockservice-trafficrollout-phase
+  name: mockservice-trafficrollout
 spec:
   openstackServiceName: mockservice
   targetOpenstackServiceVersion: moc.version.to.trafficrollout.to
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-trafficrollout.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-trafficrollout.yaml
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: UpgradePhase
 metadata:
-  name: mockservice-upgrade-phase
+  name: mockservice-upgrade
 spec:
   openstackServiceName: mockservice
   targetOpenstackServiceVersion: moc.version.to.upgrade.to
   targetState: uninitialized
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/wf-upgrade.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-upgrade.yaml
 
   storageType: offsite
   backupPolicy:
@@ -189,7 +189,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: DeletePhase
         metadata:
-          name: mockservice-delete-phase
+          name: mockservice-delete
         spec:
           targetState: deployed
 
@@ -201,7 +201,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: DeletePhase
         metadata:
-          name: mockservice-delete-phase
+          name: mockservice-delete
 
   - name: enable-phase-install-template
     resource:
@@ -211,7 +211,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: InstallPhase
         metadata:
-          name: mockservice-install-phase
+          name: mockservice-install
         spec:
           targetState: deployed
 
@@ -223,7 +223,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: InstallPhase
         metadata:
-          name: mockservice-install-phase
+          name: mockservice-install
 
   - name: enable-phase-operational-template
     resource:
@@ -233,7 +233,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: OperationalPhase
         metadata:
-          name: mockservice-operational-phase
+          name: mockservice-operational
         spec:
           targetState: deployed
 
@@ -245,7 +245,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: OperationalPhase
         metadata:
-          name: mockservice-operational-phase
+          name: mockservice-operational
 
   - name: enable-phase-planning-template
     resource:
@@ -255,7 +255,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: PlanningPhase
         metadata:
-          name: mockservice-planning-phase
+          name: mockservice-planning
         spec:
           targetState: deployed
 
@@ -267,7 +267,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: PlanningPhase
         metadata:
-          name: mockservice-planning-phase
+          name: mockservice-planning
 
   - name: enable-phase-rollback-template
     resource:
@@ -277,7 +277,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: RollbackPhase
         metadata:
-          name: mockservice-rollback-phase
+          name: mockservice-rollback
         spec:
           targetState: deployed
 
@@ -289,7 +289,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: RollbackPhase
         metadata:
-          name: mockservice-rollback-phase
+          name: mockservice-rollback
 
   - name: enable-phase-test-template
     resource:
@@ -299,7 +299,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TestPhase
         metadata:
-          name: mockservice-test-phase
+          name: mockservice-test
         spec:
           targetState: deployed
 
@@ -311,7 +311,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TestPhase
         metadata:
-          name: mockservice-test-phase
+          name: mockservice-test
 
   - name: enable-phase-trafficdrain-template
     resource:
@@ -321,7 +321,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficDrainPhase
         metadata:
-          name: mockservice-trafficdrain-phase
+          name: mockservice-trafficdrain
         spec:
           targetState: deployed
 
@@ -333,7 +333,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficDrainPhase
         metadata:
-          name: mockservice-trafficdrain-phase
+          name: mockservice-trafficdrain
 
   - name: enable-phase-trafficrollout-template
     resource:
@@ -343,7 +343,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: mockservice-trafficrollout-phase
+          name: mockservice-trafficrollout
         spec:
           targetState: deployed
 
@@ -355,7 +355,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: mockservice-trafficrollout-phase
+          name: mockservice-trafficrollout
 
   - name: enable-phase-upgrade-template
     resource:
@@ -365,7 +365,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: UpgradePhase
         metadata:
-          name: mockservice-upgrade-phase
+          name: mockservice-upgrade
         spec:
           targetState: deployed
 
@@ -377,4 +377,4 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: UpgradePhase
         metadata:
-          name: mockservice-upgrade-phase
+          name: mockservice-upgrade

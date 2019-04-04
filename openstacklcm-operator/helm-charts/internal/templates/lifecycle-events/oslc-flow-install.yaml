@@ -5,7 +5,7 @@
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: InstallPhase
 metadata:
-  name: {{ .Values.serviceName }}-install-phase
+  name: {{ .Values.serviceName }}-install
 spec:
   openstackServiceName: {{ .Values.serviceName }}
   targetOpenstackServiceVersion: moc.version.to.install.to
@@ -17,7 +17,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TestPhase
 metadata:
-  name: {{ .Values.serviceName }}-test-phase
+  name: {{ .Values.serviceName }}-test
 spec:
   openstackServiceName: {{ .Values.serviceName }}
   targetOpenstackServiceVersion: moc.version.to.test.to
@@ -29,7 +29,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficRolloutPhase
 metadata:
-  name: {{ .Values.serviceName }}-trafficrollout-phase
+  name: {{ .Values.serviceName }}-trafficrollout
 spec:
   openstackServiceName: {{ .Values.serviceName }}
   targetOpenstackServiceVersion: moc.version.to.trafficrollout.to
@@ -41,27 +41,30 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: {{ .Values.serviceName }}-install
+  name: {{ $envAll.Release.Name }}
 spec:
-  entrypoint: {{ .Values.serviceName }}-install
+  entrypoint: {{ $envAll.Release.Name }}
   serviceAccountName: openstacklcm-argo-sa
   templates:
-  - name: {{ .Values.serviceName }}-install
+  - name: {{ $envAll.Release.Name }}
     steps:
-    - - name: {{ .Values.serviceName }}-enable-phase-install
-        template: enable-phase-install-template
-    - - name: {{ .Values.serviceName }}-phase-install-ready
+    - - name: {{ .Values.serviceName }}-enable-install
+        template: enable-install-template
+    - - name: {{ .Values.serviceName }}-install-ready
         template: phase-install-ready-template
-    - - name: {{ .Values.serviceName }}-enable-phase-test
-        template: enable-phase-test-template
-    - - name: {{ .Values.serviceName }}-phase-test-ready
+    - - name: {{ .Values.serviceName }}-enable-test
+        template: enable-test-template
+    - - name: {{ .Values.serviceName }}-test-ready
         template: phase-test-ready-template
-    - - name: {{ .Values.serviceName }}-enable-phase-trafficrollout
-        template: enable-phase-trafficrollout-template
-    - - name: {{ .Values.serviceName }}-phase-trafficrollout-ready
+    - - name: {{ .Values.serviceName }}-enable-trafficrollout
+        template: enable-trafficrollout-template
+    - - name: {{ .Values.serviceName }}-trafficrollout-ready
         template: phase-trafficrollout-ready-template
 
-  - name: enable-phase-install-template
+  - name: enable-install-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_install }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_install }}
     resource:
       action: patch
       mergeStrategy: merge
@@ -69,21 +72,28 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: InstallPhase
         metadata:
-          name: {{ .Values.serviceName }}-install-phase
+          name: {{ .Values.serviceName }}-install
         spec:
           targetState: deployed
 
   - name: phase-install-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_install }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_install }}
     resource:
       action: get
       successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: InstallPhase
         metadata:
-          name: {{ .Values.serviceName }}-install-phase
+          name: {{ .Values.serviceName }}-install
 
-  - name: enable-phase-test-template
+  - name: enable-test-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_test }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_test }}
     resource:
       action: patch
       mergeStrategy: merge
@@ -91,21 +101,28 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TestPhase
         metadata:
-          name: {{ .Values.serviceName }}-test-phase
+          name: {{ .Values.serviceName }}-test
         spec:
           targetState: deployed
 
   - name: phase-test-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_test }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_test }}
     resource:
       action: get
       successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TestPhase
         metadata:
-          name: {{ .Values.serviceName }}-test-phase
+          name: {{ .Values.serviceName }}-test
 
-  - name: enable-phase-trafficrollout-template
+  - name: enable-trafficrollout-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
     resource:
       action: patch
       mergeStrategy: merge
@@ -113,17 +130,21 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: {{ .Values.serviceName }}-trafficrollout-phase
+          name: {{ .Values.serviceName }}-trafficrollout
         spec:
           targetState: deployed
 
   - name: phase-trafficrollout-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
     resource:
       action: get
       successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: {{ .Values.serviceName }}-trafficrollout-phase
+          name: {{ .Values.serviceName }}-trafficrollout
 {{ end }}

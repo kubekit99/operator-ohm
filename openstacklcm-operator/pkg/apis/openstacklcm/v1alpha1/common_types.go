@@ -310,6 +310,10 @@ func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, targe
 			s.ActualState = StateFailed
 			s.Succeeded = false
 			s.Reason = cond.Reason.String()
+		} else if cond.Type == ConditionFailed {
+			s.ActualState = StateFailed
+			s.Succeeded = false
+			s.Reason = cond.Reason.String()
 		} else {
 			s.Succeeded = (s.ActualState == target)
 			s.Reason = ""

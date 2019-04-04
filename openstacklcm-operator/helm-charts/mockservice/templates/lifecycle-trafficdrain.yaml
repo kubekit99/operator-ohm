@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: trafficrollout-wf
+  name: mockservice-trafficdrain
 spec:
   entrypoint: whalesay
   templates:
@@ -9,4 +9,4 @@ spec:
     container:
       image: docker/whalesay:latest
       command: [cowsay]
-      args: ["workflow 1: trafficrollout"]
+      args: ["workflow 1: trafficdrain"]

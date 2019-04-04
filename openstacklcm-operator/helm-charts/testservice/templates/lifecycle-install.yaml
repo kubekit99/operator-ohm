@@ -1,11 +1,11 @@
-{{- if eq .Values.oslc.stage "phase" }}
+{{- if eq .Values.oslc.stage "install" }}
 {{- $envAll := . }}
 
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: {{ printf "%s-%s-%s" $envAll.Release.Name "phase" "stage" | quote }}
+  name: {{ $envAll.Release.Name }}
 spec:
   entrypoint: whalesay
   templates:
@@ -13,5 +13,5 @@ spec:
     container:
       image: docker/whalesay:latest
       command: [cowsay]
-      args: [{{ printf "%s %s-%s-%s" "Executing phase:" $envAll.Release.Name "phase" "stage" | quote }}]
+      args: [{{ printf "%s %s-%s" "Executing install:" $envAll.Release.Name "install" | quote }}]
 {{ end }}

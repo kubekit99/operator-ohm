@@ -7,6 +7,6 @@ spec:
   serviceName: mockservice
   source:
     type: local
-    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/lifecycle-events/oslc-flow-all-phases.yaml
+    location: /opt/openstacklcm-operator/helm-charts/mockservice/templates/oslc-flow-all-phases.yaml
   flowKind: all-phases
   targetState: deployed

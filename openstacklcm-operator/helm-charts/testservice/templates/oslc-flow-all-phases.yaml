@@ -5,7 +5,7 @@
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: DeletePhase
 metadata:
-  name: testservice-delete-phase
+  name: testservice-delete
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.delete.to
@@ -17,7 +17,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: InstallPhase
 metadata:
-  name: testservice-install-phase
+  name: testservice-install
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.install.to
@@ -29,7 +29,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: OperationalPhase
 metadata:
-  name: testservice-operational-phase
+  name: testservice-operational
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.operational.to
@@ -41,7 +41,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: PlanningPhase
 metadata:
-  name: testservice-planning-phase
+  name: testservice-planning
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.planning.to
@@ -53,7 +53,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: RollbackPhase
 metadata:
-  name: testservice-rollback-phase
+  name: testservice-rollback
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.rollback.to
@@ -77,7 +77,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TestPhase
 metadata:
-  name: testservice-test-phase
+  name: testservice-test
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.test.to
@@ -89,7 +89,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficDrainPhase
 metadata:
-  name: testservice-trafficdrain-phase
+  name: testservice-trafficdrain
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.trafficdrain.to
@@ -101,7 +101,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: TrafficRolloutPhase
 metadata:
-  name: testservice-trafficrollout-phase
+  name: testservice-trafficrollout
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.trafficrollout.to
@@ -113,7 +113,7 @@ spec:
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: UpgradePhase
 metadata:
-  name: testservice-upgrade-phase
+  name: testservice-upgrade
 spec:
   openstackServiceName: testservice
   targetOpenstackServiceVersion: moc.version.to.upgrade.to
@@ -192,7 +192,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: DeletePhase
         metadata:
-          name: testservice-delete-phase
+          name: testservice-delete
         spec:
           targetState: deployed
 
@@ -204,7 +204,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: DeletePhase
         metadata:
-          name: testservice-delete-phase
+          name: testservice-delete
 
   - name: enable-phase-install-template
     resource:
@@ -214,7 +214,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: InstallPhase
         metadata:
-          name: testservice-install-phase
+          name: testservice-install
         spec:
           targetState: deployed
 
@@ -226,7 +226,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: InstallPhase
         metadata:
-          name: testservice-install-phase
+          name: testservice-install
 
   - name: enable-phase-operational-template
     resource:
@@ -236,7 +236,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: OperationalPhase
         metadata:
-          name: testservice-operational-phase
+          name: testservice-operational
         spec:
           targetState: deployed
 
@@ -248,7 +248,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: OperationalPhase
         metadata:
-          name: testservice-operational-phase
+          name: testservice-operational
 
   - name: enable-phase-planning-template
     resource:
@@ -258,7 +258,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: PlanningPhase
         metadata:
-          name: testservice-planning-phase
+          name: testservice-planning
         spec:
           targetState: deployed
 
@@ -270,7 +270,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: PlanningPhase
         metadata:
-          name: testservice-planning-phase
+          name: testservice-planning
 
   - name: enable-phase-rollback-template
     resource:
@@ -280,7 +280,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: RollbackPhase
         metadata:
-          name: testservice-rollback-phase
+          name: testservice-rollback
         spec:
           targetState: deployed
 
@@ -292,7 +292,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: RollbackPhase
         metadata:
-          name: testservice-rollback-phase
+          name: testservice-rollback
 
   - name: enable-phase-test-template
     resource:
@@ -302,7 +302,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TestPhase
         metadata:
-          name: testservice-test-phase
+          name: testservice-test
         spec:
           targetState: deployed
 
@@ -314,7 +314,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TestPhase
         metadata:
-          name: testservice-test-phase
+          name: testservice-test
 
   - name: enable-phase-trafficdrain-template
     resource:
@@ -324,7 +324,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficDrainPhase
         metadata:
-          name: testservice-trafficdrain-phase
+          name: testservice-trafficdrain
         spec:
           targetState: deployed
 
@@ -336,7 +336,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficDrainPhase
         metadata:
-          name: testservice-trafficdrain-phase
+          name: testservice-trafficdrain
 
   - name: enable-phase-trafficrollout-template
     resource:
@@ -346,7 +346,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: testservice-trafficrollout-phase
+          name: testservice-trafficrollout
         spec:
           targetState: deployed
 
@@ -358,7 +358,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: TrafficRolloutPhase
         metadata:
-          name: testservice-trafficrollout-phase
+          name: testservice-trafficrollout
 
   - name: enable-phase-upgrade-template
     resource:
@@ -368,7 +368,7 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: UpgradePhase
         metadata:
-          name: testservice-upgrade-phase
+          name: testservice-upgrade
         spec:
           targetState: deployed
 
@@ -380,5 +380,5 @@ spec:
         apiVersion: openstacklcm.airshipit.org/v1alpha1
         kind: UpgradePhase
         metadata:
-          name: testservice-upgrade-phase
+          name: testservice-upgrade
 {{ end }}

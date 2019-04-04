@@ -29,6 +29,7 @@ import (
 type phasemanager struct {
 	kubeClient     client.Client
 	renderer       *OwnerRefRenderer
+	serviceName    string
 	phaseName      string
 	phaseNamespace string
 	source         *av1.PhaseSource
