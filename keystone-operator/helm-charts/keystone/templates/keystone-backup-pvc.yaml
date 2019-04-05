@@ -14,20 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{- if or (eq .Values.oslc.stage "install") (eq .Values.lifecycle "install") }}
-{{- if .Values.manifests.secret_db }}
+{{- if or (eq .Values.lifecycle "upgrade") (eq .Values.lifecycle "rollback") }}
+{{- if and .Values.volume.backup.enabled .Values.manifests.pvc_backup }}
 {{- $envAll := . }}
-{{- range $key1, $userClass := tuple "admin" "keystone" }}
-{{- $secretName := index $envAll.Values.secrets.oslo_db $userClass }}
 ---
+kind: PersistentVolumeClaim
 apiVersion: v1
-kind: Secret
 metadata:
-  name: {{ $secretName }}
-type: Opaque
-data:
-  DB_CONNECTION: {{ tuple "oslo_db" "internal" $userClass "mysql" $envAll | include "helm-toolkit.endpoints.authenticated_endpoint_uri_lookup" | b64enc }}
-  DB_PASSWORD: {{ index (index $envAll.Values.endpoints.oslo_db.auth $userClass) "password" | b64enc }}
-{{- end }}
+  name: keystone-backup-data
+  namespace: {{ $envAll.Release.Namespace }}
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: {{ .Values.volume.backup.size }}
+  storageClassName: {{ .Values.volume.backup.class_name }}
 {{- end }}
 {{- end }}

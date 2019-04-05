@@ -1,4 +1,4 @@
-{{- if not (eq .Values.lifecycle "nil") }}
+{{- if or (eq .Values.oslc.stage "install") (eq .Values.lifecycle "install") }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:

@@ -122,7 +122,7 @@ dependencies:
           # improvments so that we are not forced to specify
           # the namespace
           namespace: default
-          name: wf-keystone-install
+          name: keystone-install
           fields:
             - key: "status.phase"
               value: "Succeeded"
@@ -1024,6 +1024,16 @@ secrets:
     identity:
       api:
         public: keystone-tls-public
+
+volume:
+  chown_on_start: true
+  enabled: false
+  class_name: general
+  size: 5Gi
+  backup:
+    enabled: false
+    class_name: manual # general
+    size: 5Gi
 
 # typically overridden by environmental
 # values, but should include all endpoints

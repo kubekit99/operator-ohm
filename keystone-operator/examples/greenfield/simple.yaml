@@ -2,7 +2,7 @@
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: Oslc
 metadata:
-  name: keystone-install
+  name: keystone-install-flow
 spec:
   serviceName: keystone
   source:

@@ -3,17 +3,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: {{ printf "%s-%s-%s-%s" "wf" $envAll.Release.Name "delete" "stage" }}
+  name: {{ $envAll.Release.Name }}
   namespace: {{ $envAll.Release.Namespace }}
 spec:
-  entrypoint: {{ printf "%s-%s-%s-%s" "wf" $envAll.Release.Name "delete" "stage" }}
+  entrypoint: {{ $envAll.Release.Name }}
   serviceAccountName: wf-keystone-sa
   volumes:
   {{- include "keystone.templates.steps._db_init.volumes" . | nindent 2 }}
   {{- include "keystone.templates.steps._db_sync.volumes" . | nindent 2 }}
   {{- include "keystone.templates.steps._rabbit_init.volumes" . | nindent 2 }}
   templates:
-  - name: {{ printf "%s-%s-%s-%s" "wf" $envAll.Release.Name "delete" "stage" }}
+  - name: {{ $envAll.Release.Name }}
     dag:
       tasks:
       - name: svc-memcached

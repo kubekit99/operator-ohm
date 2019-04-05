@@ -2,7 +2,7 @@
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: Oslc
 metadata:
-  name: keystone-rollback
+  name: keystone-rollback-flow
 spec:
   serviceName: keystone
   source:

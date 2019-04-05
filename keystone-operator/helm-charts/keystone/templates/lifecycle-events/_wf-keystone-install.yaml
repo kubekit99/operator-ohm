@@ -6,10 +6,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: wf-keystone-install
+  name: keystone-install
   namespace: {{ $envAll.Release.Namespace }}
 spec:
-  entrypoint: wf-keystone-install
+  entrypoint: keystone-install
   serviceAccountName: wf-keystone-sa
   volumes:
   {{- include "keystone.templates.steps._credential_setup.volumes" . | nindent 2 }}
@@ -19,7 +19,7 @@ spec:
   {{- include "keystone.templates.steps._rabbit_init.volumes" . | nindent 2 }}
 # This DAG describes the "outer" workflow - it drives the flow
   templates:
-  - name: wf-keystone-install
+  - name: keystone-install
     dag:
       tasks:
       - name: svc-memcached
@@ -173,17 +173,17 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: wf-bootstrap
+  name: keystone-bootstrap
   namespace: {{ $envAll.Release.Namespace }}
 spec:
-  entrypoint: wf-bootstrap
+  entrypoint: keystone-bootstrap
   serviceAccountName: wf-keystone-sa
   volumes:
   {{- include "keystone.templates.steps._bootstrap.volumes" . | nindent 2 }}
   {{- include "keystone.templates.steps._domain_manage.volumes" . | nindent 2 }}
 # This DAG describes the "outer" workflow - it drives the flow
   templates:
-  - name: wf-bootstrap
+  - name: keystone-bootstrap
     dag:
       tasks:
       - name: svc-keystone

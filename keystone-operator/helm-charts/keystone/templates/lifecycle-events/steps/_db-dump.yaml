@@ -111,5 +111,5 @@ volumeMounts:
     defaultMode: 0444
 - name: pv-storage
   persistentVolumeClaim:
-    claimName: pv-claim
+    claimName: keystone-backup-data
 {{- end }}

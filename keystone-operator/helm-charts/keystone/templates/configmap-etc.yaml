@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
+{{- if or (eq .Values.oslc.stage "install") (eq .Values.lifecycle "install") }}
 {{- if .Values.manifests.configmap_etc }}
 {{- $envAll := . }}
 
@@ -60,4 +61,5 @@ data:
 {{- include "helm-toolkit.snippets.values_template_renderer" (dict "envAll" $envAll "template" .Values.conf.mpm_event "key" "mpm_event.conf" "format" "Secret" ) | indent 2 }}
 {{- include "helm-toolkit.snippets.values_template_renderer" (dict "envAll" $envAll "template" .Values.conf.wsgi_keystone "key" "wsgi-keystone.conf" "format" "Secret" ) | indent 2 }}
 {{- include "helm-toolkit.snippets.values_template_renderer" (dict "envAll" $envAll "template" .Values.conf.sso_callback_template "key" "sso_callback_template.html" "format" "Secret" ) | indent 2 }}
+{{- end }}
 {{- end }}
