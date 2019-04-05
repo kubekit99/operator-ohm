@@ -699,7 +699,3 @@ oslc.openstacklcm.airshipit.org "keystone-uninstall-flow" deleted
 prompt$ kubectl delete -f examples/greenfield/
 oslc.openstacklcm.airshipit.org "keystone-install-flow" deleted
 ```
- 
-```bash
-prompt$
-```

@@ -277,7 +277,3 @@ No resources found.
 kubectl get operationalphases.openstacklcm.airshipit.org
 No resources found.
 ```
- 
-```bash
-prompt$
-```

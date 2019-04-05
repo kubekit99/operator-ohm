@@ -230,10 +230,6 @@ job.batch/rabbitmq-cluster-wait   1/1           25s        90s
 ```
  
 ```bash
-prompt$ vi second.txt
-```
- 
-```bash
 prompt$ kubectl apply -f examples/keystone/keystone.yaml
 armadachart.armada.airshipit.org/keystone created
 ```
@@ -848,10 +844,6 @@ job.batch/rabbitmq-cluster-wait   1/1           25s        90s
 ```
  
 ```bash
-prompt$ vi second.txt
-```
- 
-```bash
 prompt$ kubectl apply -f examples/keystone/keystone.yaml
 armadachart.armada.airshipit.org/keystone created
 ```
@@ -1230,8 +1222,4 @@ task-bootstrap: | id        | ccbaa551824c4a519f2ec42501c493e4 |
 task-bootstrap: | name      | member                           |
 task-bootstrap: +-----------+----------------------------------+
 task-bootstrap: + openstack role add --user=admin --user-domain=default --project-domain=default --project=admin member
-```
- 
-```bash
-prompt$
 ```

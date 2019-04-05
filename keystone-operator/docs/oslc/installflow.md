@@ -136,10 +136,6 @@ keystone-install-flow   Running   4s    4s
 ```
  
 ```bash
-prompt$ vi traces/greenfield.txt
-```
- 
-```bash
 prompt$ argo get keystone-install-flow
 Name:                keystone-install-flow
 Namespace:           default
@@ -416,10 +412,6 @@ keystone-install-flow   Running   4s    4s
 ```
  
 ```bash
-prompt$ vi traces/greenfield.txt
-```
- 
-```bash
 prompt$ argo get keystone-install-flow
 Name:                keystone-install-flow
 Namespace:           default
@@ -554,8 +546,4 @@ STEP                                   PODNAME                           DURATIO
  ├---✔ keystone-test-ready             keystone-install-flow-2390570688  7s
  ├---✔ keystone-enable-trafficrollout  keystone-install-flow-3629395555  7s
  └---✔ keystone-trafficrollout-ready   keystone-install-flow-1815575608  8s
-```
- 
-```bash
-prompt$
 ```

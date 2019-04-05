@@ -138,10 +138,6 @@ No resources found.
 ```
  
 ```bash
-prompt$ vi traces/argo.txt
-```
- 
-```bash
 prompt$ argo list
 NAME                 STATUS      AGE   DURATION
 keystone-bootstrap   Running     2m    2m
@@ -652,8 +648,4 @@ deployment.apps/keystone-oslc-operator     1/1     1            1           19m
 NAME                                                  DESIRED   CURRENT   READY   AGE
 replicaset.apps/keystone-armada-operator-5cfccc74fb   1         1         1       19m
 replicaset.apps/keystone-oslc-operator-747bb84698     1         1         1       19m
-```
- 
-```bash
-prompt$
 ```

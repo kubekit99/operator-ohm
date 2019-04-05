@@ -1211,7 +1211,3 @@ prompt/helm-charts/keystone$ helm ls
 prompt/helm-charts/keystone$ argo list
 2019/04/05 09:56:21 the server could not find the requested resource (get workflows.argoproj.io)
 ```
- 
-```bash
-prompt/helm-charts/keystone$
-```

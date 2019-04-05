@@ -467,7 +467,3 @@ rolebinding.rbac.authorization.k8s.io/openstacklcm-argo-rolebinding created
 kubectl create -f deploy/oslc-operator.yaml
 deployment.apps/keystone-oslc-operator created
 ```
- 
-```bash
-prompt$
-```

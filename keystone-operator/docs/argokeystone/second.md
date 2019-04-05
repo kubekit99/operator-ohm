@@ -461,7 +461,3 @@ statefulset.apps/rabbitmq-rabbitmq   1/1     90s
 NAME                              COMPLETIONS   DURATION   AGE
 job.batch/rabbitmq-cluster-wait   1/1           25s        90s
 ```
- 
-```bash
-prompt$
-```

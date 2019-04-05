@@ -136,10 +136,6 @@ keystone-install-flow   Running   4s    4s
 ```
  
 ```bash
-prompt$ vi traces/greenfield.txt
-```
- 
-```bash
 prompt$ argo get keystone-install-flow
 Name:                keystone-install-flow
 Namespace:           default
@@ -277,10 +273,6 @@ STEP                                   PODNAME                           DURATIO
 ```
  
 ```bash
-prompt$ vi traces/installflow.txt
-```
- 
-```bash
 prompt$ kubectl apply -f examples/uninstall/
 oslc.openstacklcm.airshipit.org/keystone-uninstall-flow created
 ```
@@ -346,10 +338,6 @@ oslc.openstacklcm.airshipit.org "keystone-uninstall-flow" deleted
 ```bash
 prompt$ kubectl delete -f examples/greenfield/
 oslc.openstacklcm.airshipit.org "keystone-install-flow" deleted
-```
- 
-```bash
-prompt$ vi traces/deleteflow.txt
 ```
  
 ```bash
@@ -577,10 +565,6 @@ keystone-install-flow   Running   4s    4s
 ```
  
 ```bash
-prompt$ vi traces/greenfield.txt
-```
- 
-```bash
 prompt$ argo get keystone-install-flow
 Name:                keystone-install-flow
 Namespace:           default
@@ -718,10 +702,6 @@ STEP                                   PODNAME                           DURATIO
 ```
  
 ```bash
-prompt$ vi traces/installflow.txt
-```
- 
-```bash
 prompt$ kubectl apply -f examples/uninstall/
 oslc.openstacklcm.airshipit.org/keystone-uninstall-flow created
 ```
@@ -787,10 +767,6 @@ oslc.openstacklcm.airshipit.org "keystone-uninstall-flow" deleted
 ```bash
 prompt$ kubectl delete -f examples/greenfield/
 oslc.openstacklcm.airshipit.org "keystone-install-flow" deleted
-```
- 
-```bash
-prompt$ vi traces/deleteflow.txt
 ```
  
 ```bash
@@ -876,8 +852,4 @@ deployment.apps/keystone-oslc-operator     1/1     1            1           40m
 NAME                                                  DESIRED   CURRENT   READY   AGE
 replicaset.apps/keystone-armada-operator-5cfccc74fb   1         1         1       40m
 replicaset.apps/keystone-oslc-operator-747bb84698     1         1         1       40m
-```
- 
-```bash
-prompt$
 ```

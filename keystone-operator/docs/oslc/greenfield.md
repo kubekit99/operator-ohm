@@ -281,7 +281,3 @@ prompt$ argo list
 NAME                    STATUS    AGE   DURATION
 keystone-install-flow   Running   4s    4s
 ```
- 
-```bash
-prompt$
-```

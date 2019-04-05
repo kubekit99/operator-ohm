@@ -230,10 +230,6 @@ job.batch/rabbitmq-cluster-wait   1/1           25s        90s
 ```
  
 ```bash
-prompt$ vi second.txt
-```
- 
-```bash
 prompt$ kubectl apply -f examples/keystone/keystone.yaml
 armadachart.armada.airshipit.org/keystone created
 ```
@@ -1061,10 +1057,6 @@ job.batch/rabbitmq-cluster-wait   1/1           25s        90s
 ```
  
 ```bash
-prompt$ vi second.txt
-```
- 
-```bash
 prompt$ kubectl apply -f examples/keystone/keystone.yaml
 armadachart.armada.airshipit.org/keystone created
 ```
@@ -1656,8 +1648,4 @@ deployment.apps/keystone-oslc-operator     1/1     1            1           12m
 NAME                                                  DESIRED   CURRENT   READY   AGE
 replicaset.apps/keystone-armada-operator-5cfccc74fb   1         1         1       12m
 replicaset.apps/keystone-oslc-operator-747bb84698     1         1         1       12m
-```
- 
-```bash
-prompt$
 ```
