@@ -54,4 +54,11 @@ describemanifest:
 
 deletemanifest:
 	kubectl delete -f examples/rabbitmq/simple.yaml
-	kubectl describe act/rabbitmq 
+	kubectl describe act/rabbitmq
+
+getcrds:
+	kubectl get armadacharts.armada.airshipit.org
+	kubectl get armadachartgroups.armada.airshipit.org
+	kubectl get armadamanifests.armada.airshipit.org
+
+	kubectl get workflows.argoproj.io

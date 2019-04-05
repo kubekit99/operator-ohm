@@ -115,14 +115,16 @@ purge-kubectl: setup
 	kubectl delete -f ./chart/templates/argo_openstacklcm_role.yaml
 
 getcrds:
-	kubectl get deletephases.openstacklcm.airshipit.org
-	kubectl get installphases.openstacklcm.airshipit.org
-	kubectl get operationalphases.openstacklcm.airshipit.org
 	kubectl get oslcs.openstacklcm.airshipit.org
-	kubectl get planningphases.openstacklcm.airshipit.org
+
+	kubectl get installphases.openstacklcm.airshipit.org
 	kubectl get rollbackphases.openstacklcm.airshipit.org
 	kubectl get testphases.openstacklcm.airshipit.org
 	kubectl get trafficdrainphases.openstacklcm.airshipit.org
 	kubectl get trafficrolloutphases.openstacklcm.airshipit.org
 	kubectl get upgradephases.openstacklcm.airshipit.org
+	kubectl get deletephases.openstacklcm.airshipit.org
+	kubectl get planningphases.openstacklcm.airshipit.org
+	kubectl get operationalphases.openstacklcm.airshipit.org
+
 	kubectl get workflows.argoproj.io

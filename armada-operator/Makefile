@@ -108,3 +108,10 @@ purge-kubectl: setup
 	kubectl delete -f ./chart/templates/role.yaml
 	kubectl delete -f ./chart/templates/service_account.yaml
 	kubectl delete -f ./chart/templates/argo_armada_role.yaml
+
+getcrds:
+	kubectl get armadacharts.armada.airshipit.org
+	kubectl get armadachartgroups.armada.airshipit.org
+	kubectl get armadamanifests.armada.airshipit.org
+
+	kubectl get workflows.argoproj.io

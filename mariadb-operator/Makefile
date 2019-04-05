@@ -54,4 +54,11 @@ describemanifest:
 
 deletemanifest:
 	kubectl delete -f examples/mariadb/simple.yaml
-	kubectl describe act/mariadb 
+	kubectl describe act/mariadb
+
+getcrds:
+	kubectl get armadacharts.armada.airshipit.org
+	kubectl get armadachartgroups.armada.airshipit.org
+	kubectl get armadamanifests.armada.airshipit.org
+
+	kubectl get workflows.argoproj.io

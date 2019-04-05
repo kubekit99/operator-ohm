@@ -54,4 +54,11 @@ describemanifest:
 
 deletemanifest:
 	kubectl delete -f examples/memcached/simple.yaml
-	kubectl describe act/memcached 
+	kubectl describe act/memcached
+
+getcrds:
+	kubectl get armadacharts.armada.airshipit.org
+	kubectl get armadachartgroups.armada.airshipit.org
+	kubectl get armadamanifests.armada.airshipit.org
+
+	kubectl get workflows.argoproj.io
