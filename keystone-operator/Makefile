@@ -101,26 +101,31 @@ purge-oslc:
 	kubectl delete -f ../openstacklcm-operator/chart/templates/argo_openstacklcm_role.yaml
 
 
-installmanifest:
+installinfra:
 	kubectl label nodes airship openstack-control-plane=enabled --overwrite
-	kubectl apply -f examples/keystone/simple_local.yaml
-	kubectl describe amf/armada-manifest
+	kubectl apply -f examples/keystone/infra.yaml
 
-describemanifest:
-	kubectl describe amf/armada-manifest
-	kubectl describe acg/keystone-infra-services
-	kubectl describe acg/openstack-keystone
-	kubectl describe act/helm-toolkit
-	kubectl describe act/keystone
+describeinfra:
 	kubectl describe act/mariadb
 	kubectl describe act/memcached
 	kubectl describe act/rabbitmq
+	kubectl get act
 
-deletemanifest:
-	kubectl delete -f examples/keystone/simple_local.yaml
+deleteinfra:
+	kubectl delete -f examples/keystone/infra.yaml
 	kubectl delete configmap mariadb-mariadb-mariadb-ingress
 	kubectl delete configmap mariadb-mariadb-state
-	kubectl describe amf/armada-manifest 
+
+installkeystone:
+	kubectl label nodes airship openstack-control-plane=enabled --overwrite
+	kubectl apply -f examples/keystone/keystone.yaml
+
+describekeystone:
+	kubectl describe act/keystone
+	kubectl get act
+
+deletekeystone:
+	kubectl delete -f examples/keystone/keystone.yaml
 
 getcrds:
 	kubectl get workflows.argoproj.io
