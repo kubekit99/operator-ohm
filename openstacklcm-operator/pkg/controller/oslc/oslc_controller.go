@@ -80,51 +80,6 @@ func addOslc(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	dependentPredicate := crtpredicate.Funcs{
-		// We don't need to reconcile dependent resource creation events
-		// because dependent resources are only ever created during
-		// reconciliation. Another reconcile would be redundant.
-		CreateFunc: func(e event.CreateEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			oslclog.Info("CreateEvent. Filtering", "resource", o.GetName(), "namespace", o.GetNamespace(),
-				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
-			return false
-		},
-
-		// Reconcile when a dependent resource is deleted so that it can be
-		// recreated.
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			oslclog.Info("DeleteEvent. Triggering", "resource", o.GetName(), "namespace", o.GetNamespace(),
-				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
-			return true
-		},
-
-		// Reconcile when a dependent resource is updated, so that it can
-		// be patched back to the resource managed by the Helm release, if
-		// necessary. Ignore updates that only change the status and
-		// resourceVersion.
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			old := e.ObjectOld.(*unstructured.Unstructured).DeepCopy()
-			new := e.ObjectNew.(*unstructured.Unstructured).DeepCopy()
-
-			delete(old.Object, "status")
-			delete(new.Object, "status")
-			old.SetResourceVersion("")
-			new.SetResourceVersion("")
-
-			if reflect.DeepEqual(old.Object, new.Object) {
-				oslclog.Info("UpdateEvent. Filtering", "resource", new.GetName(), "namespace", new.GetNamespace(),
-					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
-				return false
-			} else {
-				oslclog.Info("UpdateEvent. Triggering", "resource", new.GetName(), "namespace", new.GetNamespace(),
-					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
-				return true
-			}
-		},
-	}
-
 	// Watch for changes to secondary resource (described in the helm chart) and requeue the owner Oslc
 	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
 	// that created the object that was the source of the Event
@@ -133,7 +88,8 @@ func addOslc(mgr manager.Manager, r reconcile.Reconciler) error {
 		// content of the release. The tools wait for the helm chart to be parse. The chart_manager
 		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
 		owner := av1.NewOslcVersionKind("", "")
-		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c, dependentPredicate)
+		dependentPredicate := racr.buildDependentPredicate()
+		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c, *dependentPredicate)
 	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
 		// Unit test issue
 		log.Info("UnitTests", "ReconfileFunc", rrf)
@@ -157,6 +113,57 @@ type OslcReconciler struct {
 const (
 	finalizerOslc = "uninstall-helm-release"
 )
+
+// buildDependentPredicate create the predicates used by subresources watches
+func (r *OslcReconciler) buildDependentPredicate() *crtpredicate.Funcs {
+
+	dependentPredicate := crtpredicate.Funcs{
+		// We don't need to reconcile dependent resource creation events
+		// because dependent resources are only ever created during
+		// reconciliation. Another reconcile would be redundant.
+		CreateFunc: func(e event.CreateEvent) bool {
+			o := e.Object.(*unstructured.Unstructured)
+			oslclog.Info("CreateEvent. Filtering", "resource", o.GetName(), "namespace", o.GetNamespace(),
+				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			return false
+		},
+
+		// Reconcile when a dependent resource is deleted so that it can be
+		// recreated.
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			o := e.Object.(*unstructured.Unstructured)
+			oslclog.Info("DeleteEvent. Triggering", "resource", o.GetName(), "namespace", o.GetNamespace(),
+				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			return true
+		},
+
+		// Reconcile when a dependent resource is updated, so that it can
+		// be patched back to the resource managed by the Argo workflow, if
+		// necessary. Ignore updates that only change the status and
+		// resourceVersion.
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			old := e.ObjectOld.(*unstructured.Unstructured).DeepCopy()
+			new := e.ObjectNew.(*unstructured.Unstructured).DeepCopy()
+
+			delete(old.Object, "status")
+			delete(new.Object, "status")
+			old.SetResourceVersion("")
+			new.SetResourceVersion("")
+
+			if reflect.DeepEqual(old.Object, new.Object) {
+				oslclog.Info("UpdateEvent. Filtering", "resource", new.GetName(), "namespace", new.GetNamespace(),
+					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
+				return false
+			} else {
+				oslclog.Info("UpdateEvent. Triggering", "resource", new.GetName(), "namespace", new.GetNamespace(),
+					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
+				return true
+			}
+		},
+	}
+
+	return &dependentPredicate
+}
 
 // Reconcile reads that state of the cluster for an Oslc object and
 // makes changes based on the state read and what is in the Oslc.Spec

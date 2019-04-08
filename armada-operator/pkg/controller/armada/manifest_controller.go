@@ -72,6 +72,51 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 		return err
 	}
 
+	// Watch for changes to ArmadaChartGroup and requeue the owner ArmadaManifest
+	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
+	// that created the object that was the source of the Event
+	// IsController if set will only look at the first OwnerReference with Controller: true.
+	acg := av1.NewArmadaChartGroupVersionKind("", "")
+	dependentPredicate := r.buildDependentPredicate()
+	err = c.Watch(&source.Kind{Type: acg},
+		&crthandler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &av1.ArmadaManifest{},
+		},
+		*dependentPredicate)
+	if err != nil {
+		return err
+	}
+
+	// JEB: Will see later if we need to put the ownership between the backup/restore and the Manifest
+	// err = c.Watch(&source.Kind{Type: &av1.ArmadaBackup{}}, &crthandler.EnqueueRequestForOwner{OwnerType: owner},
+	// 	dependentPredicate)
+	// err = c.Watch(&source.Kind{Type: &av1.ArmadaRestore{}}, &crthandler.EnqueueRequestForOwner{OwnerType: owner},
+	// 	dependentPredicate)
+
+	return nil
+}
+
+var _ reconcile.Reconciler = &ManifestReconciler{}
+
+// ManifestReconciler reconciles a ArmadaManifest object
+type ManifestReconciler struct {
+	// This client, initialized using mgr.Client() above, is a split client
+	// that reads objects from the cache and writes to the apiserver
+	client          client.Client
+	scheme          *runtime.Scheme
+	recorder        record.EventRecorder
+	managerFactory  armadaif.ArmadaManagerFactory
+	reconcilePeriod time.Duration
+}
+
+const (
+	finalizerArmadaManifest = "uninstall-amf"
+)
+
+// buildDependentPredicate create the predicates used by subresources watches
+func (r *ManifestReconciler) buildDependentPredicate() *crtpredicate.Funcs {
+
 	dependentPredicate := crtpredicate.Funcs{
 		// We don't need to reconcile dependent resource creation events
 		// because dependent resources are only ever created during
@@ -113,46 +158,8 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 		},
 	}
 
-	// Watch for changes to ArmadaChartGroup and requeue the owner ArmadaManifest
-	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
-	// that created the object that was the source of the Event
-	// IsController if set will only look at the first OwnerReference with Controller: true.
-	acg := av1.NewArmadaChartGroupVersionKind("", "")
-	err = c.Watch(&source.Kind{Type: acg},
-		&crthandler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &av1.ArmadaManifest{},
-		},
-		dependentPredicate)
-	if err != nil {
-		return err
-	}
-
-	// JEB: Will see later if we need to put the ownership between the backup/restore and the Manifest
-	// err = c.Watch(&source.Kind{Type: &av1.ArmadaBackup{}}, &crthandler.EnqueueRequestForOwner{OwnerType: owner},
-	// 	dependentPredicate)
-	// err = c.Watch(&source.Kind{Type: &av1.ArmadaRestore{}}, &crthandler.EnqueueRequestForOwner{OwnerType: owner},
-	// 	dependentPredicate)
-
-	return nil
+	return &dependentPredicate
 }
-
-var _ reconcile.Reconciler = &ManifestReconciler{}
-
-// ManifestReconciler reconciles a ArmadaManifest object
-type ManifestReconciler struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	client          client.Client
-	scheme          *runtime.Scheme
-	recorder        record.EventRecorder
-	managerFactory  armadaif.ArmadaManagerFactory
-	reconcilePeriod time.Duration
-}
-
-const (
-	finalizerArmadaManifest = "uninstall-amf"
-)
 
 // Reconcile reads that state of the cluster for a ArmadaManifest object and
 // makes changes based on the state read and what is in the ArmadaManifest.Spec

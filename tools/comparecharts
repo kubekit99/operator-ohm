@@ -1,0 +1,9 @@
+#!/bin/bash
+echo "=========================================== " mariadb " ========================================="
+diff -r $HOME/proj/nc_openstack/openstack-helm-infra/mariadb/ mariadb-operator/helm-charts/mariadb
+echo "=========================================== " rabbitmq " ========================================="
+diff -r $HOME/proj/nc_openstack/openstack-helm-infra/rabbitmq/ rabbitmq-operator/helm-charts/rabbitmq
+echo "=========================================== " memcached " ========================================="
+diff -r $HOME/proj/nc_openstack/openstack-helm-infra/memcached/ memcached-operator/helm-charts/memcached
+echo "=========================================== " keystone " ========================================="
+diff -r $HOME/proj/nc_openstack/openstack-helm/keystone/ keystone-operator/helm-charts/official

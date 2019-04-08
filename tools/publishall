@@ -1,0 +1,9 @@
+#!/bin/bash
+#
+for i in armada-operator mariadb-operator memcached-operator rabbitmq-operator openstacklcm-operator keystone-operator
+do
+cd $i
+echo "=================" " Publishing: " $i "==================="
+make docker-push
+cd $GOODPATH
+done

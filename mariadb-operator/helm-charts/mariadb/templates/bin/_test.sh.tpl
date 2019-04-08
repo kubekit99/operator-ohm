@@ -1,3 +1,4 @@
+#!/bin/bash
 {{/*
 Copyright 2017 The Openstack-Helm Authors.
 
@@ -14,4 +15,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{ .Values.conf.database.config_override }}
+set -ex
+
+rm -f /tmp/test-success
+
+mysqlslap \
+  --defaults-file=/etc/mysql/test-params.cnf \
+  {{ include "helm-toolkit.utils.joinListWithSpace" $.Values.conf.tests.params }} -vv \
+  --post-system="touch /tmp/test-success"
+
+if ! [ -f /tmp/test-success ]; then
+  exit 1
+fi

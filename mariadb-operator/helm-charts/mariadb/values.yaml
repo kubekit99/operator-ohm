@@ -30,6 +30,7 @@ images:
     dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
     image_repo_sync: docker.io/docker:17.07.0
     mariadb_backup: docker.io/openstackhelm/mariadb:10.2.18
+    scripted_test: docker.io/openstackhelm/mariadb:10.2.18
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -53,11 +54,56 @@ labels:
   job:
     node_selector_key: openstack-control-plane
     node_selector_value: enabled
+  test:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
 
 pod:
-  user:
-    mysql_exporter:
-      uid: 99
+  security_context:
+    server:
+      pod:
+        runAsUser: 999
+      container:
+        perms:
+          runAsUser: 0
+          readOnlyRootFilesystem: true
+        mariadb:
+          runAsUser: 999
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+    ingress:
+      pod:
+        runAsUser: 65534
+      container:
+        server:
+          runAsUser: 0
+    error_pages:
+      pod:
+        runAsUser: 1000
+      container:
+        server:
+          runAsUser: 0
+          readOnlyRootFilesystem: true
+    prometheus_mysql_exporter:
+      pod:
+        runAsUser: 99
+      container:
+        exporter:
+          runAsUser: 99
+          allowPrivilegeEscalation: false
+    prometheus_create_mysql_user:
+      pod:
+        runAsUser: 0
+      container:
+        main:
+          allowPrivilegeEscalation: false
+    tests:
+      pod:
+        runAsUser: 999
+      container:
+        test:
+          runAsUser: 999
+          readOnlyRootFilesystem: true
   affinity:
     anti:
       type:
@@ -175,8 +221,10 @@ dependencies:
       services:
         - endpoint: internal
           service: oslo_db
-
-force_bootstrap: false
+    tests:
+      services:
+        - endpoint: internal
+          service: oslo_db
 
 volume:
   chown_on_start: true
@@ -184,7 +232,7 @@ volume:
   class_name: general
   size: 5Gi
   backup:
-    enabled: true
+    enabled: false
     class_name: general
     size: 5Gi
 
@@ -199,6 +247,20 @@ jobs:
       failed: 1
 
 conf:
+  tests:
+    # This may either be:
+    # * internal: which will hit the endpoint exposed by the ingress controller
+    # * direct: which will hit the backends directly via a k8s service ip
+    # Note, deadlocks and failure are to be expected with concurrency if
+    # hitting the `direct` endpoint.
+    endpoint: internal
+    # This is a list of tuning params passed to mysqlslap:
+    params:
+      - --auto-generate-sql
+      - --concurrency=100
+      - --number-of-queries=1000
+      - --number-char-cols=1
+      - --number-int-cols=1
   ingress: null
   backup:
     enabled: true
@@ -207,23 +269,18 @@ conf:
       --single-transaction --quick --skip-opt
       --add-drop-database --add-drop-table --databases
     days_of_backup_to_keep: 3
-
-database:
-  config_override: null
-  # Any configuration here will override the base config.
-  # config_override: |-
-  #   [mysqld]
-  #   wsrep_slave_threads=1
+  database:
+    config_override: null
+    # Any configuration here will override the base config.
+    # config_override: |-
+    #   [mysqld]
+    #   wsrep_slave_threads=1
 
 monitoring:
   prometheus:
     enabled: false
     mysqld_exporter:
       scrape: true
-
-network:
-  prometheus_mysql_exporter:
-    port: 9104
 
 # typically overridden by environmental
 # values, but should include all endpoints
@@ -337,6 +394,7 @@ manifests:
       service_exporter: false
   pdb_server: true
   network_policy: false
+  pod_test: true
   secret_dbadmin_password: true
   secret_sst_password: true
   secret_etc: true

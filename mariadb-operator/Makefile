@@ -13,6 +13,12 @@ ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
 
+clean:
+	rm -fr vendor
+	rm -fr cover.out
+	rm -fr build/_output
+	rm -fr config/crds
+
 # Build the docker image
 docker-build: setup
 	docker build -t ${IMG} -f build/Dockerfile .

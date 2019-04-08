@@ -80,6 +80,43 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// Watch for changes to secondary resource (described in the helm chart) and requeue the owner ArmadaChart
+	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
+	// that created the object that was the source of the Event
+	if racr, isChartReconciler := r.(*ChartReconciler); isChartReconciler {
+		// The enqueueRequestForOwner is not actually done here since we don't know yet the
+		// content of the release. The tools wait for the helm chart to be parse. The chart_manager
+		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
+		owner := av1.NewArmadaChartVersionKind("", "")
+		dependentPredicate := racr.buildDependentPredicate()
+		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c, *dependentPredicate)
+	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
+		// Unit test issue
+		log.Info("UnitTests", "ReconfileFunc", rrf)
+	}
+
+	return nil
+}
+
+var _ reconcile.Reconciler = &ChartReconciler{}
+
+// ChartReconciler reconciles custom resources as Helm releases.
+type ChartReconciler struct {
+	client                  client.Client
+	scheme                  *runtime.Scheme
+	recorder                record.EventRecorder
+	managerFactory          services.HelmManagerFactory
+	reconcilePeriod         time.Duration
+	depResourceWatchUpdater services.DependentResourceWatchUpdater
+}
+
+const (
+	finalizerArmadaChart = "uninstall-helm-release"
+)
+
+// buildDependentPredicate create the predicates used by subresources watches
+func (r *ChartReconciler) buildDependentPredicate() *crtpredicate.Funcs {
+
 	dependentPredicate := crtpredicate.Funcs{
 		// We don't need to reconcile dependent resource creation events
 		// because dependent resources are only ever created during
@@ -125,38 +162,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 	}
 
-	// Watch for changes to secondary resource (described in the helm chart) and requeue the owner ArmadaChart
-	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
-	// that created the object that was the source of the Event
-	if racr, isChartReconciler := r.(*ChartReconciler); isChartReconciler {
-		// The enqueueRequestForOwner is not actually done here since we don't know yet the
-		// content of the release. The tools wait for the helm chart to be parse. The chart_manager
-		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
-		owner := av1.NewArmadaChartVersionKind("", "")
-		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c, dependentPredicate)
-	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
-		// Unit test issue
-		log.Info("UnitTests", "ReconfileFunc", rrf)
-	}
-
-	return nil
+	return &dependentPredicate
 }
-
-var _ reconcile.Reconciler = &ChartReconciler{}
-
-// ChartReconciler reconciles custom resources as Helm releases.
-type ChartReconciler struct {
-	client                  client.Client
-	scheme                  *runtime.Scheme
-	recorder                record.EventRecorder
-	managerFactory          services.HelmManagerFactory
-	reconcilePeriod         time.Duration
-	depResourceWatchUpdater services.DependentResourceWatchUpdater
-}
-
-const (
-	finalizerArmadaChart = "uninstall-helm-release"
-)
 
 // Reconcile reads that state of the cluster for an ArmadaChart object and
 // makes changes based on the state read and what is in the ArmadaChart.Spec
