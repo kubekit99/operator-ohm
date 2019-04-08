@@ -86,8 +86,8 @@ type OslcStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=oslcs,shortName=oslc
-// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.actual_state",description="State"
-// +kubebuilder:printcolumn:name="Target State",type="string",JSONPath=".spec.target_state",description="Target State"
+// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.actualState",description="State"
+// +kubebuilder:printcolumn:name="Target State",type="string",JSONPath=".spec.targetState",description="Target State"
 // +kubebuilder:printcolumn:name="Satisfied",type="boolean",JSONPath=".status.satisfied",description="Satisfied"
 type Oslc struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -259,6 +259,47 @@ func (obj *LifecycleFlow) GetDependentResources() []unstructured.Unstructured {
 		res = append(res, item)
 	}
 	return res
+}
+
+// JEB: Not sure yet if we really will need it
+func (obj *LifecycleFlow) Equivalent(other *LifecycleFlow) bool {
+	if other == nil {
+		return false
+	}
+
+	// Add the Worflow itself
+	var equal bool
+	if other.Main == nil && obj.Main == nil {
+		equal = true
+	} else if other.Main != nil && obj.Main != nil {
+		equal = reflect.DeepEqual(obj.Main, other.Main)
+	} else {
+		equal = false
+	}
+
+	if equal {
+		return reflect.DeepEqual(obj.Phases, other.Phases)
+	} else {
+		return false
+	}
+}
+
+// Let's check the reference are setup properly.
+func (obj *LifecycleFlow) CheckOwnerReference(refs []metav1.OwnerReference) bool {
+
+	// Check main Worflow is owned by the cycle
+	if obj.Main != nil && !reflect.DeepEqual(obj.Main.GetOwnerReferences(), refs) {
+		return false
+	}
+
+	// Checki that each phase is owned by the cycle
+	for _, item := range obj.Phases {
+		if !reflect.DeepEqual(item.GetOwnerReferences(), refs) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Returns a new LifecycleFlow

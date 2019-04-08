@@ -77,6 +77,7 @@ func (f managerFactory) NewOslcManager(r *av1.Oslc) lcmif.OslcManager {
 			serviceName:    serviceName,
 			sourceType:     sourceType,
 			sourceLocation: sourceLocation,
+			oslcRefs:       ownerRefs,
 			oslcName:       r.GetName(),
 			oslcNamespace:  r.GetNamespace()},
 

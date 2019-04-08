@@ -19,6 +19,8 @@ import (
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +31,7 @@ import (
 type basemanager struct {
 	kubeClient     client.Client
 	renderer       *OwnerRefRenderer
+	oslcRefs       []metav1.OwnerReference
 	oslcName       string
 	oslcNamespace  string
 	sourceType     string
@@ -105,10 +108,9 @@ func (m basemanager) sync(ctx context.Context) (*av1.LifecycleFlow, *av1.Lifecyc
 		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.GetName(), Namespace: existingResource.GetNamespace()}, &existingResource)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
-				// Don't want to trace is the error is not a NotFound.
 				log.Error(err, "Can't not retrieve main workflow")
+				errs = append(errs, err)
 			}
-			errs = append(errs, err)
 		} else {
 			deployed.Main = &existingResource
 		}
@@ -124,56 +126,72 @@ func (m basemanager) sync(ctx context.Context) (*av1.LifecycleFlow, *av1.Lifecyc
 		err := m.kubeClient.Get(context.TODO(), types.NamespacedName{Name: existingResource.GetName(), Namespace: existingResource.GetNamespace()}, &existingResource)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
-				// Don't want to trace is the error is not a NotFound.
 				log.Error(err, "Can't not retrieve phase")
+				errs = append(errs, err)
 			}
-			errs = append(errs, err)
 		} else {
 			deployed.Phases[phaseName] = existingResource
 		}
 	}
 
+	if !deployed.CheckOwnerReference(m.oslcRefs) {
+		return rendered, nil, lcmif.OwnershipMismatch
+	}
+
+	// TODO(jeb): not sure this is right
+	// if len(errs) != 0 {
+	//	return rendered, deployed, errs[0]
+	// }
 	return rendered, deployed, nil
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m basemanager) installResource(ctx context.Context) (*av1.LifecycleFlow, error) {
 
+	errs := make([]error, 0)
+	justCreated := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
+
 	rendered, err := m.render(ctx)
 	if err != nil {
 		return m.deployedLifecycleFlow, err
 	}
 
-	errs := make([]error, 0)
-
 	for phaseName, toCreate := range rendered.Phases {
 		err := m.kubeClient.Create(context.TODO(), &toCreate)
 		if err != nil {
-			log.Error(err, "Can't not create phase")
-			errs = append(errs, err)
+			if !apierrors.IsAlreadyExists(err) {
+				log.Error(err, "Can't not create Phase")
+				errs = append(errs, err)
+			} else {
+				// Should consider as just created by us
+				justCreated.Phases[phaseName] = toCreate
+			}
 		} else {
-			m.deployedLifecycleFlow.Phases[phaseName] = toCreate
+			justCreated.Phases[phaseName] = toCreate
 		}
 	}
 
 	if rendered.Main != nil {
 		err := m.kubeClient.Create(context.TODO(), rendered.Main)
 		if err != nil {
-			log.Error(err, "Can't not create main flow")
-			errs = append(errs, err)
+			if !apierrors.IsAlreadyExists(err) {
+				log.Error(err, "Could not create Main Workflow")
+				errs = append(errs, err)
+			} else {
+				// Should consider as just created by us
+				justCreated.Main = rendered.Main
+			}
+		} else {
+			justCreated.Main = rendered.Main
 		}
-
-		m.deployedLifecycleFlow.Main = rendered.Main
+	} else {
+		log.Info("No Main Workflow")
 	}
 
 	if len(errs) != 0 {
-		if apierrors.IsNotFound(errs[0]) {
-			return m.deployedLifecycleFlow, lcmif.ErrNotFound
-		} else {
-			return m.deployedLifecycleFlow, errs[0]
-		}
+		return justCreated, errs[0]
 	}
-	return m.deployedLifecycleFlow, nil
+	return justCreated, nil
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
@@ -189,29 +207,32 @@ func (m basemanager) reconcileResource(ctx context.Context) (*av1.LifecycleFlow,
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m basemanager) uninstallResource(ctx context.Context) (*av1.LifecycleFlow, error) {
 	errs := make([]error, 0)
+	stillDeployed := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
 
 	if m.deployedLifecycleFlow.Main != nil {
 		err := m.kubeClient.Delete(context.TODO(), m.deployedLifecycleFlow.Main)
 		if err != nil {
-			log.Error(err, "Can't not delete main flow")
-			errs = append(errs, err)
+			if !apierrors.IsNotFound(err) {
+				log.Error(err, "Can't not delete main flow")
+				errs = append(errs, err)
+				stillDeployed.Main = m.deployedLifecycleFlow.Main
+			}
 		}
 	}
 
-	for _, toDelete := range m.deployedLifecycleFlow.Phases {
+	for phaseName, toDelete := range m.deployedLifecycleFlow.Phases {
 		err := m.kubeClient.Delete(context.TODO(), &toDelete)
 		if err != nil {
-			log.Error(err, "Can't not delete phase")
-			errs = append(errs, err)
+			if !apierrors.IsNotFound(err) {
+				log.Error(err, "Can't not delete phase")
+				errs = append(errs, err)
+				stillDeployed.Phases[phaseName] = toDelete
+			}
 		}
 	}
 
 	if len(errs) != 0 {
-		if apierrors.IsNotFound(errs[0]) {
-			return nil, lcmif.ErrNotFound
-		} else {
-			return nil, errs[0]
-		}
+		return stillDeployed, errs[0]
 	}
-	return m.deployedLifecycleFlow, nil
+	return stillDeployed, nil
 }

@@ -128,3 +128,16 @@ getcrds:
 	kubectl get operationalphases.openstacklcm.airshipit.org
 
 	kubectl get workflows.argoproj.io
+
+getcrddetails:
+	kubectl get -o yaml oslcs.openstacklcm.airshipit.org
+
+	kubectl get -o yaml installphases.openstacklcm.airshipit.org
+	kubectl get -o yaml rollbackphases.openstacklcm.airshipit.org
+	kubectl get -o yaml testphases.openstacklcm.airshipit.org
+	kubectl get -o yaml trafficdrainphases.openstacklcm.airshipit.org
+	kubectl get -o yaml trafficrolloutphases.openstacklcm.airshipit.org
+	kubectl get -o yaml upgradephases.openstacklcm.airshipit.org
+	kubectl get -o yaml deletephases.openstacklcm.airshipit.org
+	kubectl get -o yaml planningphases.openstacklcm.airshipit.org
+	kubectl get -o yaml operationalphases.openstacklcm.airshipit.org

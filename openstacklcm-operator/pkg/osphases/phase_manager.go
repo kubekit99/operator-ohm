@@ -19,10 +19,12 @@ import (
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
-	"k8s.io/apimachinery/pkg/types"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -30,6 +32,7 @@ type phasemanager struct {
 	kubeClient     client.Client
 	renderer       *OwnerRefRenderer
 	serviceName    string
+	phaseRefs      []metav1.OwnerReference
 	phaseName      string
 	phaseNamespace string
 	source         *av1.PhaseSource
@@ -84,45 +87,56 @@ func (m phasemanager) sync(ctx context.Context) (*av1.SubResourceList, *av1.SubR
 			if !apierrors.IsNotFound(err) {
 				// Don't want to trace is the error is not a NotFound.
 				log.Error(err, "Can't not retrieve Resource")
+				errs = append(errs, err)
 			}
-			errs = append(errs, err)
 		} else {
 			deployed.Items = append(deployed.Items, existingResource)
 		}
 	}
 
+	if !deployed.CheckOwnerReference(m.phaseRefs) {
+		return rendered, nil, lcmif.OwnershipMismatch
+	}
+
+	// TODO(jeb): not sure this is right
+	// if len(errs) != 0 {
+	//	return rendered, deployed, errs[0]
+	// }
 	return rendered, deployed, nil
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m phasemanager) installResource(ctx context.Context) (*av1.SubResourceList, error) {
 
+	errs := make([]error, 0)
+	justCreated := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
+
 	rendered, err := m.render(ctx)
 	if err != nil {
-		return m.deployedSubResourceList, err
+		return justCreated, err
 	}
 
-	errs := make([]error, 0)
 	rendered.Items = lcmif.SortByInstallOrder(rendered.Items)
 	for _, toCreate := range rendered.Items {
 		err := m.kubeClient.Create(context.TODO(), &toCreate)
 		if err != nil {
-			log.Error(err, "Can't not Create Resource", "kind", toCreate.GetKind(), "name", toCreate.GetName())
-			errs = append(errs, err)
+			if !apierrors.IsAlreadyExists(err) {
+				log.Error(err, "Can't not Create Resource", "kind", toCreate.GetKind(), "name", toCreate.GetName())
+				errs = append(errs, err)
+			} else {
+				// Should consider as just created by us ?
+				// justCreated.Items = append(justCreated.Items, toCreate)
+			}
 		} else {
 			log.Info("Created Resource", "kind", toCreate.GetKind(), "name", toCreate.GetName())
-			m.deployedSubResourceList.Items = append(m.deployedSubResourceList.Items, toCreate)
+			justCreated.Items = append(justCreated.Items, toCreate)
 		}
 	}
 
 	if len(errs) != 0 {
-		if apierrors.IsNotFound(errs[0]) {
-			return m.deployedSubResourceList, lcmif.ErrNotFound
-		} else {
-			return m.deployedSubResourceList, errs[0]
-		}
+		return justCreated, errs[0]
 	}
-	return m.deployedSubResourceList, nil
+	return justCreated, nil
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
@@ -138,22 +152,22 @@ func (m phasemanager) reconcileResource(ctx context.Context) (*av1.SubResourceLi
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m phasemanager) uninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
 	errs := make([]error, 0)
+	stillDeployed := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
 
 	m.deployedSubResourceList.Items = lcmif.SortByUninstallOrder(m.deployedSubResourceList.Items)
 	for _, toDelete := range m.deployedSubResourceList.Items {
 		err := m.kubeClient.Delete(context.TODO(), &toDelete)
 		if err != nil {
-			log.Error(err, "Can't not Delete Resource")
-			errs = append(errs, err)
+			if !apierrors.IsNotFound(err) {
+				log.Error(err, "Can't not delete Resource")
+				errs = append(errs, err)
+				stillDeployed.Items = append(stillDeployed.Items, toDelete)
+			}
 		}
 	}
 
 	if len(errs) != 0 {
-		if apierrors.IsNotFound(errs[0]) {
-			return nil, lcmif.ErrNotFound
-		} else {
-			return nil, errs[0]
-		}
+		return stillDeployed, errs[0]
 	}
-	return m.deployedSubResourceList, nil
+	return stillDeployed, nil
 }

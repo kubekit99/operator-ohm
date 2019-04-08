@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+GOODPATH=`pwd`
 for i in armada-operator mariadb-operator memcached-operator rabbitmq-operator openstacklcm-operator keystone-operator
 do
 cd $i

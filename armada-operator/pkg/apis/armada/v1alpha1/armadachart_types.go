@@ -206,6 +206,19 @@ func (obj *ArmadaChartList) Equivalent(other *ArmadaChartList) bool {
 	return reflect.DeepEqual(obj.Items, other.Items)
 }
 
+// Let's check the reference are setup properly.
+func (obj *ArmadaChartList) CheckOwnerReference(refs []metav1.OwnerReference) bool {
+
+	// Check that each sub resource is owned by the phase
+	for _, item := range obj.Items {
+		if !reflect.DeepEqual(item.GetOwnerReferences(), refs) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Returns a GKV for ArmadaChartList
 func NewArmadaChartListVersionKind(namespace string, name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}

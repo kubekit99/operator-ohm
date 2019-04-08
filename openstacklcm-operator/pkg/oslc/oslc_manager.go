@@ -38,7 +38,7 @@ func (m *oslcmanager) Sync(ctx context.Context) error {
 	}
 
 	m.deployedLifecycleFlow = deployed
-	if len(rendered.Phases) != len(deployed.Phases) {
+	if len(rendered.GetDependentResources()) != len(deployed.GetDependentResources()) {
 		m.isInstalled = false
 		m.isUpdateRequired = false
 	} else {

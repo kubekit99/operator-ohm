@@ -20,5 +20,9 @@ import (
 
 var (
 	// ErrNotFound indicates the release was not found.
-	ErrNotFound = errors.New("release not found")
+	ErrNotFound = errors.New("Resource not found")
+
+	// OwnershipMismatch indicates that one of the subresources does
+	// not have the right ownership.
+	OwnershipMismatch = errors.New("Ownership Mismatch")
 )

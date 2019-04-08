@@ -65,6 +65,7 @@ func (f managerFactory) NewPlanningPhaseManager(r *av1.PlanningPhase) lcmif.Plan
 			renderer:       NewOwnerRefRenderer(ownerRefs, "osplan", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
+			phaseRefs:      ownerRefs,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
 
@@ -89,6 +90,7 @@ func (f managerFactory) NewInstallPhaseManager(r *av1.InstallPhase) lcmif.Instal
 			renderer:       NewOwnerRefRenderer(ownerRefs, "osins", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
+			phaseRefs:      ownerRefs,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
 
@@ -113,6 +115,7 @@ func (f managerFactory) NewTestPhaseManager(r *av1.TestPhase) lcmif.TestPhaseMan
 			renderer:       NewOwnerRefRenderer(ownerRefs, "ostest", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
+			phaseRefs:      ownerRefs,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
 
@@ -137,6 +140,7 @@ func (f managerFactory) NewTrafficRolloutPhaseManager(r *av1.TrafficRolloutPhase
 			renderer:       NewOwnerRefRenderer(ownerRefs, "osroll", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
+			phaseRefs:      ownerRefs,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
 
@@ -161,6 +165,7 @@ func (f managerFactory) NewOperationalPhaseManager(r *av1.OperationalPhase) lcmi
 			renderer:       NewOwnerRefRenderer(ownerRefs, "osops", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
+			phaseRefs:      ownerRefs,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
 
@@ -185,6 +190,7 @@ func (f managerFactory) NewTrafficDrainPhaseManager(r *av1.TrafficDrainPhase) lc
 			renderer:       NewOwnerRefRenderer(ownerRefs, "osdrain", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
+			phaseRefs:      ownerRefs,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
 
@@ -209,6 +215,7 @@ func (f managerFactory) NewUpgradePhaseManager(r *av1.UpgradePhase) lcmif.Upgrad
 			renderer:       NewOwnerRefRenderer(ownerRefs, "osupg", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
+			phaseRefs:      ownerRefs,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
 
@@ -233,6 +240,7 @@ func (f managerFactory) NewRollbackPhaseManager(r *av1.RollbackPhase) lcmif.Roll
 			renderer:       NewOwnerRefRenderer(ownerRefs, "osrbck", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
+			phaseRefs:      ownerRefs,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
 
@@ -257,6 +265,7 @@ func (f managerFactory) NewDeletePhaseManager(r *av1.DeletePhase) lcmif.DeletePh
 			renderer:       NewOwnerRefRenderer(ownerRefs, "osdlt", renderFiles, renderValues),
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
+			phaseRefs:      ownerRefs,
 			phaseName:      r.GetName(),
 			phaseNamespace: r.GetNamespace()},
 

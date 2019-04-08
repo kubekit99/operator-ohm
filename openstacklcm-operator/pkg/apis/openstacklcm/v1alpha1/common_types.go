@@ -15,7 +15,8 @@
 package v1alpha1
 
 import (
-	// "encoding/json"
+	"reflect"
+
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -431,6 +432,27 @@ func (obj *SubResourceList) GetVersion() int32 {
 // Returns the DependentResource for this SubResourceList
 func (obj *SubResourceList) GetDependentResources() []unstructured.Unstructured {
 	return obj.Items
+}
+
+// JEB: Not sure yet if we really will need it
+func (obj *SubResourceList) Equivalent(other *SubResourceList) bool {
+	if other == nil {
+		return false
+	}
+	return reflect.DeepEqual(obj.Items, other.Items)
+}
+
+// Let's check the reference are setup properly.
+func (obj *SubResourceList) CheckOwnerReference(refs []metav1.OwnerReference) bool {
+
+	// Check that each sub resource is owned by the phase
+	for _, item := range obj.Items {
+		if !reflect.DeepEqual(item.GetOwnerReferences(), refs) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Returns a new SubResourceList
