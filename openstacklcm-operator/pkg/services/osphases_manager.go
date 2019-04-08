@@ -24,7 +24,7 @@ type PlanningPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
-	Sync(context.Context) error
+	SyncResource(context.Context) error
 	InstallResource(context.Context) (*av1.SubResourceList, error)
 	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
 	ReconcileResource(context.Context) (*av1.SubResourceList, error)
@@ -36,7 +36,7 @@ type InstallPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
-	Sync(context.Context) error
+	SyncResource(context.Context) error
 	InstallResource(context.Context) (*av1.SubResourceList, error)
 	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
 	ReconcileResource(context.Context) (*av1.SubResourceList, error)
@@ -48,7 +48,7 @@ type TestPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
-	Sync(context.Context) error
+	SyncResource(context.Context) error
 	InstallResource(context.Context) (*av1.SubResourceList, error)
 	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
 	ReconcileResource(context.Context) (*av1.SubResourceList, error)
@@ -60,7 +60,7 @@ type TrafficRolloutPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
-	Sync(context.Context) error
+	SyncResource(context.Context) error
 	InstallResource(context.Context) (*av1.SubResourceList, error)
 	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
 	ReconcileResource(context.Context) (*av1.SubResourceList, error)
@@ -72,7 +72,7 @@ type OperationalPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
-	Sync(context.Context) error
+	SyncResource(context.Context) error
 	InstallResource(context.Context) (*av1.SubResourceList, error)
 	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
 	ReconcileResource(context.Context) (*av1.SubResourceList, error)
@@ -84,7 +84,7 @@ type TrafficDrainPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
-	Sync(context.Context) error
+	SyncResource(context.Context) error
 	InstallResource(context.Context) (*av1.SubResourceList, error)
 	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
 	ReconcileResource(context.Context) (*av1.SubResourceList, error)
@@ -96,7 +96,7 @@ type UpgradePhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
-	Sync(context.Context) error
+	SyncResource(context.Context) error
 	InstallResource(context.Context) (*av1.SubResourceList, error)
 	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
 	ReconcileResource(context.Context) (*av1.SubResourceList, error)
@@ -108,7 +108,7 @@ type RollbackPhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
-	Sync(context.Context) error
+	SyncResource(context.Context) error
 	InstallResource(context.Context) (*av1.SubResourceList, error)
 	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
 	ReconcileResource(context.Context) (*av1.SubResourceList, error)
@@ -120,7 +120,7 @@ type DeletePhaseManager interface {
 	ResourceName() string
 	IsInstalled() bool
 	IsUpdateRequired() bool
-	Sync(context.Context) error
+	SyncResource(context.Context) error
 	InstallResource(context.Context) (*av1.SubResourceList, error)
 	UpdateResource(context.Context) (*av1.SubResourceList, *av1.SubResourceList, error)
 	ReconcileResource(context.Context) (*av1.SubResourceList, error)

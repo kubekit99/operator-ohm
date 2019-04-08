@@ -232,7 +232,7 @@ func (r DeletePhaseReconciler) updateResourceStatus(instance *av1.DeletePhase) e
 
 // ensureSynced checks that the DeletePhaseManager is in sync with the cluster
 func (r DeletePhaseReconciler) ensureSynced(mgr services.DeletePhaseManager, instance *av1.DeletePhase) error {
-	if err := mgr.Sync(context.TODO()); err != nil {
+	if err := mgr.SyncResource(context.TODO()); err != nil {
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
 			Status:  av1.ConditionStatusTrue,

@@ -232,7 +232,7 @@ func (r UpgradePhaseReconciler) updateResourceStatus(instance *av1.UpgradePhase)
 
 // ensureSynced checks that the UpgradePhaseManager is in sync with the cluster
 func (r UpgradePhaseReconciler) ensureSynced(mgr services.UpgradePhaseManager, instance *av1.UpgradePhase) error {
-	if err := mgr.Sync(context.TODO()); err != nil {
+	if err := mgr.SyncResource(context.TODO()); err != nil {
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
 			Status:  av1.ConditionStatusTrue,

@@ -232,7 +232,7 @@ func (r OperationalPhaseReconciler) updateResourceStatus(instance *av1.Operation
 
 // ensureSynced checks that the OperationalPhaseManager is in sync with the cluster
 func (r OperationalPhaseReconciler) ensureSynced(mgr services.OperationalPhaseManager, instance *av1.OperationalPhase) error {
-	if err := mgr.Sync(context.TODO()); err != nil {
+	if err := mgr.SyncResource(context.TODO()); err != nil {
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
 			Status:  av1.ConditionStatusTrue,

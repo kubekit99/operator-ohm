@@ -18,24 +18,12 @@ import (
 	"reflect"
 
 	yaml "gopkg.in/yaml.v2"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
-
-// Administractive state of the reconcilation of a CRD by the corresponding controller
-type OpenstackLcmAdminState string
-
-// Describe the Administrative State of the Chart
-const (
-	// StateUnknown indicates that a release/chart/chartgroup/manifest automatic reconcilation by the controller is enabled
-	StateEnabled OpenstackLcmAdminState = "enabled"
-	// StateUnknown indicates that a release/chart/chartgroup/manifest automatic reconcilation by the controller is disabled
-	StateDisabled OpenstackLcmAdminState = "disabled"
-)
-
-// String converts a OpenstackLcmAdminState to a printable string
-func (x OpenstackLcmAdminState) String() string { return string(x) }
 
 // LcmResourceState is the status of a release/chart/chartgroup/manifest
 type LcmResourceState string
@@ -61,36 +49,26 @@ func (x LcmResourceConditionReason) String() string { return string(x) }
 
 // Describe the status of a release
 const (
-	// StateUninitialied indicates that a release/chart/chartgroup/manifest exists, but has not been acted upon
+	// StateUninitialied indicates that sub resource exists, but has not been acted upon
 	StateUninitialized LcmResourceState = "uninitialized"
-	// StateUnknown indicates that a release/chart/chartgroup/manifest is in an uncertain state.
+	// StateUnknown indicates that resource is in an uncertain state.
 	StateUnknown LcmResourceState = "unknown"
-	// StateInitialized indicates that a release/chart/chartgroup/manifest is in an Kubernetes
+	// StateInitialized indicates that resource is in an Kubernetes
 	StateInitialized LcmResourceState = "initialized"
-	// StateDeployed indicates that the release/chart/chartgroup/manifest has been downloaded from artifact repository
-	StateDownloaded LcmResourceState = "downloaded"
-	// StateDeployed indicates that the release/chart/chartgroup/manifest has been pushed to Kubernetes.
+	// StateDeployed indicates that resource has been pushed to Kubernetes.
 	StateDeployed LcmResourceState = "deployed"
-	// StateUninstalled indicates that a release/chart/chartgroup/manifest has been uninstalled from Kubermetes.
+	// StateUninstalled indicates the resource has been uninstalled from Kubermetes.
 	StateUninstalled LcmResourceState = "uninstalled"
-	// StateSuperseded indicates that this release/chart/chartgroup/manifest object is outdated and a newer one exists.
-	StateSuperseded LcmResourceState = "superseded"
-	// StateFailed indicates that the release/chart/chartgroup/manifest was not successfully deployed.
+	// StateFailed indicates that resource was not successfully deployed.
 	StateFailed LcmResourceState = "failed"
-	// StateUninstalling indicates that a uninstall operation is underway.
-	StateUninstalling LcmResourceState = "uninstalling"
-	// StatePendingInstall indicates that an install operation is underway.
-	StatePendingInstall LcmResourceState = "pending-install"
-	// StatePendingUpgrade indicates that an upgrade operation is underway.
-	StatePendingUpgrade LcmResourceState = "pending-upgrade"
-	// StatePendingRollback indicates that an rollback operation is underway.
-	StatePendingRollback LcmResourceState = "pending-rollback"
-	// StatePendingBackup indicates that an data backup operation is underway.
-	StatePendingBackup LcmResourceState = "pending-backup"
-	// StatePendingRestore indicates that an data restore operation is underway.
-	StatePendingRestore LcmResourceState = "pending-restore"
-	// StatePendingInitialization indicates that an data initialization operation is underway.
-	StatePendingInitialization LcmResourceState = "pending-initialization"
+	// StatePending indicates that resource was xxx
+	StatePending LcmResourceState = "pending"
+	// StateRunning indicates that resource was xxx
+	StateRunning LcmResourceState = "running"
+	// StateSkipped indicates that resource was xxx
+	StateSkipped LcmResourceState = "skipped"
+	// StateError indicates that resource was xxx
+	StateError LcmResourceState = "error"
 )
 
 // These represent acceptable values for a LcmResourceConditionStatus
@@ -105,40 +83,22 @@ const (
 	ConditionIrreconcilable LcmResourceConditionType = "Irreconcilable"
 	ConditionFailed                                  = "Failed"
 	ConditionInitialized                             = "Initializing"
-	ConditionEnabled                                 = "Enabled"
-	ConditionDownloaded                              = "Downloaded"
 	ConditionDeployed                                = "Deployed"
-
-	// JEB: Not sure we will ever be able to use those conditions
-	ConditionBackedUp   LcmResourceConditionType = "BackedUp"
-	ConditionRestored                            = "Restored"
-	ConditionUpgraded                            = "Upgraded"
-	ConditionRolledBack                          = "RolledBack"
 )
 
 // The following represent the more fine-grained reasons for a given condition
 const (
 	// Successful Conditions Reasons
 	ReasonInstallSuccessful   LcmResourceConditionReason = "InstallSuccessful"
-	ReasonDownloadSuccessful                             = "DownloadSuccessful"
 	ReasonReconcileSuccessful                            = "ReconcileSuccessful"
 	ReasonUninstallSuccessful                            = "UninstallSuccessful"
 	ReasonUpdateSuccessful                               = "UpdateSuccessful"
-	ReasonBackupSuccessful                               = "BackupSuccessful"
-	ReasonRestoreSuccessful                              = "RestoreSuccessful"
-	ReasonUpgradeSuccessful                              = "UpgradeSuccessful"
-	ReasonRollbackSuccessful                             = "RollbackSuccessful"
 
 	// Error Condition Reasons
 	ReasonInstallError   LcmResourceConditionReason = "InstallError"
-	ReasonDownloadError                             = "DownloadError"
 	ReasonReconcileError                            = "ReconcileError"
 	ReasonUninstallError                            = "UninstallError"
 	ReasonUpdateError                               = "UpdateError"
-	ReasonBackupError                               = "BackupError"
-	ReasonRestoreError                              = "RestoreError"
-	ReasonUpgradeError                              = "UpgradeError"
-	ReasonRollbackError                             = "RollbackError"
 )
 
 // LcmResourceCondition represents one current condition of an Lcm resource
@@ -301,14 +261,8 @@ func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, targe
 			s.ActualState = StateDeployed
 			s.Succeeded = (s.ActualState == target)
 			s.Reason = ""
-		} else if cond.Type == ConditionEnabled {
-			if (s.ActualState == "") || (s.ActualState == StateUnknown) {
-				s.ActualState = StatePendingInitialization
-				s.Succeeded = (s.ActualState == target)
-				s.Reason = ""
-			}
 		} else if cond.Type == ConditionIrreconcilable {
-			s.ActualState = StateFailed
+			s.ActualState = StateError
 			s.Succeeded = false
 			s.Reason = cond.Reason.String()
 		} else if cond.Type == ConditionFailed {
@@ -324,10 +278,6 @@ func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, targe
 			s.ActualState = StateUninstalled
 			s.Succeeded = (s.ActualState == target)
 			s.Reason = ""
-		} else if cond.Type == ConditionEnabled {
-			s.ActualState = StateUnknown
-			s.Succeeded = true
-			s.Reason = "Disabled Resource is always successful"
 		} else {
 			s.Succeeded = (s.ActualState == target)
 			s.Reason = ""
@@ -453,6 +403,69 @@ func (obj *SubResourceList) CheckOwnerReference(refs []metav1.OwnerReference) bo
 	}
 
 	return true
+}
+
+// Check the state of a service
+func (obj *SubResourceList) IsServiceReady(u unstructured.Unstructured) bool {
+	endpoints := corev1.Endpoints{}
+	err1 := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &endpoints)
+	if err1 != nil {
+		return false
+	}
+
+	for _, subset := range endpoints.Subsets {
+		if len(subset.Addresses) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// Check the state of a container
+func (obj *SubResourceList) isContainerReady(containerName string, u unstructured.Unstructured) bool {
+	pod := corev1.Pod{}
+	err1 := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &pod)
+	if err1 != nil {
+		return false
+	}
+
+	containers := pod.Status.ContainerStatuses
+	for _, container := range containers {
+		if container.Name == containerName && container.Ready {
+			return true
+		}
+	}
+	return false
+}
+
+// Check the state of a job
+func (obj *SubResourceList) isJobReady(u unstructured.Unstructured) bool {
+	job := batchv1.Job{}
+	err1 := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &job)
+	if err1 != nil {
+		return false
+	}
+
+	if job.Status.Succeeded == 0 {
+		return false
+	}
+	return true
+}
+
+// Check the state of a pod
+func (obj *SubResourceList) isPodReady(u unstructured.Unstructured) bool {
+	pod := corev1.Pod{}
+	err1 := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &pod)
+	if err1 != nil {
+		return false
+	}
+
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status == "True" {
+			return true
+		}
+	}
+	return false
 }
 
 // Returns a new SubResourceList

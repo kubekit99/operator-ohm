@@ -27,26 +27,9 @@ type rollbackmanager struct {
 	status *av1.RollbackPhaseStatus
 }
 
-// Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this RollbackPhase CR
-func (m *rollbackmanager) Sync(ctx context.Context) error {
-
-	m.deployedSubResourceList = av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
-
-	rendered, deployed, err := m.sync(ctx)
-	if err != nil {
-		return err
-	}
-
-	m.deployedSubResourceList = deployed
-	if len(rendered.Items) != len(deployed.Items) {
-		m.isInstalled = false
-		m.isUpdateRequired = false
-	} else {
-		m.isInstalled = true
-		m.isUpdateRequired = false
-	}
-
-	return nil
+// SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this RollbackPhase CR
+func (m *rollbackmanager) SyncResource(ctx context.Context) error {
+	return m.syncResource(ctx)
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this RollbackPhase CR

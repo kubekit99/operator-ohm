@@ -27,26 +27,9 @@ type trafficrolloutmanager struct {
 	status *av1.TrafficRolloutPhaseStatus
 }
 
-// Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this TrafficRolloutPhase CR
-func (m *trafficrolloutmanager) Sync(ctx context.Context) error {
-
-	m.deployedSubResourceList = av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
-
-	rendered, deployed, err := m.sync(ctx)
-	if err != nil {
-		return err
-	}
-
-	m.deployedSubResourceList = deployed
-	if len(rendered.Items) != len(deployed.Items) {
-		m.isInstalled = false
-		m.isUpdateRequired = false
-	} else {
-		m.isInstalled = true
-		m.isUpdateRequired = false
-	}
-
-	return nil
+// SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this TrafficRolloutPhase CR
+func (m *trafficrolloutmanager) SyncResource(ctx context.Context) error {
+	return m.syncResource(ctx)
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this TrafficRolloutPhase CR

@@ -232,7 +232,7 @@ func (r TestPhaseReconciler) updateResourceStatus(instance *av1.TestPhase) error
 
 // ensureSynced checks that the TestPhaseManager is in sync with the cluster
 func (r TestPhaseReconciler) ensureSynced(mgr services.TestPhaseManager, instance *av1.TestPhase) error {
-	if err := mgr.Sync(context.TODO()); err != nil {
+	if err := mgr.SyncResource(context.TODO()); err != nil {
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
 			Status:  av1.ConditionStatusTrue,

@@ -27,26 +27,9 @@ type oslcmanager struct {
 	status *av1.OslcStatus
 }
 
-// Sync retrieves from K8s the sub resources (Workflow, Job, ....) attached to this Oslc CR
-func (m *oslcmanager) Sync(ctx context.Context) error {
-
-	m.deployedLifecycleFlow = av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
-
-	rendered, deployed, err := m.sync(ctx)
-	if err != nil {
-		return err
-	}
-
-	m.deployedLifecycleFlow = deployed
-	if len(rendered.GetDependentResources()) != len(deployed.GetDependentResources()) {
-		m.isInstalled = false
-		m.isUpdateRequired = false
-	} else {
-		m.isInstalled = true
-		m.isUpdateRequired = false
-	}
-
-	return nil
+// SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this Oslc CR
+func (m *oslcmanager) SyncResource(ctx context.Context) error {
+	return m.syncResource(ctx)
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Oslc CR

@@ -232,7 +232,7 @@ func (r TrafficDrainPhaseReconciler) updateResourceStatus(instance *av1.TrafficD
 
 // ensureSynced checks that the TrafficDrainPhaseManager is in sync with the cluster
 func (r TrafficDrainPhaseReconciler) ensureSynced(mgr services.TrafficDrainPhaseManager, instance *av1.TrafficDrainPhase) error {
-	if err := mgr.Sync(context.TODO()); err != nil {
+	if err := mgr.SyncResource(context.TODO()); err != nil {
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
 			Status:  av1.ConditionStatusTrue,

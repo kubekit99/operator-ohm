@@ -87,6 +87,28 @@ func (m basemanager) render(ctx context.Context) (*av1.LifecycleFlow, error) {
 	return phaseList, err
 }
 
+// SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this Oslc CR
+func (m basemanager) syncResource(ctx context.Context) error {
+
+	m.deployedLifecycleFlow = av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
+
+	rendered, deployed, err := m.sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	m.deployedLifecycleFlow = deployed
+	if len(rendered.GetDependentResources()) != len(deployed.GetDependentResources()) {
+		m.isInstalled = false
+		m.isUpdateRequired = false
+	} else {
+		m.isInstalled = true
+		m.isUpdateRequired = false
+	}
+
+	return nil
+}
+
 // Attempts to compare the K8s object present with the rendered objects
 func (m basemanager) sync(ctx context.Context) (*av1.LifecycleFlow, *av1.LifecycleFlow, error) {
 	deployed := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)

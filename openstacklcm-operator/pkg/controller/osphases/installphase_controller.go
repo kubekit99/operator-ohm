@@ -232,7 +232,7 @@ func (r InstallPhaseReconciler) updateResourceStatus(instance *av1.InstallPhase)
 
 // ensureSynced checks that the InstallPhaseManager is in sync with the cluster
 func (r InstallPhaseReconciler) ensureSynced(mgr services.InstallPhaseManager, instance *av1.InstallPhase) error {
-	if err := mgr.Sync(context.TODO()); err != nil {
+	if err := mgr.SyncResource(context.TODO()); err != nil {
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
 			Status:  av1.ConditionStatusTrue,

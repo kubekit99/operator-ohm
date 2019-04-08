@@ -295,7 +295,7 @@ func (r OslcReconciler) updateResourceStatus(instance *av1.Oslc) error {
 
 // ensureSynced checks that the OslcManager is in sync with the cluster
 func (r OslcReconciler) ensureSynced(mgr services.OslcManager, instance *av1.Oslc) error {
-	if err := mgr.Sync(context.TODO()); err != nil {
+	if err := mgr.SyncResource(context.TODO()); err != nil {
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionIrreconcilable,
 			Status:  av1.ConditionStatusTrue,
