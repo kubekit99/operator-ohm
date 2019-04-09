@@ -9,9 +9,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+type TrafficDrainStrategy struct {
+	// TimeoutInSecond is the maximal allowed time in second of the entire trafficdrain process.
+	TimeoutInSecond int64 `json:"timeoutInSecond,omitempty"`
+}
+
 // TrafficDrainPhaseSpec defines the desired state of TrafficDrainPhase
 type TrafficDrainPhaseSpec struct {
 	PhaseSpec `json:",inline"`
+
+	// TrafficDrainStrategy configures the strategy during drain process.
+	TrafficDrainStrategy *TrafficDrainStrategy `json:"trafficDrainStrategy,omitempty"`
 }
 
 // TrafficDrainPhaseStatus defines the observed state of TrafficDrainPhase

@@ -9,9 +9,64 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+type RestoreSource struct {
+	// Offsite tells where on Offsite the backup is saved and how to fetch the backup.
+	Offsite *OffsiteRestoreSource `json:"offsite,omitempty"`
+
+	// Ceph tells where on Ceph the backup is saved and how to fetch the backup.
+	Ceph *CephRestoreSource `json:"ceph,omitempty"`
+}
+
+type OffsiteRestoreSource struct {
+	// Path is the full offsite path where the backup is saved.
+	// The format of the path must be: "<offsite-bucket-name>/<path-to-backup-file>"
+	// e.g: "mybucket/armada.backup"
+	Path string `json:"path"`
+
+	// The name of the secret object that stores the Offsite credential and config files.
+	// The file name of the credential MUST be 'credentials'.
+	// The file name of the config MUST be 'config'.
+	// The profile to use in both files will be 'default'.
+	//
+	// OffsiteSecret overwrites the default armada operator wide Offsite credential and config.
+	OffsiteSecret string `json:"offsiteSecret"`
+
+	// Endpoint if blank points to offsite. If specified, can point to offsite compatible object
+	// stores.
+	Endpoint string `json:"endpoint"`
+
+	// ForcePathStyle forces to use path style over the default subdomain style.
+	// This is useful when you have an offsite compatible endpoint that doesn't support
+	// subdomain buckets.
+	ForcePathStyle bool `json:"forcePathStyle"`
+}
+
+type CephRestoreSource struct {
+	// Path is the full Ceph path where the backup is saved.
+	// The format of the path must be: "<ceph-bucket-name>/<path-to-backup-file>"
+	// e.g: "mycephbucket/armada.backup"
+	Path string `json:"path"`
+
+	// The name of the secret object that stores the Google storage credential
+	// containing at most ONE of the following:
+	// An access token with file name of 'access-token'.
+	// JSON credentials with file name of 'credentials.json'.
+	//
+	// If omitted, client will use the default application credentials.
+	CephSecret string `json:"cephSecret,omitempty"`
+}
+
 // RollbackPhaseSpec defines the desired state of RollbackPhase
 type RollbackPhaseSpec struct {
 	PhaseSpec `json:",inline"`
+
+	// Should we also restore the database during rollback
+	RestoreDB string `json:"restoreDB,omitempty"`
+
+	// StorageType is the type of the backup storage which is used as RestoreSource.
+	StorageType BackupStorageType `json:"storageType,omitempty"`
+	// RestoreSource tells the where to get the backup and restore from.
+	RestoreSource `json:",inline"`
 }
 
 // RollbackPhaseStatus defines the observed state of RollbackPhase

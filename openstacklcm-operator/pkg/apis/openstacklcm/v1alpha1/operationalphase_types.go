@@ -9,9 +9,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+type InServicePolicy struct {
+	// TimeoutInSecond is the maximal allowed time in second of the entire test process.
+	TimeoutInSecond int64 `json:"timeoutInSecond,omitempty"`
+}
+
 // OperationalPhaseSpec defines the desired state of OperationalPhase
 type OperationalPhaseSpec struct {
 	PhaseSpec `json:",inline"`
+
+	// InServicePolicy configures the policy enforcement when service is operational
+	InServicePolicy *InServicePolicy `json:"inServicePolicy,omitempty"`
+
+	// Config is the set of extra Values added to the helm renderer.
+	// Config map[string]interface{} `json:"config,omitempty"`
+	Config map[string]string `json:"config,omitempty"`
 }
 
 // OperationalPhaseStatus defines the observed state of OperationalPhase

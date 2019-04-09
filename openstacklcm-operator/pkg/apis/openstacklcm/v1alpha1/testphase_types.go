@@ -9,9 +9,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+type TestStrategy struct {
+	// TimeoutInSecond is the maximal allowed time in second of the entire test process.
+	TimeoutInSecond int64 `json:"timeoutInSecond,omitempty"`
+}
+
 // TestPhaseSpec defines the desired state of TestPhase
 type TestPhaseSpec struct {
 	PhaseSpec `json:",inline"`
+
+	// TestStragy configures the test strategy process.
+	TestStrategy *TestStrategy `json:"testStrategy,omitempty"`
+
+	// Config is the set of extra Values added to the helm renderer.
+	// Config map[string]interface{} `json:"config,omitempty"`
+	Config map[string]string `json:"config,omitempty"`
 }
 
 // TestPhaseStatus defines the observed state of TestPhase

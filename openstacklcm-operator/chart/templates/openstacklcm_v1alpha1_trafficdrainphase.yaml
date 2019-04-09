@@ -73,6 +73,16 @@ spec:
             targetState:
               description: Target state of the Lcm Custom Resources
               type: string
+            trafficDrainStrategy:
+              description: TrafficDrainStrategy configures the strategy during drain
+                process.
+              properties:
+                timeoutInSecond:
+                  description: TimeoutInSecond is the maximal allowed time in second
+                    of the entire trafficdrain process.
+                  format: int64
+                  type: integer
+              type: object
           required:
           - source
           - openstackServiceName

@@ -45,6 +45,13 @@ spec:
           type: object
         spec:
           properties:
+            config:
+              description: Config is the set of extra Values added to the helm renderer.
+                Config map[string]interface{} `json:"config,omitempty"`
+              type: object
+            initDB:
+              description: Should we also init the database during installation
+              type: string
             openstackServiceEndPoint:
               description: Openstack Service EndPoint
               type: string

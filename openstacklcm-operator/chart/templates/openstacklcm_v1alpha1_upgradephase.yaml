@@ -45,6 +45,70 @@ spec:
           type: object
         spec:
           properties:
+            backupDB:
+              description: Should we also backup the database before upgrade
+              type: string
+            backupPolicy:
+              description: BackupPolicy configures the backup process.
+              properties:
+                timeoutInSecond:
+                  description: TimeoutInSecond is the maximal allowed time in second
+                    of the entire backup process.
+                  format: int64
+                  type: integer
+              type: object
+            ceph:
+              description: Ceph defines the Ceph backup source spec.
+              properties:
+                cephSecret:
+                  description: 'The name of the secret object that stores the Google
+                    storage credential containing at most ONE of the following: An
+                    access token with file name of ''access-token''. JSON credentials
+                    with file name of ''credentials.json''.  If omitted, client will
+                    use the default application credentials.'
+                  type: string
+                path:
+                  description: 'Path is the full Ceph path where the backup is saved.
+                    The format of the path must be: "<ceph-bucket-name>/<path-to-backup-file>"
+                    e.g: "mycephbucket/armada.backup"'
+                  type: string
+              required:
+              - path
+              type: object
+            config:
+              description: Config is the set of extra Values added to the helm renderer.
+                Config map[string]interface{} `json:"config,omitempty"`
+              type: object
+            offsite:
+              description: Offsite defines the Offsite backup source spec.
+              properties:
+                endpoint:
+                  description: Endpoint if blank points to offsite. If specified,
+                    can point to offsite compatible object stores.
+                  type: string
+                forcePathStyle:
+                  description: ForcePathStyle forces to use path style over the default
+                    subdomain style. This is useful when you have an offsite compatible
+                    endpoint that doesn't support subdomain buckets.
+                  type: boolean
+                offsiteSecret:
+                  description: The name of the secret object that stores the Offsite
+                    credential and config files. The file name of the credential MUST
+                    be 'credentials'. The file name of the config MUST be 'config'.
+                    The profile to use in both files will be 'default'.  OffsiteSecret
+                    overwrites the default armada operator wide Offsite credential
+                    and config.
+                  type: string
+                path:
+                  description: 'Path is the full offsite path where the backup is
+                    saved. The format of the path must be: "<offsite-bucket-name>/<path-to-backup-file>"
+                    e.g: "mybucket/armada.backup"'
+                  type: string
+              required:
+              - path
+              - offsiteSecret
+              - forcePathStyle
+              type: object
             openstackServiceEndPoint:
               description: Openstack Service EndPoint
               type: string
@@ -66,6 +130,11 @@ spec:
               - location
               - type
               type: object
+            storageType:
+              description: StorageType is the armada backup storage type. We need
+                this field because CRD doesn't support validation against invalid
+                fields and we cannot verify invalid backup storage source.
+              type: string
             targetOpenstackServiceVersion:
               description: OpenstackServiceVersion is the version of the openstack
                 service.

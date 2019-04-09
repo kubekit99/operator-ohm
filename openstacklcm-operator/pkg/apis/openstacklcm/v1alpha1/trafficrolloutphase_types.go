@@ -9,9 +9,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// TrafficRolloutaStategy defines the strategy used during TrafficRollout
+type TrafficRolloutStrategy struct {
+	// TimeoutInSecond is the maximal allowed time in second of the entire trafficdrain process.
+	TimeoutInSecond int64 `json:"timeoutInSecond,omitempty"`
+}
+
 // TrafficRolloutPhaseSpec defines the desired state of TrafficRolloutPhase
 type TrafficRolloutPhaseSpec struct {
 	PhaseSpec `json:",inline"`
+
+	// TrafficRolloutStrategy configures the strateg during rollout process.
+	TrafficRolloutStrategy *TrafficRolloutStrategy `json:"trafficRolloutStrategy,omitempty"`
 }
 
 // TrafficRolloutPhaseStatus defines the observed state of TrafficRolloutPhase

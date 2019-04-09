@@ -45,6 +45,10 @@ spec:
           type: object
         spec:
           properties:
+            config:
+              description: Config is the set of extra Values added to the helm renderer.
+                Config map[string]interface{} `json:"config,omitempty"`
+              type: object
             openstackServiceEndPoint:
               description: Openstack Service EndPoint
               type: string
@@ -73,6 +77,15 @@ spec:
             targetState:
               description: Target state of the Lcm Custom Resources
               type: string
+            testStrategy:
+              description: TestStragy configures the test strategy process.
+              properties:
+                timeoutInSecond:
+                  description: TimeoutInSecond is the maximal allowed time in second
+                    of the entire test process.
+                  format: int64
+                  type: integer
+              type: object
           required:
           - source
           - openstackServiceName

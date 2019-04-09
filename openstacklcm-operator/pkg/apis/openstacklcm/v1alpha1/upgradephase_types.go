@@ -9,9 +9,80 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// BackupPolicy defines backup policy.
+type BackupPolicy struct {
+	// TimeoutInSecond is the maximal allowed time in second of the entire backup process.
+	TimeoutInSecond int64 `json:"timeoutInSecond,omitempty"`
+}
+
+// BackupSource contains the supported backup sources.
+type BackupSource struct {
+	// Offsite defines the Offsite backup source spec.
+	Offsite *OffsiteBackupSource `json:"offsite,omitempty"`
+	// Ceph defines the Ceph backup source spec.
+	Ceph *CephBackupSource `json:"ceph,omitempty"`
+}
+
+// OffsiteBackupSource provides the spec how to store backups on Offsite.
+type OffsiteBackupSource struct {
+	// Path is the full offsite path where the backup is saved.
+	// The format of the path must be: "<offsite-bucket-name>/<path-to-backup-file>"
+	// e.g: "mybucket/armada.backup"
+	Path string `json:"path"`
+
+	// The name of the secret object that stores the Offsite credential and config files.
+	// The file name of the credential MUST be 'credentials'.
+	// The file name of the config MUST be 'config'.
+	// The profile to use in both files will be 'default'.
+	//
+	// OffsiteSecret overwrites the default armada operator wide Offsite credential and config.
+	OffsiteSecret string `json:"offsiteSecret"`
+
+	// Endpoint if blank points to offsite. If specified, can point to offsite compatible object
+	// stores.
+	Endpoint string `json:"endpoint,omitempty"`
+
+	// ForcePathStyle forces to use path style over the default subdomain style.
+	// This is useful when you have an offsite compatible endpoint that doesn't support
+	// subdomain buckets.
+	ForcePathStyle bool `json:"forcePathStyle"`
+}
+
+// CephBackupSource provides the spec how to store backups on Ceph.
+type CephBackupSource struct {
+	// Path is the full Ceph path where the backup is saved.
+	// The format of the path must be: "<ceph-bucket-name>/<path-to-backup-file>"
+	// e.g: "mycephbucket/armada.backup"
+	Path string `json:"path"`
+
+	// The name of the secret object that stores the Google storage credential
+	// containing at most ONE of the following:
+	// An access token with file name of 'access-token'.
+	// JSON credentials with file name of 'credentials.json'.
+	//
+	// If omitted, client will use the default application credentials.
+	CephSecret string `json:"cephSecret,omitempty"`
+}
+
 // UpgradePhaseSpec defines the desired state of UpgradePhase
 type UpgradePhaseSpec struct {
 	PhaseSpec `json:",inline"`
+
+	// Should we also backup the database before upgrade
+	BackupDB string `json:"backupDB,omitempty"`
+
+	// StorageType is the armada backup storage type.
+	// We need this field because CRD doesn't support validation against invalid fields
+	// and we cannot verify invalid backup storage source.
+	StorageType BackupStorageType `json:"storageType,omitempty"`
+	// BackupPolicy configures the backup process.
+	BackupPolicy *BackupPolicy `json:"backupPolicy,omitempty"`
+	// BackupSource is the backup storage source.
+	BackupSource `json:",inline"`
+
+	// Config is the set of extra Values added to the helm renderer.
+	// Config map[string]interface{} `json:"config,omitempty"`
+	Config map[string]string `json:"config,omitempty"`
 }
 
 // UpgradePhaseStatus defines the observed state of UpgradePhase

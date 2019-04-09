@@ -12,6 +12,13 @@ import (
 // InstallPhaseSpec defines the desired state of InstallPhase
 type InstallPhaseSpec struct {
 	PhaseSpec `json:",inline"`
+
+	// Should we also init the database during installation
+	InitDB string `json:"initDB,omitempty"`
+
+	// Config is the set of extra Values added to the helm renderer.
+	// Config map[string]interface{} `json:"config,omitempty"`
+	Config map[string]string `json:"config,omitempty"`
 }
 
 // InstallPhaseStatus defines the observed state of InstallPhase

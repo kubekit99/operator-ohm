@@ -12,6 +12,9 @@ import (
 // DeletePhaseSpec defines the desired state of DeletePhase
 type DeletePhaseSpec struct {
 	PhaseSpec `json:",inline"`
+
+	// Should we also purge the database during delete
+	PurgeDB string `json:"purgeDB,omitempty"`
 }
 
 // DeletePhaseStatus defines the observed state of DeletePhase

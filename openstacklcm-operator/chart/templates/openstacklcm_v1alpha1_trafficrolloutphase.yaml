@@ -73,6 +73,16 @@ spec:
             targetState:
               description: Target state of the Lcm Custom Resources
               type: string
+            trafficRolloutStrategy:
+              description: TrafficRolloutStrategy configures the strateg during rollout
+                process.
+              properties:
+                timeoutInSecond:
+                  description: TimeoutInSecond is the maximal allowed time in second
+                    of the entire trafficdrain process.
+                  format: int64
+                  type: integer
+              type: object
           required:
           - source
           - openstackServiceName

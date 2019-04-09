@@ -51,6 +51,9 @@ spec:
             openstackServiceName:
               description: Openstack Service Name
               type: string
+            purgeDB:
+              description: Should we also purge the database during delete
+              type: string
             source:
               description: provide a path to a ``git repo``, ``local dir``, or ``tarball
                 url`` chart
