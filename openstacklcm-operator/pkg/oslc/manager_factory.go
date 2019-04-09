@@ -70,10 +70,15 @@ func (f managerFactory) NewOslcManager(r *av1.Oslc) lcmif.OslcManager {
 		renderValues["serviceName"] = serviceName
 	}
 
+	renderer := &oslcrenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "oslc", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
+
 	return &oslcmanager{
 		basemanager: basemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "oslc", renderFiles, renderValues),
+			renderer:       renderer,
 			serviceName:    serviceName,
 			sourceType:     sourceType,
 			sourceLocation: sourceLocation,

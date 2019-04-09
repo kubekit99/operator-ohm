@@ -18,17 +18,12 @@ package osphases
 
 import (
 	helmv2 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/helmv2"
+	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type OwnerRefRenderer struct {
-	*helmv2.OwnerRefHelmv2Renderer
-}
-
-// NewOwnerRefRenderer creates a new OwnerRef engine with a set of metav1.OwnerReferences to be added to assets
-func NewOwnerRefRenderer(refs []metav1.OwnerReference, suffix string,
-	renderFiles []string, renderValues map[string]interface{}) *OwnerRefRenderer {
-	return &OwnerRefRenderer{
-		OwnerRefHelmv2Renderer: helmv2.NewOwnerRefHelmv2Renderer(refs, suffix, renderFiles, renderValues),
-	}
+// NewOwnerRefHelmRenderer creates a new OwnerRef engine with a set of metav1.OwnerReferences to be added to assets
+func NewOwnerRefHelmRenderer(refs []metav1.OwnerReference, suffix string,
+	renderFiles []string, renderValues map[string]interface{}) lcmif.OwnerRefHelmRenderer {
+	return helmv2.NewOwnerRefHelmv2Renderer(refs, suffix, renderFiles, renderValues)
 }

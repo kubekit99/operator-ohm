@@ -30,7 +30,7 @@ import (
 
 type phasemanager struct {
 	kubeClient     client.Client
-	renderer       *OwnerRefRenderer
+	renderer       lcmif.OwnerRefHelmRenderer
 	serviceName    string
 	phaseRefs      []metav1.OwnerReference
 	phaseName      string
@@ -65,7 +65,7 @@ func (m phasemanager) render(ctx context.Context) (*av1.SubResourceList, error) 
 }
 
 // Try to compare the resource in the CRD and the resources in Kubernetes
-func (m phasemanager) syncResource(ctx context.Context) error {
+func (m *phasemanager) syncResource(ctx context.Context) error {
 
 	m.deployedSubResourceList = av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
 
@@ -88,11 +88,11 @@ func (m phasemanager) syncResource(ctx context.Context) error {
 
 // Attempts to compare the K8s object present with the rendered objects
 func (m phasemanager) sync(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
-	deployed := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
+	alreadyDeployed := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
 
 	rendered, err := m.render(ctx)
 	if err != nil {
-		return nil, deployed, err
+		return nil, alreadyDeployed, err
 	}
 
 	errs := make([]error, 0)
@@ -112,30 +112,35 @@ func (m phasemanager) sync(ctx context.Context) (*av1.SubResourceList, *av1.SubR
 				errs = append(errs, err)
 			}
 		} else {
-			deployed.Items = append(deployed.Items, existingResource)
+			alreadyDeployed.Items = append(alreadyDeployed.Items, existingResource)
 		}
 	}
 
-	if !deployed.CheckOwnerReference(m.phaseRefs) {
+	if !alreadyDeployed.CheckOwnerReference(m.phaseRefs) {
 		return rendered, nil, lcmif.OwnershipMismatch
 	}
 
 	// TODO(jeb): not sure this is right
 	// if len(errs) != 0 {
-	//	return rendered, deployed, errs[0]
+	//	return rendered, alreadyDeployed, errs[0]
 	// }
-	return rendered, deployed, nil
+	return rendered, alreadyDeployed, nil
 }
 
 // InstallResource creates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m phasemanager) installResource(ctx context.Context) (*av1.SubResourceList, error) {
 
 	errs := make([]error, 0)
-	justCreated := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
+	created := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
+
+	if m.deployedSubResourceList == nil {
+		// There was an error during SyncResource
+		return created, lcmif.InstallError
+	}
 
 	rendered, err := m.render(ctx)
 	if err != nil {
-		return justCreated, err
+		return created, err
 	}
 
 	rendered.Items = lcmif.SortByInstallOrder(rendered.Items)
@@ -147,34 +152,55 @@ func (m phasemanager) installResource(ctx context.Context) (*av1.SubResourceList
 				errs = append(errs, err)
 			} else {
 				// Should consider as just created by us ?
-				// justCreated.Items = append(justCreated.Items, toCreate)
+				// created.Items = append(created.Items, toCreate)
 			}
 		} else {
 			log.Info("Created Resource", "kind", toCreate.GetKind(), "name", toCreate.GetName())
-			justCreated.Items = append(justCreated.Items, toCreate)
+			created.Items = append(created.Items, toCreate)
 		}
 	}
 
 	if len(errs) != 0 {
-		return justCreated, errs[0]
+		return created, errs[0]
 	}
-	return justCreated, nil
+	return created, nil
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m phasemanager) updateResource(ctx context.Context) (*av1.SubResourceList, *av1.SubResourceList, error) {
-	return m.deployedSubResourceList, &av1.SubResourceList{}, nil
+
+	updated := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
+
+	if m.deployedSubResourceList == nil {
+		// There was an error during SyncResource
+		return m.deployedSubResourceList, updated, lcmif.UpdateError
+	}
+
+	return m.deployedSubResourceList, updated, nil
 }
 
 // ReconcileResource creates or patches resources as necessary to match this Phase CR
 func (m phasemanager) reconcileResource(ctx context.Context) (*av1.SubResourceList, error) {
-	return m.deployedSubResourceList, nil
+
+	reconciled := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
+
+	if m.deployedSubResourceList == nil {
+		// There was an error during SyncResource
+		return reconciled, lcmif.ReconcileError
+	}
+
+	return reconciled, nil
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m phasemanager) uninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
 	errs := make([]error, 0)
-	stillDeployed := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
+	notdeleted := av1.NewSubResourceList(m.phaseNamespace, m.phaseName)
+
+	if m.deployedSubResourceList == nil {
+		// There was an error during SyncResource
+		return notdeleted, lcmif.UninstallError
+	}
 
 	m.deployedSubResourceList.Items = lcmif.SortByUninstallOrder(m.deployedSubResourceList.Items)
 	for _, toDelete := range m.deployedSubResourceList.Items {
@@ -183,13 +209,13 @@ func (m phasemanager) uninstallResource(ctx context.Context) (*av1.SubResourceLi
 			if !apierrors.IsNotFound(err) {
 				log.Error(err, "Can't not delete Resource")
 				errs = append(errs, err)
-				stillDeployed.Items = append(stillDeployed.Items, toDelete)
+				notdeleted.Items = append(notdeleted.Items, toDelete)
 			}
 		}
 	}
 
 	if len(errs) != 0 {
-		return stillDeployed, errs[0]
+		return notdeleted, errs[0]
 	}
-	return stillDeployed, nil
+	return notdeleted, nil
 }

@@ -18,6 +18,7 @@ import (
 	"context"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
+	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 )
 
 type oslcmanager struct {
@@ -25,6 +26,22 @@ type oslcmanager struct {
 
 	spec   av1.OslcSpec
 	status *av1.OslcStatus
+}
+
+type oslcrenderer struct {
+	helmrenderer lcmif.OwnerRefHelmRenderer
+
+	spec av1.OslcSpec
+}
+
+// RenderFile injects DeletePhase spec into the rendering of a file
+func (o oslcrenderer) RenderFile(name string, namespace string, fileName string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderFile(name, namespace, fileName)
+}
+
+// RenderChart injects DeletePhase spec into the renderering of a chart
+func (o oslcrenderer) RenderChart(name string, namespace string, chartLocation string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderChart(name, namespace, chartLocation)
 }
 
 // SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this Oslc CR

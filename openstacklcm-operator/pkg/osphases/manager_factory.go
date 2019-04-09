@@ -58,11 +58,15 @@ func (f managerFactory) NewPlanningPhaseManager(r *av1.PlanningPhase) lcmif.Plan
 
 	renderFiles := initRenderFiles(av1.PhasePlanning)
 	renderValues := initRenderValues(av1.PhasePlanning)
+	renderer := &planningrenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "osplan", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
 
 	return &planningmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osplan", renderFiles, renderValues),
+			renderer:       renderer,
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
 			phaseRefs:      ownerRefs,
@@ -83,11 +87,15 @@ func (f managerFactory) NewInstallPhaseManager(r *av1.InstallPhase) lcmif.Instal
 
 	renderFiles := initRenderFiles(av1.PhaseInstall)
 	renderValues := initRenderValues(av1.PhaseInstall)
+	renderer := &installrenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "osins", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
 
 	return &installmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osins", renderFiles, renderValues),
+			renderer:       renderer,
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
 			phaseRefs:      ownerRefs,
@@ -108,11 +116,15 @@ func (f managerFactory) NewTestPhaseManager(r *av1.TestPhase) lcmif.TestPhaseMan
 
 	renderFiles := initRenderFiles(av1.PhaseTest)
 	renderValues := initRenderValues(av1.PhaseTest)
+	renderer := &testrenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "ostest", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
 
 	return &testmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "ostest", renderFiles, renderValues),
+			renderer:       renderer,
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
 			phaseRefs:      ownerRefs,
@@ -133,11 +145,15 @@ func (f managerFactory) NewTrafficRolloutPhaseManager(r *av1.TrafficRolloutPhase
 
 	renderFiles := initRenderFiles(av1.PhaseTrafficRollout)
 	renderValues := initRenderValues(av1.PhaseTrafficRollout)
+	renderer := &trafficrolloutrenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "osroll", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
 
 	return &trafficrolloutmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osroll", renderFiles, renderValues),
+			renderer:       renderer,
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
 			phaseRefs:      ownerRefs,
@@ -158,11 +174,15 @@ func (f managerFactory) NewOperationalPhaseManager(r *av1.OperationalPhase) lcmi
 
 	renderFiles := initRenderFiles(av1.PhaseOperational)
 	renderValues := initRenderValues(av1.PhaseOperational)
+	renderer := &operationalrenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "osops", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
 
 	return &operationalmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osops", renderFiles, renderValues),
+			renderer:       renderer,
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
 			phaseRefs:      ownerRefs,
@@ -183,11 +203,15 @@ func (f managerFactory) NewTrafficDrainPhaseManager(r *av1.TrafficDrainPhase) lc
 
 	renderFiles := initRenderFiles(av1.PhaseTrafficDrain)
 	renderValues := initRenderValues(av1.PhaseTrafficDrain)
+	renderer := &trafficdrainrenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "osdrain", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
 
 	return &trafficdrainmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osdrain", renderFiles, renderValues),
+			renderer:       renderer,
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
 			phaseRefs:      ownerRefs,
@@ -208,11 +232,15 @@ func (f managerFactory) NewUpgradePhaseManager(r *av1.UpgradePhase) lcmif.Upgrad
 
 	renderFiles := initRenderFiles(av1.PhaseUpgrade)
 	renderValues := initRenderValues(av1.PhaseUpgrade)
+	renderer := &upgraderenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "osupg", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
 
 	return &upgrademanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osupg", renderFiles, renderValues),
+			renderer:       renderer,
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
 			phaseRefs:      ownerRefs,
@@ -233,11 +261,15 @@ func (f managerFactory) NewRollbackPhaseManager(r *av1.RollbackPhase) lcmif.Roll
 
 	renderFiles := initRenderFiles(av1.PhaseRollback)
 	renderValues := initRenderValues(av1.PhaseRollback)
+	renderer := &rollbackrenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "osrbck", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
 
 	return &rollbackmanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osrbck", renderFiles, renderValues),
+			renderer:       renderer,
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
 			phaseRefs:      ownerRefs,
@@ -258,11 +290,15 @@ func (f managerFactory) NewDeletePhaseManager(r *av1.DeletePhase) lcmif.DeletePh
 
 	renderFiles := initRenderFiles(av1.PhaseDelete)
 	renderValues := initRenderValues(av1.PhaseDelete)
+	renderer := &deleterenderer{
+		helmrenderer: NewOwnerRefHelmRenderer(ownerRefs, "osdlt", renderFiles, renderValues),
+		spec:         r.Spec,
+	}
 
 	return &deletemanager{
 		phasemanager: phasemanager{
 			kubeClient:     f.kubeClient,
-			renderer:       NewOwnerRefRenderer(ownerRefs, "osdlt", renderFiles, renderValues),
+			renderer:       renderer,
 			source:         r.Spec.Source,
 			serviceName:    r.Spec.OpenstackServiceName,
 			phaseRefs:      ownerRefs,

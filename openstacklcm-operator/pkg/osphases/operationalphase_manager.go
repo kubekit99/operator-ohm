@@ -18,6 +18,7 @@ import (
 	"context"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
+	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 )
 
 type operationalmanager struct {
@@ -25,6 +26,22 @@ type operationalmanager struct {
 
 	spec   av1.OperationalPhaseSpec
 	status *av1.OperationalPhaseStatus
+}
+
+type operationalrenderer struct {
+	helmrenderer lcmif.OwnerRefHelmRenderer
+
+	spec av1.OperationalPhaseSpec
+}
+
+// RenderFile injects OperationalPhase spec into the rendering of a file
+func (o operationalrenderer) RenderFile(name string, namespace string, fileName string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderFile(name, namespace, fileName)
+}
+
+// RenderChart injects OperationalPhase spec into the renderering of a chart
+func (o operationalrenderer) RenderChart(name string, namespace string, chartLocation string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderChart(name, namespace, chartLocation)
 }
 
 // SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this OperationalPhase CR
@@ -47,7 +64,7 @@ func (m operationalmanager) ReconcileResource(ctx context.Context) (*av1.SubReso
 	return m.reconcileResource(ctx)
 }
 
-// UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this OperationalPhase CR
+// UninstallResource operational K8s sub resources (Workflow, Job, ....) attached to this OperationalPhase CR
 func (m operationalmanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
 	return m.uninstallResource(ctx)
 }

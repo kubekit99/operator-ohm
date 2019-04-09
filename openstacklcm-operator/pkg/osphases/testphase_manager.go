@@ -18,6 +18,7 @@ import (
 	"context"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
+	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 )
 
 type testmanager struct {
@@ -25,6 +26,22 @@ type testmanager struct {
 
 	spec   av1.TestPhaseSpec
 	status *av1.TestPhaseStatus
+}
+
+type testrenderer struct {
+	helmrenderer lcmif.OwnerRefHelmRenderer
+
+	spec av1.TestPhaseSpec
+}
+
+// RenderFile injects TestPhase spec into the rendering of a file
+func (o testrenderer) RenderFile(name string, namespace string, fileName string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderFile(name, namespace, fileName)
+}
+
+// RenderChart injects TestPhase spec into the renderering of a chart
+func (o testrenderer) RenderChart(name string, namespace string, chartLocation string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderChart(name, namespace, chartLocation)
 }
 
 // SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this TestPhase CR
@@ -47,7 +64,7 @@ func (m testmanager) ReconcileResource(ctx context.Context) (*av1.SubResourceLis
 	return m.reconcileResource(ctx)
 }
 
-// UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this TestPhase CR
+// UninstallResource test K8s sub resources (Workflow, Job, ....) attached to this TestPhase CR
 func (m testmanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
 	return m.uninstallResource(ctx)
 }

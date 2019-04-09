@@ -30,7 +30,7 @@ import (
 
 type basemanager struct {
 	kubeClient     client.Client
-	renderer       *OwnerRefRenderer
+	renderer       lcmif.OwnerRefHelmRenderer
 	oslcRefs       []metav1.OwnerReference
 	oslcName       string
 	oslcNamespace  string
@@ -88,17 +88,16 @@ func (m basemanager) render(ctx context.Context) (*av1.LifecycleFlow, error) {
 }
 
 // SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this Oslc CR
-func (m basemanager) syncResource(ctx context.Context) error {
-
+func (m *basemanager) syncResource(ctx context.Context) error {
 	m.deployedLifecycleFlow = av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
 
-	rendered, deployed, err := m.sync(ctx)
+	rendered, alreadyDeployed, err := m.sync(ctx)
 	if err != nil {
 		return err
 	}
 
-	m.deployedLifecycleFlow = deployed
-	if len(rendered.GetDependentResources()) != len(deployed.GetDependentResources()) {
+	m.deployedLifecycleFlow = alreadyDeployed
+	if len(rendered.GetDependentResources()) != len(alreadyDeployed.GetDependentResources()) {
 		m.isInstalled = false
 		m.isUpdateRequired = false
 	} else {
@@ -171,7 +170,12 @@ func (m basemanager) sync(ctx context.Context) (*av1.LifecycleFlow, *av1.Lifecyc
 func (m basemanager) installResource(ctx context.Context) (*av1.LifecycleFlow, error) {
 
 	errs := make([]error, 0)
-	justCreated := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
+	created := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
+
+	if m.deployedLifecycleFlow == nil {
+		// There was an error during SyncResource
+		return created, lcmif.InstallError
+	}
 
 	rendered, err := m.render(ctx)
 	if err != nil {
@@ -186,10 +190,10 @@ func (m basemanager) installResource(ctx context.Context) (*av1.LifecycleFlow, e
 				errs = append(errs, err)
 			} else {
 				// Should consider as just created by us
-				justCreated.Phases[phaseName] = toCreate
+				created.Phases[phaseName] = toCreate
 			}
 		} else {
-			justCreated.Phases[phaseName] = toCreate
+			created.Phases[phaseName] = toCreate
 		}
 	}
 
@@ -201,35 +205,54 @@ func (m basemanager) installResource(ctx context.Context) (*av1.LifecycleFlow, e
 				errs = append(errs, err)
 			} else {
 				// Should consider as just created by us
-				justCreated.Main = rendered.Main
+				created.Main = rendered.Main
 			}
 		} else {
-			justCreated.Main = rendered.Main
+			created.Main = rendered.Main
 		}
 	} else {
 		log.Info("No Main Workflow")
 	}
 
 	if len(errs) != 0 {
-		return justCreated, errs[0]
+		return created, errs[0]
 	}
-	return justCreated, nil
+	return created, nil
 }
 
 // InstallResource updates K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m basemanager) updateResource(ctx context.Context) (*av1.LifecycleFlow, *av1.LifecycleFlow, error) {
-	return m.deployedLifecycleFlow, &av1.LifecycleFlow{}, nil
+
+	updated := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
+
+	if m.deployedLifecycleFlow == nil {
+		// There was an error during SyncResource
+		return m.deployedLifecycleFlow, updated, lcmif.UpdateError
+	}
+
+	return m.deployedLifecycleFlow, updated, nil
 }
 
 // ReconcileResource creates or patches resources as necessary to match this Phase CR
 func (m basemanager) reconcileResource(ctx context.Context) (*av1.LifecycleFlow, error) {
-	return m.deployedLifecycleFlow, nil
+
+	reconciled := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
+
+	if m.deployedLifecycleFlow == nil {
+		return reconciled, lcmif.ReconcileError
+	}
+	return reconciled, nil
 }
 
 // UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this Phase CR
 func (m basemanager) uninstallResource(ctx context.Context) (*av1.LifecycleFlow, error) {
 	errs := make([]error, 0)
-	stillDeployed := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
+	notdeleted := av1.NewLifecycleFlow(m.oslcNamespace, m.oslcName)
+
+	if m.deployedLifecycleFlow == nil {
+		// There was an error during SyncResource
+		return notdeleted, lcmif.UninstallError
+	}
 
 	if m.deployedLifecycleFlow.Main != nil {
 		err := m.kubeClient.Delete(context.TODO(), m.deployedLifecycleFlow.Main)
@@ -237,7 +260,7 @@ func (m basemanager) uninstallResource(ctx context.Context) (*av1.LifecycleFlow,
 			if !apierrors.IsNotFound(err) {
 				log.Error(err, "Can't not delete main flow")
 				errs = append(errs, err)
-				stillDeployed.Main = m.deployedLifecycleFlow.Main
+				notdeleted.Main = m.deployedLifecycleFlow.Main
 			}
 		}
 	}
@@ -248,13 +271,13 @@ func (m basemanager) uninstallResource(ctx context.Context) (*av1.LifecycleFlow,
 			if !apierrors.IsNotFound(err) {
 				log.Error(err, "Can't not delete phase")
 				errs = append(errs, err)
-				stillDeployed.Phases[phaseName] = toDelete
+				notdeleted.Phases[phaseName] = toDelete
 			}
 		}
 	}
 
 	if len(errs) != 0 {
-		return stillDeployed, errs[0]
+		return notdeleted, errs[0]
 	}
-	return stillDeployed, nil
+	return notdeleted, nil
 }

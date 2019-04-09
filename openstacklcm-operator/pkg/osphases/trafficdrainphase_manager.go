@@ -18,6 +18,7 @@ import (
 	"context"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
+	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 )
 
 type trafficdrainmanager struct {
@@ -25,6 +26,22 @@ type trafficdrainmanager struct {
 
 	spec   av1.TrafficDrainPhaseSpec
 	status *av1.TrafficDrainPhaseStatus
+}
+
+type trafficdrainrenderer struct {
+	helmrenderer lcmif.OwnerRefHelmRenderer
+
+	spec av1.TrafficDrainPhaseSpec
+}
+
+// RenderFile injects TrafficDrainPhase spec into the rendering of a file
+func (o trafficdrainrenderer) RenderFile(name string, namespace string, fileName string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderFile(name, namespace, fileName)
+}
+
+// RenderChart injects TrafficDrainPhase spec into the renderering of a chart
+func (o trafficdrainrenderer) RenderChart(name string, namespace string, chartLocation string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderChart(name, namespace, chartLocation)
 }
 
 // SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this TrafficDrainPhase CR
@@ -47,7 +64,7 @@ func (m trafficdrainmanager) ReconcileResource(ctx context.Context) (*av1.SubRes
 	return m.reconcileResource(ctx)
 }
 
-// UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this TrafficDrainPhase CR
+// UninstallResource trafficdrain K8s sub resources (Workflow, Job, ....) attached to this TrafficDrainPhase CR
 func (m trafficdrainmanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
 	return m.uninstallResource(ctx)
 }

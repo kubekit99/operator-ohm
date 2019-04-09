@@ -25,4 +25,19 @@ var (
 	// OwnershipMismatch indicates that one of the subresources does
 	// not have the right ownership.
 	OwnershipMismatch = errors.New("Ownership Mismatch")
+
+	// Error detected during SyncResource
+	SyncError = errors.New("Sync Error")
+
+	// Error detected during InstallResource
+	InstallError = errors.New("Install Error")
+
+	// Error detected during UninstallResource
+	UninstallError = errors.New("Uninstall Error")
+
+	// Error detected during UpdateResource
+	UpdateError = errors.New("Update Error")
+
+	// Error detected during ReconcileResource
+	ReconcileError = errors.New("Reconcile Error")
 )

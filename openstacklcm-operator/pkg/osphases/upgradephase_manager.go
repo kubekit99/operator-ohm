@@ -18,6 +18,7 @@ import (
 	"context"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
+	lcmif "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 )
 
 type upgrademanager struct {
@@ -25,6 +26,22 @@ type upgrademanager struct {
 
 	spec   av1.UpgradePhaseSpec
 	status *av1.UpgradePhaseStatus
+}
+
+type upgraderenderer struct {
+	helmrenderer lcmif.OwnerRefHelmRenderer
+
+	spec av1.UpgradePhaseSpec
+}
+
+// RenderFile injects UpgradePhase spec into the rendering of a file
+func (o upgraderenderer) RenderFile(name string, namespace string, fileName string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderFile(name, namespace, fileName)
+}
+
+// RenderChart injects UpgradePhase spec into the renderering of a chart
+func (o upgraderenderer) RenderChart(name string, namespace string, chartLocation string) (*av1.SubResourceList, error) {
+	return o.helmrenderer.RenderChart(name, namespace, chartLocation)
 }
 
 // SyncResource retrieves from K8s the sub resources (Workflow, Job, ....) attached to this UpgradePhase CR
@@ -47,7 +64,7 @@ func (m upgrademanager) ReconcileResource(ctx context.Context) (*av1.SubResource
 	return m.reconcileResource(ctx)
 }
 
-// UninstallResource delete K8s sub resources (Workflow, Job, ....) attached to this UpgradePhase CR
+// UninstallResource upgrade K8s sub resources (Workflow, Job, ....) attached to this UpgradePhase CR
 func (m upgrademanager) UninstallResource(ctx context.Context) (*av1.SubResourceList, error) {
 	return m.uninstallResource(ctx)
 }
