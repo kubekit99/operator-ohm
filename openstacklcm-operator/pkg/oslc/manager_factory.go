@@ -66,7 +66,7 @@ func (f managerFactory) NewOslcManager(r *av1.Oslc) lcmif.OslcManager {
 
 	// TODO(jeb): Kind of kludgy
 	if sourceType == "generate" {
-		sourceLocation = strings.ReplaceAll(r.Spec.Source.Location, r.Spec.ServiceName, "internal")
+		sourceLocation = strings.ReplaceAll(r.Spec.Source.Location, r.Spec.ServiceName, lcmif.GenericFlows.String())
 		renderValues["serviceName"] = serviceName
 	}
 
