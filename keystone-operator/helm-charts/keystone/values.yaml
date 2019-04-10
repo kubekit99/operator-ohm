@@ -96,6 +96,8 @@ dependencies:
       db_init: 120
       db_sync: 120
       db_dump: 120
+      db_restore: 120
+      db_drop: 120
   retries:
     credential_setup: 15
     fernet_setup: 15
@@ -103,6 +105,8 @@ dependencies:
     db_init: 15
     db_sync: 15
     db_dump: 15
+    db_restore: 15
+    db_drop: 15
   dynamic:
     common:
       local_image_registry:

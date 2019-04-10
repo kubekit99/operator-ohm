@@ -33,19 +33,30 @@ function fail_if_not_exists() {
 }
 
 fail_if_not_exists DB_USER
-fail_if_not_exists DB_HOST
 fail_if_not_exists DB_PASSWORD
+fail_if_not_exists DB_HOST
 
-echo "Backing up keystone database"
-sql_file=keystone_backup.sql
-mysqldump --single-transaction --user=${DB_USER} --password=${DB_PASSWORD} --host=${DB_HOST} keystone > ${sql_file}
-
-echo "Dumped database(s) to ${sql_file}"
+# NOTE(howell): Revisions count backward. This needs to be fixed
+revision=${DB_RESTORE_REVISION:-1}
 
 backup_dir=/etc/keystone/backups
-backup_file=${backup_dir}/$(date -u +%Y%m%dT%H%M%SZbackup.tar.gz)
-tar -czf ${backup_file} ${sql_file}
-echo "Backed up database(s) in ${backup_file}"
+backup_file_name=$(ls ${backup_dir} -1t | tail -n+$revision | head -n1)
 
-echo "Deleting old backups"
-rm -f $(ls -t1 ${backup_dir} | tail -n+11)
+if [ -z ${backup_file_name} ]
+then
+  echo "Revision $revision does not exist"
+  exit
+fi
+
+backup_file=${backup_dir}/${backup_file_name}
+echo "Using backup file ${backup_file}"
+
+# NOTE(howell): This assumes that the only file stored in ${backup_file} is
+# called "tmp/keystone_backup.sql". It would be ideal to come up with a
+# smarter way of checking this
+tar --overwrite --directory=/ -xzf ${backup_file}
+sql_file=/tmp/keystone_backup.sql
+
+echo "Restoring keystone database"
+mysql --host ${DB_HOST} --user=${DB_USER} --password=${DB_PASSWORD} --database=keystone < ${sql_file}
+echo "Restored keystone database"

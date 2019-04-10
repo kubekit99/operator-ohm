@@ -1,0 +1,28 @@
+{{- define "keystone.templates.lifecycle.rollback" -}}
+{{- $envAll := . }}
+# The workflow checks that all the jobs and services required for
+# keystone-api to start are here.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: keystone-rollback
+  namespace: {{ $envAll.Release.Namespace }}
+spec:
+  entrypoint: keystone-rollback
+  serviceAccountName: wf-keystone-sa
+  volumes:
+  {{- include "keystone.templates.steps._db_restore.volumes" . | nindent 2 }}
+  templates:
+  - name: wf-keystone-rollback
+    steps:
+    - - name: task-keystone-db-restore
+        template: task-keystone-db-restore
+
+  - name: task-keystone-db-restore
+    activeDeadlineSeconds: {{ .Values.dependencies.timeout.tasks.db_restore }}
+    retryStrategy:
+      limit: {{ .Values.dependencies.retries.db_restore }}
+    container:
+    {{- include "keystone.templates.steps._db_restore.container" . | nindent 6 }}
+{{- end }}

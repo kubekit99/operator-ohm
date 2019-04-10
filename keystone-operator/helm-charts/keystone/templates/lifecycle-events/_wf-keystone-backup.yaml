@@ -1,4 +1,4 @@
-{{- define "keystone.templates.lifecycle.upgrade" -}}
+{{- define "keystone.templates.lifecycle.backup" -}}
 {{- $envAll := . }}
 # The workflow checks that all the jobs and services required for
 # keystone-api to start are here.
@@ -6,15 +6,15 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: keystone-upgrade
+  name: keystone-backup
   namespace: {{ $envAll.Release.Namespace }}
 spec:
-  entrypoint: keystone-upgrade
+  entrypoint: keystone-backup
   serviceAccountName: wf-keystone-sa
   volumes:
   {{- include "keystone.templates.steps._db_dump.volumes" . | nindent 2 }}
   templates:
-  - name: wf-keystone-upgrade
+  - name: wf-keystone-backup
     steps:
     - - name: task-keystone-db-dump
         template: task-keystone-db-dump

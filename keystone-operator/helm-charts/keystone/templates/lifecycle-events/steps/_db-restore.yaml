@@ -1,0 +1,117 @@
+{{- define "keystone.templates.steps._db_restore.ignore" -}}
+{{- $envAll := . }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: keystone-db-restore
+  namespace: {{ $envAll.Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: release-name-keystone-db-restore
+  namespace: {{ $envAll.Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: release-name-default-keystone-db-restore
+subjects:
+  - kind: ServiceAccount
+    name: keystone-db-restore
+    namespace: {{ $envAll.Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: release-name-default-keystone-db-restore
+  namespace: {{ $envAll.Release.Namespace }}
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+      - batch
+      - apps
+    verbs:
+      - get
+      - list
+    resources:
+      - services
+      - endpoints
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "keystone-db-restore"
+spec:
+  template:
+    metadata:
+      labels:
+        release_group: release-name
+        application: keystone
+        component: db-restore
+    spec:
+      serviceAccountName: keystone-db-restore
+      restartPolicy: OnFailure
+      nodeSelector:
+        openstack-control-plane: enabled
+      containers:
+        - name: "keystone-db-restore-0"
+{{- end }}
+
+{{- define "keystone.templates.steps._db_restore.container" -}}
+name: "keystone-db-restore-0"
+image: "docker.io/library/mysql:5.5"
+imagePullPolicy: "IfNotPresent"
+
+env:
+  - name: PATH
+    value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/mysql/bin:/usr/local/mysql/scripts"
+  - name: DB_USER
+    value: {{ .Values.endpoints.oslo_db.auth.keystone.username }}
+  - name: DB_REVISION
+    value: "1"
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: {{ .Values.secrets.oslo_db.keystone }}
+        key: DB_PASSWORD
+  - name: DB_HOST
+    value: {{ tuple "oslo_db" "default" . | include "helm-toolkit.endpoints.hostname_fqdn_endpoint_lookup" }}
+
+command:
+  - /tmp/db-restore.sh
+volumeMounts:
+  - name: db-restore-sh
+    mountPath: /tmp/db-restore.sh
+    subPath: db-restore.sh
+    readOnly: true
+  - name: etc-service
+    mountPath: "/etc/keystone"
+  - name: db-restore-conf
+    mountPath: "/etc/keystone/keystone.conf"
+    subPath: "keystone.conf"
+    readOnly: true
+  - name: db-restore-conf
+    mountPath: "/etc/keystone/logging.conf"
+    subPath: "logging.conf"
+    readOnly: true
+  - mountPath: "/etc/keystone/backups"
+    name: pv-storage
+{{- end }}
+
+{{- define "keystone.templates.steps._db_restore.volumes" -}}
+- name: db-restore-sh
+  configMap:
+    name: "keystone-bin"
+    defaultMode: 0555
+- name: etc-service
+  emptyDir: {}
+- name: db-restore-conf
+  secret:
+    secretName: "keystone-etc"
+    defaultMode: 0444
+- name: pv-storage
+  persistentVolumeClaim:
+    claimName: keystone-backup-data
+{{- end }}
