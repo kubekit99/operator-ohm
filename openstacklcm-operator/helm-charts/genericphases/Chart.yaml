@@ -1,0 +1,4 @@
+apiVersion: v1
+description: Generic OpenStack LifeCycle Service
+name: generic
+version: 0.1.0
