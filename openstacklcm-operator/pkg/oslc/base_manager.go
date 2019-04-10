@@ -230,6 +230,9 @@ func (m basemanager) updateResource(ctx context.Context) (*av1.LifecycleFlow, *a
 		return m.deployedLifecycleFlow, updated, lcmif.UpdateError
 	}
 
+	// TODO(JEB): Big hack. ReconcileResource should do more
+	m.deployedLifecycleFlow.DeepCopyInto(updated)
+
 	return m.deployedLifecycleFlow, updated, nil
 }
 
@@ -241,6 +244,10 @@ func (m basemanager) reconcileResource(ctx context.Context) (*av1.LifecycleFlow,
 	if m.deployedLifecycleFlow == nil {
 		return reconciled, lcmif.ReconcileError
 	}
+
+	// TODO(JEB): Big hack. ReconcileResource should do more
+	m.deployedLifecycleFlow.DeepCopyInto(reconciled)
+
 	return reconciled, nil
 }
 

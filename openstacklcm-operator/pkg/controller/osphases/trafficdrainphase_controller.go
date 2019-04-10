@@ -73,12 +73,12 @@ func addTrafficDrainPhase(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to secondary resource (described in the yaml files) and requeue the owner TrafficDrainPhase
+	// Watch for changes to secondary resource (described in the yaml file/chart) and requeue the owner TrafficDrainPhase
 	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
 	// that created the object that was the source of the Event
 	if racr, isTrafficDrainPhaseReconciler := r.(*TrafficDrainPhaseReconciler); isTrafficDrainPhaseReconciler {
 		// The enqueueRequestForOwner is not actually done here since we don't know yet the
-		// content of the yaml files. The tools wait for the yaml files to be parse. The manager
+		// content of the yaml file. The tools wait for the yaml files to be parse. The manager
 		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
 		owner := av1.NewTrafficDrainPhaseVersionKind("", "")
 		dependentPredicate := racr.BuildDependentPredicate()
@@ -93,7 +93,7 @@ func addTrafficDrainPhase(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &TrafficDrainPhaseReconciler{}
 
-// TrafficDrainPhaseReconciler reconciles custom resources as Argo workflows.
+// TrafficDrainPhaseReconciler reconciles TrafficDrainPhase CRD as K8s SubResources.
 type TrafficDrainPhaseReconciler struct {
 	PhaseReconciler
 }
@@ -110,7 +110,7 @@ const (
 // completion it will remove the work from the queue.
 func (r *TrafficDrainPhaseReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reclog := trafficdrainphaselog.WithValues("namespace", request.Namespace, "trafficdrainphase", request.Name)
-	reclog.Info("Received a request")
+	reclog.Info("Reconciling")
 
 	instance := &av1.TrafficDrainPhase{}
 	instance.SetNamespace(request.Namespace)
@@ -156,7 +156,7 @@ func (r *TrafficDrainPhaseReconciler) Reconcile(request reconcile.Request) (reco
 	}
 
 	if instance.IsTargetStateUninitialized() {
-		reclog.Info("TargetState unitialized; skipping")
+		reclog.Info("TargetState uninitialized; skipping")
 		err = r.updateResource(instance)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -331,10 +331,12 @@ func (r TrafficDrainPhaseReconciler) deleteTrafficDrainPhase(mgr services.Traffi
 // installTrafficDrainPhase attempts to install instance. It returns true if the reconciler should be re-enqueueed
 func (r TrafficDrainPhaseReconciler) installTrafficDrainPhase(mgr services.TrafficDrainPhaseManager, instance *av1.TrafficDrainPhase) (bool, error) {
 	reclog := trafficdrainphaselog.WithValues("namespace", instance.Namespace, "trafficdrainphase", instance.Name)
-	reclog.Info("Installing`")
+	reclog.Info("Installing")
 
 	installedResource, err := mgr.InstallResource(context.TODO())
 	if err != nil {
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionFailed,
 			Status:  av1.ConditionStatusTrue,
@@ -355,12 +357,11 @@ func (r TrafficDrainPhaseReconciler) installTrafficDrainPhase(mgr services.Traff
 	}
 
 	hrc := av1.LcmResourceCondition{
-		Type:            av1.ConditionDeployed,
-		Status:          av1.ConditionStatusTrue,
-		Reason:          av1.ReasonInstallSuccessful,
-		Message:         installedResource.GetNotes(),
-		ResourceName:    installedResource.GetName(),
-		ResourceVersion: installedResource.GetVersion(),
+		Type:         av1.ConditionRunning,
+		Status:       av1.ConditionStatusTrue,
+		Reason:       av1.ReasonInstallSuccessful,
+		Message:      installedResource.GetPhaseKind().String(),
+		ResourceName: installedResource.GetName(),
 	}
 	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
@@ -372,13 +373,15 @@ func (r TrafficDrainPhaseReconciler) installTrafficDrainPhase(mgr services.Traff
 // updateTrafficDrainPhase attempts to update instance. It returns true if the reconciler should be re-enqueueed
 func (r TrafficDrainPhaseReconciler) updateTrafficDrainPhase(mgr services.TrafficDrainPhaseManager, instance *av1.TrafficDrainPhase) (bool, error) {
 	reclog := trafficdrainphaselog.WithValues("namespace", instance.Namespace, "trafficdrainphase", instance.Name)
-	reclog.Info("Updating`")
+	reclog.Info("Updating")
 
 	previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
 	if previousResource != nil && updatedResource != nil {
 		reclog.Info("UpdateResource", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
 	}
 	if err != nil {
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
 		hrc := av1.LcmResourceCondition{
 			Type:         av1.ConditionFailed,
 			Status:       av1.ConditionStatusTrue,
@@ -400,12 +403,11 @@ func (r TrafficDrainPhaseReconciler) updateTrafficDrainPhase(mgr services.Traffi
 	}
 
 	hrc := av1.LcmResourceCondition{
-		Type:            av1.ConditionDeployed,
-		Status:          av1.ConditionStatusTrue,
-		Reason:          av1.ReasonUpdateSuccessful,
-		Message:         updatedResource.GetNotes(),
-		ResourceName:    updatedResource.GetName(),
-		ResourceVersion: updatedResource.GetVersion(),
+		Type:         av1.ConditionRunning,
+		Status:       av1.ConditionStatusTrue,
+		Reason:       av1.ReasonUpdateSuccessful,
+		Message:      updatedResource.GetPhaseKind().String(),
+		ResourceName: updatedResource.GetName(),
 	}
 	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 	r.logAndRecordSuccess(instance, &hrc)
@@ -414,19 +416,21 @@ func (r TrafficDrainPhaseReconciler) updateTrafficDrainPhase(mgr services.Traffi
 	return true, err
 }
 
-// reconcileTrafficDrainPhase reconciles the yaml files with the cluster
+// reconcileTrafficDrainPhase reconciles the phases with the flow
 func (r TrafficDrainPhaseReconciler) reconcileTrafficDrainPhase(mgr services.TrafficDrainPhaseManager, instance *av1.TrafficDrainPhase) error {
 	reclog := trafficdrainphaselog.WithValues("namespace", instance.Namespace, "trafficdrainphase", instance.Name)
 	reclog.Info("Reconciling TrafficDrainPhase and LcmResource")
 
-	expectedResource, err := mgr.ReconcileResource(context.TODO())
+	reconciledResource, err := mgr.ReconcileResource(context.TODO())
 	if err != nil {
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
 		hrc := av1.LcmResourceCondition{
 			Type:         av1.ConditionIrreconcilable,
 			Status:       av1.ConditionStatusTrue,
 			Reason:       av1.ReasonReconcileError,
 			Message:      err.Error(),
-			ResourceName: expectedResource.GetName(),
+			ResourceName: reconciledResource.GetName(),
 		}
 		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
@@ -435,9 +439,29 @@ func (r TrafficDrainPhaseReconciler) reconcileTrafficDrainPhase(mgr services.Tra
 		return err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-	if err := r.watchDependentResources(expectedResource); err != nil {
+
+	if err := r.watchDependentResources(reconciledResource); err != nil {
 		reclog.Error(err, "Failed to update watch on dependent resources")
 		return err
 	}
+
+	if reconciledResource.IsReady() {
+		// We reconcile. Everything is ready. The flow is now ok
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
+		hrc := av1.LcmResourceCondition{
+			Type:         av1.ConditionDeployed,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonUnderlyingResourcesReady,
+			Message:      reconciledResource.GetPhaseKind().String(),
+			ResourceName: reconciledResource.GetName(),
+		}
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
+		r.logAndRecordSuccess(instance, &hrc)
+
+		err = r.updateResourceStatus(instance)
+		return err
+	}
+
 	return nil
 }

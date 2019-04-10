@@ -302,6 +302,27 @@ func (obj *LifecycleFlow) CheckOwnerReference(refs []metav1.OwnerReference) bool
 	return true
 }
 
+// Check the state of a service
+func (obj *LifecycleFlow) IsReady() bool {
+
+	dep := &KubernetesDependency{}
+
+	// Check the state of the Main workflow to figure out
+	// if the phase is still running
+	if obj.Main != nil && !dep.IsWorkflowReady(obj.Main) {
+		return false
+	}
+
+	// The state of the main workflow should be enough to
+	// reflect the state of the LifecycleFlow. Also we
+	// have access to the Phases, don't need to monitor
+	// their state
+	// for _, item := range obj.Phases {
+	// }
+
+	return true
+}
+
 // Returns a new LifecycleFlow
 func NewLifecycleFlow(namespace string, name string) *LifecycleFlow {
 	res := &LifecycleFlow{Namespace: namespace, Name: name}

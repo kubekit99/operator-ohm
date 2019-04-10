@@ -17,8 +17,6 @@ package oslc
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"time"
 
 	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 	oslcmgr "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/oslc"
@@ -26,17 +24,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 
-	"k8s.io/client-go/tools/record"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	crthandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -54,11 +45,13 @@ func AddOslcController(mgr manager.Manager) error {
 // newOslcReconciler returns a new reconcile.Reconciler
 func newOslcReconciler(mgr manager.Manager) reconcile.Reconciler {
 	r := &OslcReconciler{
-		client:         mgr.GetClient(),
-		scheme:         mgr.GetScheme(),
-		recorder:       mgr.GetRecorder("oslc-recorder"),
-		managerFactory: oslcmgr.NewManagerFactory(mgr),
-		// reconcilePeriod: flags.ReconcilePeriod,
+		BaseReconciler: BaseReconciler{
+			client:         mgr.GetClient(),
+			scheme:         mgr.GetScheme(),
+			recorder:       mgr.GetRecorder("oslc-recorder"),
+			managerFactory: oslcmgr.NewManagerFactory(mgr),
+			// reconcilePeriod: flags.ReconcilePeriod,
+		},
 	}
 	return r
 }
@@ -80,15 +73,15 @@ func addOslc(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to secondary resource (described in the helm chart) and requeue the owner Oslc
+	// Watch for changes to secondary resource (described in the yaml file/chart) and requeue the owner Oslc
 	// EnqueueRequestForOwner enqueues Requests for the Owners of an object. E.g. the object
 	// that created the object that was the source of the Event
 	if racr, isOslcReconciler := r.(*OslcReconciler); isOslcReconciler {
 		// The enqueueRequestForOwner is not actually done here since we don't know yet the
-		// content of the release. The tools wait for the helm chart to be parse. The chart_manager
+		// content of the yaml file. The tools wait for the yaml files to be parse. The manager
 		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
 		owner := av1.NewOslcVersionKind("", "")
-		dependentPredicate := racr.buildDependentPredicate()
+		dependentPredicate := racr.BuildDependentPredicate()
 		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c, *dependentPredicate)
 	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
 		// Unit test issue
@@ -100,70 +93,14 @@ func addOslc(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &OslcReconciler{}
 
-// OslcReconciler reconciles custom resources as Helm releases.
+// OslcReconciler reconciles Oslc CRD as K8s SubResources.
 type OslcReconciler struct {
-	client                  client.Client
-	scheme                  *runtime.Scheme
-	recorder                record.EventRecorder
-	managerFactory          services.OslcManagerFactory
-	reconcilePeriod         time.Duration
-	depResourceWatchUpdater services.DependentResourceWatchUpdater
+	BaseReconciler
 }
 
 const (
-	finalizerOslc = "uninstall-helm-release"
+	finalizerOslc = "uninstall-oslc-resource"
 )
-
-// buildDependentPredicate create the predicates used by subresources watches
-func (r *OslcReconciler) buildDependentPredicate() *crtpredicate.Funcs {
-
-	dependentPredicate := crtpredicate.Funcs{
-		// We don't need to reconcile dependent resource creation events
-		// because dependent resources are only ever created during
-		// reconciliation. Another reconcile would be redundant.
-		CreateFunc: func(e event.CreateEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			oslclog.Info("CreateEvent. Filtering", "resource", o.GetName(), "namespace", o.GetNamespace(),
-				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
-			return false
-		},
-
-		// Reconcile when a dependent resource is deleted so that it can be
-		// recreated.
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			oslclog.Info("DeleteEvent. Triggering", "resource", o.GetName(), "namespace", o.GetNamespace(),
-				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
-			return true
-		},
-
-		// Reconcile when a dependent resource is updated, so that it can
-		// be patched back to the resource managed by the Argo workflow, if
-		// necessary. Ignore updates that only change the status and
-		// resourceVersion.
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			old := e.ObjectOld.(*unstructured.Unstructured).DeepCopy()
-			new := e.ObjectNew.(*unstructured.Unstructured).DeepCopy()
-
-			delete(old.Object, "status")
-			delete(new.Object, "status")
-			old.SetResourceVersion("")
-			new.SetResourceVersion("")
-
-			if reflect.DeepEqual(old.Object, new.Object) {
-				oslclog.Info("UpdateEvent. Filtering", "resource", new.GetName(), "namespace", new.GetNamespace(),
-					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
-				return false
-			} else {
-				oslclog.Info("UpdateEvent. Triggering", "resource", new.GetName(), "namespace", new.GetNamespace(),
-					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
-				return true
-			}
-		},
-	}
-
-	return &dependentPredicate
-}
 
 // Reconcile reads that state of the cluster for an Oslc object and
 // makes changes based on the state read and what is in the Oslc.Spec
@@ -173,7 +110,7 @@ func (r *OslcReconciler) buildDependentPredicate() *crtpredicate.Funcs {
 // completion it will remove the work from the queue.
 func (r *OslcReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reclog := oslclog.WithValues("namespace", request.Namespace, "oslc", request.Name)
-	reclog.Info("Received a request")
+	reclog.Info("Reconciling")
 
 	instance := &av1.Oslc{}
 	instance.SetNamespace(request.Namespace)
@@ -394,10 +331,12 @@ func (r OslcReconciler) deleteOslc(mgr services.OslcManager, instance *av1.Oslc)
 // installOslc attempts to install instance. It returns true if the reconciler should be re-enqueueed
 func (r OslcReconciler) installOslc(mgr services.OslcManager, instance *av1.Oslc) (bool, error) {
 	reclog := oslclog.WithValues("namespace", instance.Namespace, "oslc", instance.Name)
-	reclog.Info("Installing`")
+	reclog.Info("Installing")
 
 	installedResource, err := mgr.InstallResource(context.TODO())
 	if err != nil {
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
 		hrc := av1.LcmResourceCondition{
 			Type:    av1.ConditionFailed,
 			Status:  av1.ConditionStatusTrue,
@@ -418,7 +357,7 @@ func (r OslcReconciler) installOslc(mgr services.OslcManager, instance *av1.Oslc
 	}
 
 	hrc := av1.LcmResourceCondition{
-		Type:         av1.ConditionDeployed,
+		Type:         av1.ConditionRunning,
 		Status:       av1.ConditionStatusTrue,
 		Reason:       av1.ReasonInstallSuccessful,
 		Message:      installedResource.GetFlowKind().String(),
@@ -434,13 +373,15 @@ func (r OslcReconciler) installOslc(mgr services.OslcManager, instance *av1.Oslc
 // updateOslc attempts to update instance. It returns true if the reconciler should be re-enqueueed
 func (r OslcReconciler) updateOslc(mgr services.OslcManager, instance *av1.Oslc) (bool, error) {
 	reclog := oslclog.WithValues("namespace", instance.Namespace, "oslc", instance.Name)
-	reclog.Info("Updating`")
+	reclog.Info("Updating")
 
 	previousResource, updatedResource, err := mgr.UpdateResource(context.TODO())
 	if previousResource != nil && updatedResource != nil {
 		reclog.Info("UpdateResource", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
 	}
 	if err != nil {
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
 		hrc := av1.LcmResourceCondition{
 			Type:         av1.ConditionFailed,
 			Status:       av1.ConditionStatusTrue,
@@ -462,7 +403,7 @@ func (r OslcReconciler) updateOslc(mgr services.OslcManager, instance *av1.Oslc)
 	}
 
 	hrc := av1.LcmResourceCondition{
-		Type:         av1.ConditionDeployed,
+		Type:         av1.ConditionRunning,
 		Status:       av1.ConditionStatusTrue,
 		Reason:       av1.ReasonUpdateSuccessful,
 		Message:      updatedResource.GetFlowKind().String(),
@@ -475,19 +416,21 @@ func (r OslcReconciler) updateOslc(mgr services.OslcManager, instance *av1.Oslc)
 	return true, err
 }
 
-// reconcileOslc reconciles the release with the cluster
+// reconcileOslc reconciles the phases with the flow
 func (r OslcReconciler) reconcileOslc(mgr services.OslcManager, instance *av1.Oslc) error {
 	reclog := oslclog.WithValues("namespace", instance.Namespace, "oslc", instance.Name)
 	reclog.Info("Reconciling Oslc and LcmResource")
 
-	expectedResource, err := mgr.ReconcileResource(context.TODO())
+	reconciledResource, err := mgr.ReconcileResource(context.TODO())
 	if err != nil {
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
 		hrc := av1.LcmResourceCondition{
 			Type:         av1.ConditionIrreconcilable,
 			Status:       av1.ConditionStatusTrue,
 			Reason:       av1.ReasonReconcileError,
 			Message:      err.Error(),
-			ResourceName: expectedResource.GetName(),
+			ResourceName: reconciledResource.GetName(),
 		}
 		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
@@ -496,18 +439,29 @@ func (r OslcReconciler) reconcileOslc(mgr services.OslcManager, instance *av1.Os
 		return err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-	if err := r.watchDependentResources(expectedResource); err != nil {
+
+	if err := r.watchDependentResources(reconciledResource); err != nil {
 		reclog.Error(err, "Failed to update watch on dependent resources")
 		return err
 	}
-	return nil
-}
 
-func (r OslcReconciler) contains(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
+	if reconciledResource.IsReady() {
+		// We reconcile. Everything is ready. The flow is now ok
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
+		hrc := av1.LcmResourceCondition{
+			Type:         av1.ConditionDeployed,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonUnderlyingResourcesReady,
+			Message:      reconciledResource.GetFlowKind().String(),
+			ResourceName: reconciledResource.GetName(),
 		}
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
+		r.logAndRecordSuccess(instance, &hrc)
+
+		err = r.updateResourceStatus(instance)
+		return err
 	}
-	return false
+
+	return nil
 }

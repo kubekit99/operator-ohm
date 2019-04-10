@@ -176,6 +176,9 @@ func (m phasemanager) updateResource(ctx context.Context) (*av1.SubResourceList,
 		return m.deployedSubResourceList, updated, lcmif.UpdateError
 	}
 
+	// TODO(JEB): Big hack. ReconcileResource should do more
+	m.deployedSubResourceList.DeepCopyInto(updated)
+
 	return m.deployedSubResourceList, updated, nil
 }
 
@@ -188,6 +191,9 @@ func (m phasemanager) reconcileResource(ctx context.Context) (*av1.SubResourceLi
 		// There was an error during SyncResource
 		return reconciled, lcmif.ReconcileError
 	}
+
+	// TODO(JEB): Big hack. ReconcileResource should do more
+	m.deployedSubResourceList.DeepCopyInto(reconciled)
 
 	return reconciled, nil
 }

@@ -18,11 +18,8 @@ import (
 	"reflect"
 
 	yaml "gopkg.in/yaml.v2"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // LcmResourceState is the status of a release/chart/chartgroup/manifest
@@ -65,8 +62,6 @@ const (
 	StatePending LcmResourceState = "pending"
 	// StateRunning indicates that resource was xxx
 	StateRunning LcmResourceState = "running"
-	// StateSkipped indicates that resource was xxx
-	StateSkipped LcmResourceState = "skipped"
 	// StateError indicates that resource was xxx
 	StateError LcmResourceState = "error"
 )
@@ -81,18 +76,22 @@ const (
 // These represent acceptable values for a LcmResourceConditionType
 const (
 	ConditionIrreconcilable LcmResourceConditionType = "Irreconcilable"
-	ConditionFailed                                  = "Failed"
+	ConditionPending                                 = "Pending"
 	ConditionInitialized                             = "Initializing"
+	ConditionError                                   = "Error"
+	ConditionRunning                                 = "Running"
 	ConditionDeployed                                = "Deployed"
+	ConditionFailed                                  = "Failed"
 )
 
 // The following represent the more fine-grained reasons for a given condition
 const (
 	// Successful Conditions Reasons
-	ReasonInstallSuccessful   LcmResourceConditionReason = "InstallSuccessful"
-	ReasonReconcileSuccessful                            = "ReconcileSuccessful"
-	ReasonUninstallSuccessful                            = "UninstallSuccessful"
-	ReasonUpdateSuccessful                               = "UpdateSuccessful"
+	ReasonInstallSuccessful        LcmResourceConditionReason = "InstallSuccessful"
+	ReasonReconcileSuccessful                                 = "ReconcileSuccessful"
+	ReasonUninstallSuccessful                                 = "UninstallSuccessful"
+	ReasonUpdateSuccessful                                    = "UpdateSuccessful"
+	ReasonUnderlyingResourcesReady                            = "UnderlyingResourcesReady"
 
 	// Error Condition Reasons
 	ReasonInstallError   LcmResourceConditionReason = "InstallError"
@@ -249,7 +248,11 @@ func (s *LcmResourceConditionListHelper) FindCondition(conditionType LcmResource
 func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, target LcmResourceState) {
 	// TODO(Ian): finish this
 	if cond.Status == ConditionStatusTrue {
-		if cond.Type == ConditionInitialized {
+		if cond.Type == ConditionPending {
+			s.ActualState = StatePending
+			s.Succeeded = (s.ActualState == target)
+			s.Reason = ""
+		} else if cond.Type == ConditionInitialized {
 			// Since that condition is set almost systematically
 			// let's do not recompute the state.
 			if (s.ActualState == "") || (s.ActualState == StateUnknown) {
@@ -257,16 +260,29 @@ func (s *OpenstackLcmStatus) ComputeActualState(cond LcmResourceCondition, targe
 				s.Succeeded = (s.ActualState == target)
 				s.Reason = ""
 			}
+		} else if cond.Type == ConditionRunning {
+			// The deployment is still running
+			s.ActualState = StateRunning
+			s.Succeeded = false
+			s.Reason = ""
 		} else if cond.Type == ConditionDeployed {
+			// No change is expected anymore. It is deployed
 			s.ActualState = StateDeployed
 			s.Succeeded = (s.ActualState == target)
 			s.Reason = ""
+		} else if cond.Type == ConditionFailed {
+			// No change is expected anymore. It is failed
+			s.ActualState = StateFailed
+			s.Succeeded = false
+			s.Reason = cond.Reason.String()
 		} else if cond.Type == ConditionIrreconcilable {
+			// We can't reconcile the subresources and the CRD
 			s.ActualState = StateError
 			s.Succeeded = false
 			s.Reason = cond.Reason.String()
-		} else if cond.Type == ConditionFailed {
-			s.ActualState = StateFailed
+		} else if cond.Type == ConditionError {
+			// We have a bug somewhere.
+			s.ActualState = StateError
 			s.Succeeded = false
 			s.Reason = cond.Reason.String()
 		} else {
@@ -330,6 +346,7 @@ type SubResourceList struct {
 	Namespace string
 	Notes     string
 	Version   int32
+	PhaseKind OslcPhase
 
 	// Items is the list of Resources deployed in the K8s cluster
 	Items [](unstructured.Unstructured)
@@ -353,6 +370,11 @@ func (obj *SubResourceList) GetNotes() string {
 // Returns the Version for this SubResourceList
 func (obj *SubResourceList) GetVersion() int32 {
 	return obj.Version
+}
+
+// Returns the PhaseLind for this SubResourceList
+func (obj *SubResourceList) GetPhaseKind() OslcPhase {
+	return obj.PhaseKind
 }
 
 // Returns the DependentResource for this SubResourceList
@@ -382,66 +404,36 @@ func (obj *SubResourceList) CheckOwnerReference(refs []metav1.OwnerReference) bo
 }
 
 // Check the state of a service
-func (obj *SubResourceList) IsServiceReady(u unstructured.Unstructured) bool {
-	endpoints := corev1.Endpoints{}
-	err1 := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &endpoints)
-	if err1 != nil {
-		return false
-	}
+func (obj *SubResourceList) IsReady() bool {
 
-	for _, subset := range endpoints.Subsets {
-		if len(subset.Addresses) > 0 {
-			return true
+	dep := &KubernetesDependency{}
+
+	// Check that each sub resource is owned by the phase
+	for _, item := range obj.Items {
+		ready := true
+
+		// TODO(jeb): Any better pattern possible here ?
+		switch item.GetKind() {
+		case "Pod":
+			{
+				ready = dep.IsPodReady(&item)
+			}
+		case "Job":
+			{
+				ready = dep.IsJobReady(&item)
+			}
+		case "Workflow":
+			{
+				ready = dep.IsWorkflowReady(&item)
+			}
+		}
+
+		if !ready {
+			return false
 		}
 	}
-	return false
-}
 
-// Check the state of a container
-func (obj *SubResourceList) isContainerReady(containerName string, u unstructured.Unstructured) bool {
-	pod := corev1.Pod{}
-	err1 := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &pod)
-	if err1 != nil {
-		return false
-	}
-
-	containers := pod.Status.ContainerStatuses
-	for _, container := range containers {
-		if container.Name == containerName && container.Ready {
-			return true
-		}
-	}
-	return false
-}
-
-// Check the state of a job
-func (obj *SubResourceList) isJobReady(u unstructured.Unstructured) bool {
-	job := batchv1.Job{}
-	err1 := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &job)
-	if err1 != nil {
-		return false
-	}
-
-	if job.Status.Succeeded == 0 {
-		return false
-	}
 	return true
-}
-
-// Check the state of a pod
-func (obj *SubResourceList) isPodReady(u unstructured.Unstructured) bool {
-	pod := corev1.Pod{}
-	err1 := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &pod)
-	if err1 != nil {
-		return false
-	}
-
-	for _, condition := range pod.Status.Conditions {
-		if condition.Type == corev1.PodReady && condition.Status == "True" {
-			return true
-		}
-	}
-	return false
 }
 
 // Returns a new SubResourceList
