@@ -410,25 +410,7 @@ func (obj *SubResourceList) IsReady() bool {
 
 	// Check that each sub resource is owned by the phase
 	for _, item := range obj.Items {
-		ready := true
-
-		// TODO(jeb): Any better pattern possible here ?
-		switch item.GetKind() {
-		case "Pod":
-			{
-				ready = dep.IsPodReady(&item)
-			}
-		case "Job":
-			{
-				ready = dep.IsJobReady(&item)
-			}
-		case "Workflow":
-			{
-				ready = dep.IsWorkflowReady(&item)
-			}
-		}
-
-		if !ready {
+		if !dep.IsUnstructuredReady(&item) {
 			return false
 		}
 	}

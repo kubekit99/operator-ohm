@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"time"
 
+	av1 "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/apis/openstacklcm/v1alpha1"
 	services "github.com/kubekit99/operator-ohm/openstacklcm-operator/pkg/services"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -59,18 +60,18 @@ func (r *BaseReconciler) BuildDependentPredicate() *crtpredicate.Funcs {
 		// because dependent resources are only ever created during
 		// reconciliation. Another reconcile would be redundant.
 		CreateFunc: func(e event.CreateEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			oslclog.Info("CreateEvent. Filtering", "resource", o.GetName(), "namespace", o.GetNamespace(),
-				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			// o := e.Object.(*unstructured.Unstructured)
+			// oslclog.Info("CreateEvent. Filtering", "resource", o.GetName(), "namespace", o.GetNamespace(),
+			//	"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
 			return false
 		},
 
 		// Reconcile when a dependent resource is deleted so that it can be
 		// recreated.
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			oslclog.Info("DeleteEvent. Triggering", "resource", o.GetName(), "namespace", o.GetNamespace(),
-				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
+			// o := e.Object.(*unstructured.Unstructured)
+			// oslclog.Info("DeleteEvent. Triggering", "resource", o.GetName(), "namespace", o.GetNamespace(),
+			//	"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
 			return true
 		},
 
@@ -79,8 +80,18 @@ func (r *BaseReconciler) BuildDependentPredicate() *crtpredicate.Funcs {
 		// necessary. Ignore updates that only change the status and
 		// resourceVersion.
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			old := e.ObjectOld.(*unstructured.Unstructured).DeepCopy()
-			new := e.ObjectNew.(*unstructured.Unstructured).DeepCopy()
+			u := e.ObjectOld.(*unstructured.Unstructured)
+			v := e.ObjectNew.(*unstructured.Unstructured)
+
+			dep := &av1.KubernetesDependency{}
+			if dep.UnstructuredStatusChanged(u, v) {
+				// oslclog.Info("UpdateEvent. Status changed", "resource", u.GetName(), "namespace", u.GetNamespace(),
+				//	"apiVersion", u.GroupVersionKind().GroupVersion(), "kind", u.GroupVersionKind().Kind)
+				return true
+			}
+
+			old := u.DeepCopy()
+			new := v.DeepCopy()
 
 			delete(old.Object, "status")
 			delete(new.Object, "status")
@@ -88,12 +99,12 @@ func (r *BaseReconciler) BuildDependentPredicate() *crtpredicate.Funcs {
 			new.SetResourceVersion("")
 
 			if reflect.DeepEqual(old.Object, new.Object) {
-				oslclog.Info("UpdateEvent. Filtering", "resource", new.GetName(), "namespace", new.GetNamespace(),
-					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
+				// oslclog.Info("UpdateEvent. Spec unchanged", "resource", new.GetName(), "namespace", new.GetNamespace(),
+				//	"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
 				return false
 			} else {
-				oslclog.Info("UpdateEvent. Triggering", "resource", new.GetName(), "namespace", new.GetNamespace(),
-					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
+				// oslclog.Info("UpdateEvent. Spec changed", "resource", new.GetName(), "namespace", new.GetNamespace(),
+				//	"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
 				return true
 			}
 		},

@@ -309,7 +309,7 @@ func (obj *LifecycleFlow) IsReady() bool {
 
 	// Check the state of the Main workflow to figure out
 	// if the phase is still running
-	if obj.Main != nil && !dep.IsWorkflowReady(obj.Main) {
+	if obj.Main != nil && !dep.IsUnstructuredReady(obj.Main) {
 		return false
 	}
 

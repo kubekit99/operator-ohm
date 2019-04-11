@@ -32,9 +32,9 @@ phases:
     enable_phase_trafficrollout: 120
     enable_phase_upgrade: 120
     wait_phase_delete: 120
-    wait_phase_install: 120
+    wait_phase_install: 300
     wait_phase_rollback: 120
     wait_phase_test: 120
     wait_phase_trafficdrain: 120
     wait_phase_trafficrollout: 120
-    wait_phase_upgrade: 120
+    wait_phase_upgrade: 300
