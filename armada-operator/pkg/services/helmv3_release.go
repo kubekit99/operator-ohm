@@ -30,38 +30,38 @@ import (
 
 type HelmRelease struct {
 	*rpb.Release
+	cached []unstructured.Unstructured
 }
 
-func (r *HelmRelease) GetManifest() string {
-	return r.Manifest
-}
-func (r *HelmRelease) GetName() string {
-	return r.Name
-}
 func (r *HelmRelease) GetNotes() string {
-	// return r.GetInfo().GetStatus().GetNotes()
-	return r.Info.Notes
+	return r.GetInfo().GetStatus().GetNotes()
 }
-func (r *HelmRelease) GetVersion() int32 {
-	return int32(r.Version)
+
+// Let's cache the actual objects
+func (r *HelmRelease) AddToCache(u unstructured.Unstructured) {
+	r.cached = append(r.cached, u)
 }
 
 // GetDependentResource extracts the list of dependent resources
 // from the Helm Manifest in order to add Watch on those components.
 func (release *HelmRelease) GetDependentResources() []unstructured.Unstructured {
 
-	var res = make([]unstructured.Unstructured, 0)
+	if len(release.cached) != 0 {
+		return release.cached
+	}
+
+	deps := make([]unstructured.Unstructured, 0)
 	dec := yaml.NewDecoder(bytes.NewBufferString(release.GetManifest()))
 	for {
 		var u unstructured.Unstructured
 		err := dec.Decode(&u.Object)
 		if err == io.EOF {
-			return res
+			return deps
 		}
 		if err != nil {
 			return nil
 		}
-		res = append(res, u)
+		deps = append(deps, u)
 	}
 }
 

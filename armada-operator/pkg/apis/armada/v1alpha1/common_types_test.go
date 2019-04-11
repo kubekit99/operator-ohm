@@ -40,14 +40,6 @@ func TestComputeActualState(t *testing.T) {
 	testStatus.ComputeActualState(testCondition, StateDeployed)
 	compareState(t, testStatus, StateDeployed, true, "")
 
-	testCondition = HelmResourceCondition{Status: ConditionStatusTrue, Type: ConditionEnabled}
-	testStatus = &ArmadaStatus{ActualState: StateUnknown}
-	testStatus.ComputeActualState(testCondition, StateInitialized)
-	compareState(t, testStatus, StatePendingInitialization, false, "")
-	testStatus = &ArmadaStatus{ActualState: StateUnknown}
-	testStatus.ComputeActualState(testCondition, StatePendingInitialization)
-	compareState(t, testStatus, StatePendingInitialization, true, "")
-
 	testCondition = HelmResourceCondition{Status: ConditionStatusTrue, Type: ConditionIrreconcilable}
 	testStatus = &ArmadaStatus{ActualState: StateUnknown}
 	testStatus.ComputeActualState(testCondition, StateDeployed)
@@ -68,11 +60,6 @@ func TestComputeActualState(t *testing.T) {
 	testStatus = &ArmadaStatus{ActualState: StateUnknown}
 	testStatus.ComputeActualState(testCondition, StateUninstalled)
 	compareState(t, testStatus, StateUninstalled, true, "")
-
-	testCondition = HelmResourceCondition{Status: ConditionStatusFalse, Type: ConditionEnabled}
-	testStatus = &ArmadaStatus{ActualState: StateUnknown}
-	testStatus.ComputeActualState(testCondition, StateUninstalled)
-	compareState(t, testStatus, StateUnknown, true, "Disabled Resource is always successful")
 
 	testCondition = HelmResourceCondition{Status: ConditionStatusFalse, Type: "TEST TYPE"}
 	testStatus = &ArmadaStatus{ActualState: StateUninstalled}

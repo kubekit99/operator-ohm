@@ -35,28 +35,27 @@ import (
 )
 
 type managerFactory struct {
-	storageBackend   *storage.Storage
-	helmKubeClient *kube.Client
+	storageBackend      *storage.Storage
+	tillerKubeClient    *kube.Client
 }
 
 // NewManagerFactory returns a new Helm manager factory capable of installing and uninstalling releases.
 func NewManagerFactory(mgr manager.Manager) helmif.HelmManagerFactory {
 	// Create Tiller's storage backend and kubernetes client
 	storageBackend := storage.Init(driver.NewMemory())
-	helmKubeClient, err := NewFromManager(mgr)
+	tillerKubeClient, err := NewFromManager(mgr)
 	if err != nil {
-		log.Error(err, "Failed to create new Tiller client.", storageBackend, helmKubeClient)
+		log.Error(err, "Failed to create new Tiller client.", storageBackend, tillerKubeClient)
 		os.Exit(1)
 	}
-
-	return &managerFactory{storageBackend, helmKubeClient}
+	return &managerFactory{storageBackend, tillerKubeClient}
 }
 
 func (f managerFactory) NewArmadaChartManager(r *av1.ArmadaChart) helmif.HelmManager {
 	return &chartmanager{
-		storageBackend: f.storageBackend,
-		helmKubeClient: f.helmKubeClient,
-		chartLocation:  r.Spec.Source,
+		storageBackend:     f.storageBackend,
+		tillerKubeClient:   f.tillerKubeClient,
+		chartLocation:      r.Spec.Source,
 
 		releaseManager: f.helmRendererForArmadaChart(r),
 		releaseName:    r.Spec.Release,
@@ -82,9 +81,9 @@ func (f managerFactory) helmRendererForArmadaChart(r *av1.ArmadaChart) *tiller.R
 	env := &tillerenv.Environment{
 		EngineYard: ey,
 		Releases:   f.storageBackend,
-		KubeClient: f.helmKubeClient,
+		KubeClient: f.tillerKubeClient,
 	}
-	kubeconfig, _ := f.helmKubeClient.ToRESTConfig()
+	kubeconfig, _ := f.tillerKubeClient.ToRESTConfig()
 	cs := clientset.NewForConfigOrDie(kubeconfig)
 
 	return tiller.NewReleaseServer(env, cs, false)

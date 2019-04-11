@@ -110,6 +110,8 @@ const (
 // completion it will remove the work from the queue.
 func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reclog := acglog.WithValues("namespace", request.Namespace, "acg", request.Name)
+	reclog.Info("Reconciling")
+
 	instance := &av1.ArmadaChartGroup{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
@@ -126,23 +128,14 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	instance.Init()
-	if r.isUninitialized(instance) {
-		return reconcile.Result{}, nil
-	}
-
 	mgr := r.managerFactory.NewArmadaChartGroupManager(instance)
+	reclog = reclog.WithValues("acg", mgr.ResourceName())
 
 	var shouldRequeue bool
 	if shouldRequeue, err = r.updateFinalizers(instance); shouldRequeue {
 		// Need to requeue because finalizer update does not change metadata.generation
 		return reconcile.Result{Requeue: true}, err
 	}
-
-	hrc := av1.HelmResourceCondition{
-		Type:   av1.ConditionInitialized,
-		Status: av1.ConditionStatusTrue,
-	}
-	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 
 	if err := r.ensureSynced(mgr, instance); err != nil {
 		if !instance.IsDeleted() {
@@ -152,13 +145,31 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		}
 	}
 
-	switch {
-	case instance.IsDeleted():
+	if instance.IsDeleted() {
 		if shouldRequeue, err = r.deleteArmadaChartGroup(mgr, instance); shouldRequeue {
 			// Need to requeue because finalizer update does not change metadata.generation
 			return reconcile.Result{Requeue: true}, err
 		}
 		return reconcile.Result{}, err
+	}
+
+	if instance.IsTargetStateUninitialized() {
+		reclog.Info("TargetState uninitialized; skipping")
+		err = r.updateResource(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		err = r.client.Status().Update(context.TODO(), instance)
+		return reconcile.Result{}, err
+	}
+
+	hrc := av1.HelmResourceCondition{
+		Type:   av1.ConditionInitialized,
+		Status: av1.ConditionStatusTrue,
+	}
+	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
+
+	switch {
 	case mgr.IsUpdateRequired():
 		if shouldRequeue, err = r.updateArmadaChartGroup(mgr, instance); shouldRequeue {
 			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
@@ -170,6 +181,7 @@ func (r *ChartGroupReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
+	reclog.Info("Reconciled ChartGroup")
 	err = r.updateResourceStatus(instance)
 	return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
 }
@@ -397,30 +409,4 @@ func (r ChartGroupReconciler) reconcileArmadaChartGroup(mgr armadaif.ArmadaChart
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 	err = r.watchArmadaCharts(instance, expectedResource)
 	return err
-}
-
-// isUnitialized
-func (r ChartGroupReconciler) isUninitialized(instance *av1.ArmadaChartGroup) bool {
-	// JEB: Not sure if we need to add this new ConditionEnabled
-	// or we can just used the ConditionInitialized
-	if instance.IsTargetStateUninitialized() {
-		hrc := av1.HelmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusFalse,
-			Reason: "ChartGroup is disabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		_ = r.updateResourceStatus(instance)
-		return true
-	} else {
-		hrc := av1.HelmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusTrue,
-			Reason: "ChartGroup is enabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		return false
-	}
 }

@@ -110,6 +110,8 @@ const (
 // completion it will remove the work from the queue.
 func (r *ManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reclog := amflog.WithValues("namespace", request.Namespace, "amf", request.Name)
+	reclog.Info("Reconciling")
+
 	instance := &av1.ArmadaManifest{}
 	instance.SetNamespace(request.Namespace)
 	instance.SetName(request.Name)
@@ -126,23 +128,14 @@ func (r *ManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	instance.Init()
-	if r.isUninitialized(instance) {
-		return reconcile.Result{}, nil
-	}
-
 	mgr := r.managerFactory.NewArmadaManifestManager(instance)
+	reclog = reclog.WithValues("amf", mgr.ResourceName())
 
 	var shouldRequeue bool
 	if shouldRequeue, err = r.updateFinalizers(instance); shouldRequeue {
 		// Need to requeue because finalizer update does not change metadata.generation
 		return reconcile.Result{Requeue: true}, err
 	}
-
-	hrc := av1.HelmResourceCondition{
-		Type:   av1.ConditionInitialized,
-		Status: av1.ConditionStatusTrue,
-	}
-	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 
 	if err := r.ensureSynced(mgr, instance); err != nil {
 		if !instance.IsDeleted() {
@@ -152,13 +145,31 @@ func (r *ManifestReconciler) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 	}
 
-	switch {
-	case instance.IsDeleted():
+	if instance.IsDeleted() {
 		if shouldRequeue, err = r.deleteArmadaManifest(mgr, instance); shouldRequeue {
 			// Need to requeue because finalizer update does not change metadata.generation
 			return reconcile.Result{Requeue: true}, err
 		}
 		return reconcile.Result{}, err
+	}
+
+	if instance.IsTargetStateUninitialized() {
+		reclog.Info("TargetState uninitialized; skipping")
+		err = r.updateResource(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		err = r.client.Status().Update(context.TODO(), instance)
+		return reconcile.Result{}, err
+	}
+
+	hrc := av1.HelmResourceCondition{
+		Type:   av1.ConditionInitialized,
+		Status: av1.ConditionStatusTrue,
+	}
+	instance.Status.SetCondition(hrc, instance.Spec.TargetState)
+
+	switch {
 	case mgr.IsUpdateRequired():
 		if shouldRequeue, err = r.updateArmadaManifest(mgr, instance); shouldRequeue {
 			return reconcile.Result{RequeueAfter: r.reconcilePeriod}, err
@@ -397,30 +408,4 @@ func (r ManifestReconciler) reconcileArmadaManifest(mgr armadaif.ArmadaManifestM
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
 	err = r.watchArmadaChartGroups(instance, expectedResource)
 	return err
-}
-
-// isUninitialized
-func (r ManifestReconciler) isUninitialized(instance *av1.ArmadaManifest) bool {
-	// JEB: Not sure if we need to add this new ConditionEnabled
-	// or we can just used the ConditionInitialized
-	if instance.IsTargetStateUninitialized() {
-		hrc := av1.HelmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusFalse,
-			Reason: "Manifest is disabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeWarning, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		_ = r.updateResourceStatus(instance)
-		return true
-	} else {
-		hrc := av1.HelmResourceCondition{
-			Type:   av1.ConditionEnabled,
-			Status: av1.ConditionStatusTrue,
-			Reason: "Manifest is enabled",
-		}
-		r.recorder.Event(instance, corev1.EventTypeNormal, hrc.Type.String(), hrc.Reason.String())
-		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
-		return false
-	}
 }

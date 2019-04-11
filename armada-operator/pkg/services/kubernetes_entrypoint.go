@@ -67,18 +67,15 @@ func (obj *KubernetesDependency) UnstructuredStatusChanged(u *unstructured.Unstr
 	switch u.GetKind() {
 	case "Pod":
 		{
-			// return obj.PodStatusChanged(u, v)
-			return false
+			return obj.PodStatusChanged(u, v)
 		}
 	case "Job":
 		{
-			// return obj.JobStatusChanged(u, v)
-			return false
+			return obj.JobStatusChanged(u, v)
 		}
 	case "Workflow":
 		{
-			// return obj.WorkflowStatusChanged(u, v)
-			return false
+			return obj.WorkflowStatusChanged(u, v)
 		}
 	default:
 		{

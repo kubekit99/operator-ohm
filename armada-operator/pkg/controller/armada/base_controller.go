@@ -81,6 +81,13 @@ func (r *BaseReconciler) BuildDependentPredicate() *crtpredicate.Funcs {
 			u := e.ObjectOld.(*unstructured.Unstructured)
 			v := e.ObjectNew.(*unstructured.Unstructured)
 
+			// TODO(jeb): Note sure if we really want to do that
+			// Filter on Kind Change
+			if u.GetKind() == "ConfigMap" || u.GetKind() == "Secret" {
+				return false
+			}
+
+			// Filter on Status change
 			dep := &services.KubernetesDependency{}
 			if dep.UnstructuredStatusChanged(u, v) {
 				log.Info("UpdateEvent. Status changed", "resource", u.GetName(), "namespace", u.GetNamespace(),
@@ -88,6 +95,7 @@ func (r *BaseReconciler) BuildDependentPredicate() *crtpredicate.Funcs {
 				return true
 			}
 
+			// Filter on Spec change
 			old := u.DeepCopy()
 			new := v.DeepCopy()
 

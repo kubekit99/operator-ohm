@@ -37,6 +37,11 @@ func (r *HelmRelease) GetNotes() string {
 	return r.GetInfo().GetStatus().GetNotes()
 }
 
+// Let's cache the actual objects
+func (r *HelmRelease) AddToCache(u unstructured.Unstructured) {
+	r.cached = append(r.cached, u)
+}
+
 // GetDependentResource extracts the list of dependent resources
 // from the Helm Manifest in order to add Watch on those components.
 func (release *HelmRelease) GetDependentResources() []unstructured.Unstructured {
@@ -45,18 +50,18 @@ func (release *HelmRelease) GetDependentResources() []unstructured.Unstructured 
 		return release.cached
 	}
 
-	release.cached = make([]unstructured.Unstructured, 0)
+	deps := make([]unstructured.Unstructured, 0)
 	dec := yaml.NewDecoder(bytes.NewBufferString(release.GetManifest()))
 	for {
 		var u unstructured.Unstructured
 		err := dec.Decode(&u.Object)
 		if err == io.EOF {
-			return release.cached
+			return deps
 		}
 		if err != nil {
 			return nil
 		}
-		release.cached = append(release.cached, u)
+		deps = append(deps, u)
 	}
 }
 

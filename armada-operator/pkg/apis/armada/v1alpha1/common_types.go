@@ -51,30 +51,18 @@ const (
 	StateUnknown HelmResourceState = "unknown"
 	// StateInitialized indicates that a release/chart/chartgroup/manifest is in an Kubernetes
 	StateInitialized HelmResourceState = "initialized"
-	// StateDeployed indicates that the release/chart/chartgroup/manifest has been downloaded from artifact repository
-	StateDownloaded HelmResourceState = "downloaded"
 	// StateDeployed indicates that the release/chart/chartgroup/manifest has been pushed to Kubernetes.
 	StateDeployed HelmResourceState = "deployed"
 	// StateUninstalled indicates that a release/chart/chartgroup/manifest has been uninstalled from Kubermetes.
 	StateUninstalled HelmResourceState = "uninstalled"
-	// StateSuperseded indicates that this release/chart/chartgroup/manifest object is outdated and a newer one exists.
-	StateSuperseded HelmResourceState = "superseded"
 	// StateFailed indicates that the release/chart/chartgroup/manifest was not successfully deployed.
 	StateFailed HelmResourceState = "failed"
-	// StateUninstalling indicates that a uninstall operation is underway.
-	StateUninstalling HelmResourceState = "uninstalling"
-	// StatePendingInstall indicates that an install operation is underway.
-	StatePendingInstall HelmResourceState = "pending-install"
-	// StatePendingUpgrade indicates that an upgrade operation is underway.
-	StatePendingUpgrade HelmResourceState = "pending-upgrade"
-	// StatePendingRollback indicates that an rollback operation is underway.
-	StatePendingRollback HelmResourceState = "pending-rollback"
-	// StatePendingBackup indicates that an data backup operation is underway.
-	StatePendingBackup HelmResourceState = "pending-backup"
-	// StatePendingRestore indicates that an data restore operation is underway.
-	StatePendingRestore HelmResourceState = "pending-restore"
-	// StatePendingInitialization indicates that an data initialization operation is underway.
-	StatePendingInitialization HelmResourceState = "pending-initialization"
+	// StatePending indicates that resource was xxx
+	StatePending HelmResourceState = "pending"
+	// StateRunning indicates that resource was xxx
+	StateRunning HelmResourceState = "running"
+	// StateError indicates that resource was xxx
+	StateError HelmResourceState = "error"
 )
 
 // These represent acceptable values for a HelmResourceConditionStatus
@@ -87,42 +75,28 @@ const (
 // These represent acceptable values for a HelmResourceConditionType
 const (
 	ConditionIrreconcilable HelmResourceConditionType = "Irreconcilable"
-	ConditionFailed                                   = "Failed"
+	ConditionPending                                  = "Pending"
 	ConditionInitialized                              = "Initializing"
-	ConditionEnabled                                  = "Enabled"
-	ConditionDownloaded                               = "Downloaded"
+	ConditionError                                    = "Error"
+	ConditionRunning                                  = "Running"
 	ConditionDeployed                                 = "Deployed"
-
-	// JEB: Not sure we will ever be able to use those conditions
-	ConditionBackedUp   HelmResourceConditionType = "BackedUp"
-	ConditionRestored                             = "Restored"
-	ConditionUpgraded                             = "Upgraded"
-	ConditionRolledBack                           = "RolledBack"
+	ConditionFailed                                   = "Failed"
 )
 
 // The following represent the more fine-grained reasons for a given condition
 const (
 	// Successful Conditions Reasons
-	ReasonInstallSuccessful   HelmResourceConditionReason = "InstallSuccessful"
-	ReasonDownloadSuccessful                              = "DownloadSuccessful"
-	ReasonReconcileSuccessful                             = "ReconcileSuccessful"
-	ReasonUninstallSuccessful                             = "UninstallSuccessful"
-	ReasonUpdateSuccessful                                = "UpdateSuccessful"
-	ReasonBackupSuccessful                                = "BackupSuccessful"
-	ReasonRestoreSuccessful                               = "RestoreSuccessful"
-	ReasonUpgradeSuccessful                               = "UpgradeSuccessful"
-	ReasonRollbackSuccessful                              = "RollbackSuccessful"
+	ReasonInstallSuccessful        HelmResourceConditionReason = "InstallSuccessful"
+	ReasonReconcileSuccessful                                  = "ReconcileSuccessful"
+	ReasonUninstallSuccessful                                  = "UninstallSuccessful"
+	ReasonUpdateSuccessful                                     = "UpdateSuccessful"
+	ReasonUnderlyingResourcesReady                             = "UnderlyingResourcesReady"
 
 	// Error Condition Reasons
 	ReasonInstallError   HelmResourceConditionReason = "InstallError"
-	ReasonDownloadError                              = "DownloadError"
 	ReasonReconcileError                             = "ReconcileError"
 	ReasonUninstallError                             = "UninstallError"
 	ReasonUpdateError                                = "UpdateError"
-	ReasonBackupError                                = "BackupError"
-	ReasonRestoreError                               = "RestoreError"
-	ReasonUpgradeError                               = "UpgradeError"
-	ReasonRollbackError                              = "RollbackError"
 )
 
 // HelmResourceCondition represents one current condition of an Helm resource
@@ -265,7 +239,11 @@ func (s *HelmResourceConditionListHelper) FindCondition(conditionType HelmResour
 func (s *ArmadaStatus) ComputeActualState(cond HelmResourceCondition, target HelmResourceState) {
 	// TODO(Ian): finish this
 	if cond.Status == ConditionStatusTrue {
-		if cond.Type == ConditionInitialized {
+		if cond.Type == ConditionPending {
+			s.ActualState = StatePending
+			s.Satisfied = (s.ActualState == target)
+			s.Reason = ""
+		} else if cond.Type == ConditionInitialized {
 			// Since that condition is set almost systematically
 			// let's do not recompute the state.
 			if (s.ActualState == "") || (s.ActualState == StateUnknown) {
@@ -273,18 +251,29 @@ func (s *ArmadaStatus) ComputeActualState(cond HelmResourceCondition, target Hel
 				s.Satisfied = (s.ActualState == target)
 				s.Reason = ""
 			}
+		} else if cond.Type == ConditionRunning {
+			// The deployment is still running
+			s.ActualState = StateRunning
+			s.Satisfied = false
+			s.Reason = ""
 		} else if cond.Type == ConditionDeployed {
+			// No change is expected anymore. It is deployed
 			s.ActualState = StateDeployed
 			s.Satisfied = (s.ActualState == target)
 			s.Reason = ""
-		} else if cond.Type == ConditionEnabled {
-			if (s.ActualState == "") || (s.ActualState == StateUnknown) {
-				s.ActualState = StatePendingInitialization
-				s.Satisfied = (s.ActualState == target)
-				s.Reason = ""
-			}
-		} else if cond.Type == ConditionIrreconcilable {
+		} else if cond.Type == ConditionFailed {
+			// No change is expected anymore. It is failed
 			s.ActualState = StateFailed
+			s.Satisfied = false
+			s.Reason = cond.Reason.String()
+		} else if cond.Type == ConditionIrreconcilable {
+			// We can't reconcile the subresources and the CRD
+			s.ActualState = StateError
+			s.Satisfied = false
+			s.Reason = cond.Reason.String()
+		} else if cond.Type == ConditionError {
+			// We have a bug somewhere.
+			s.ActualState = StateError
 			s.Satisfied = false
 			s.Reason = cond.Reason.String()
 		} else {
@@ -296,10 +285,6 @@ func (s *ArmadaStatus) ComputeActualState(cond HelmResourceCondition, target Hel
 			s.ActualState = StateUninstalled
 			s.Satisfied = (s.ActualState == target)
 			s.Reason = ""
-		} else if cond.Type == ConditionEnabled {
-			s.ActualState = StateUnknown
-			s.Satisfied = true
-			s.Reason = "Disabled Resource is always successful"
 		} else {
 			s.Satisfied = (s.ActualState == target)
 			s.Reason = ""

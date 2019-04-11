@@ -156,13 +156,8 @@ func (r *ChartReconciler) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
-	// TODO(jeb): IsStatified currently prevents UpdateResource and ReconcileResource from beeing
-	// invoked after success deployement (actual_state and target_state are equal).
-	// Delete still works because the IsDeleted test is not before IsStatisfied
-	// Temporarly replace IsStatified test with IsTargetStateUninitialized.
-	// if instance.IsSatisfied() {
 	if instance.IsTargetStateUninitialized() {
-		reclog.Info("Already satisfied; skipping")
+		reclog.Info("TargetState uninitialized; skipping")
 		err = r.updateResource(instance)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -337,10 +332,12 @@ func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *a
 // installArmadaChart attempts to install instance. It returns true if the reconciler should be re-enqueueed
 func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
 	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
-	reclog.Info("Installing`")
+	reclog.Info("Installing")
 
 	installedResource, err := mgr.InstallRelease(context.TODO())
 	if err != nil {
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
 		hrc := av1.HelmResourceCondition{
 			Type:    av1.ConditionFailed,
 			Status:  av1.ConditionStatusTrue,
@@ -361,7 +358,7 @@ func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *
 	}
 
 	hrc := av1.HelmResourceCondition{
-		Type:            av1.ConditionDeployed,
+		Type:            av1.ConditionRunning,
 		Status:          av1.ConditionStatusTrue,
 		Reason:          av1.ReasonInstallSuccessful,
 		Message:         installedResource.GetNotes(),
@@ -378,13 +375,12 @@ func (r ChartReconciler) installArmadaChart(mgr services.HelmManager, instance *
 // updateArmadaChart attempts to update instance. It returns true if the reconciler should be re-enqueueed
 func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *av1.ArmadaChart) (bool, error) {
 	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
-	reclog.Info("Updating`")
+	reclog.Info("Updating")
 
-	previousResource, updatedResource, err := mgr.UpdateRelease(context.TODO())
-	if previousResource != nil && updatedResource != nil {
-		reclog.Info("UpdateRelease", "Previous", previousResource.GetName(), "Updated", updatedResource.GetName())
-	}
+	_, updatedResource, err := mgr.UpdateRelease(context.TODO())
 	if err != nil {
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
 		hrc := av1.HelmResourceCondition{
 			Type:         av1.ConditionFailed,
 			Status:       av1.ConditionStatusTrue,
@@ -406,7 +402,7 @@ func (r ChartReconciler) updateArmadaChart(mgr services.HelmManager, instance *a
 	}
 
 	hrc := av1.HelmResourceCondition{
-		Type:            av1.ConditionDeployed,
+		Type:            av1.ConditionRunning,
 		Status:          av1.ConditionStatusTrue,
 		Reason:          av1.ReasonUpdateSuccessful,
 		Message:         updatedResource.GetNotes(),
@@ -425,14 +421,16 @@ func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance
 	reclog := actlog.WithValues("namespace", instance.Namespace, "act", instance.Name)
 	reclog.Info("Reconciling ArmadaChart and HelmRelease")
 
-	expectedResource, err := mgr.ReconcileRelease(context.TODO())
+	reconciledResource, err := mgr.ReconcileRelease(context.TODO())
 	if err != nil {
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
 		hrc := av1.HelmResourceCondition{
 			Type:         av1.ConditionIrreconcilable,
 			Status:       av1.ConditionStatusTrue,
 			Reason:       av1.ReasonReconcileError,
 			Message:      err.Error(),
-			ResourceName: expectedResource.GetName(),
+			ResourceName: reconciledResource.GetName(),
 		}
 		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
 		r.logAndRecordFailure(instance, &hrc, err)
@@ -441,9 +439,29 @@ func (r ChartReconciler) reconcileArmadaChart(mgr services.HelmManager, instance
 		return err
 	}
 	instance.Status.RemoveCondition(av1.ConditionIrreconcilable)
-	if err := r.watchDependentResources(expectedResource); err != nil {
+
+	if err := r.watchDependentResources(reconciledResource); err != nil {
 		reclog.Error(err, "Failed to update watch on dependent resources")
 		return err
 	}
+
+	if reconciledResource.IsReady() {
+		// We reconcile. Everything is ready. The flow is now ok
+		instance.Status.RemoveCondition(av1.ConditionRunning)
+
+		hrc := av1.HelmResourceCondition{
+			Type:         av1.ConditionDeployed,
+			Status:       av1.ConditionStatusTrue,
+			Reason:       av1.ReasonUnderlyingResourcesReady,
+			Message:      "",
+			ResourceName: reconciledResource.GetName(),
+		}
+		instance.Status.SetCondition(hrc, instance.Spec.TargetState)
+		r.logAndRecordSuccess(instance, &hrc)
+
+		err = r.updateResourceStatus(instance)
+		return err
+	}
+
 	return nil
 }
