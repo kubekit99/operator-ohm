@@ -42,18 +42,11 @@ func (obj *KubernetesDependency) IsCustomResourceReady(key string, expectedValue
 
 	customResource := u.UnstructuredContent()
 
-	for name, _ := range customResource {
-		log.Info("HELLO", "name", name)
-	}
-
 	for i := strings.Index(key, "."); i != -1; i = strings.Index(key, ".") {
 		first := key[:i]
 		key = key[i+1:]
 		if customResource[first] != nil {
 			customResource = customResource[first].(map[string]interface{})
-			for name, _ := range customResource {
-				log.Info("HELLO", "name", name)
-			}
 		} else {
 			return true
 		}
@@ -61,7 +54,6 @@ func (obj *KubernetesDependency) IsCustomResourceReady(key string, expectedValue
 
 	if customResource != nil {
 		value := customResource[key].(string)
-		log.Info("HELLO", "value", value)
 		return value == expectedValue
 	} else {
 		return true
