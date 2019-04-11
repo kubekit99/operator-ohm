@@ -19,7 +19,9 @@ package services
 import (
 	"bytes"
 	"io"
+	"reflect"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	yaml "gopkg.in/yaml.v2"
@@ -28,6 +30,7 @@ import (
 
 type HelmRelease struct {
 	*rpb.Release
+	cached []unstructured.Unstructured
 }
 
 func (r *HelmRelease) GetNotes() string {
@@ -38,17 +41,51 @@ func (r *HelmRelease) GetNotes() string {
 // from the Helm Manifest in order to add Watch on those components.
 func (release *HelmRelease) GetDependentResources() []unstructured.Unstructured {
 
-	var res = make([]unstructured.Unstructured, 0)
+	if len(release.cached) != 0 {
+		return release.cached
+	}
+
+	release.cached = make([]unstructured.Unstructured, 0)
 	dec := yaml.NewDecoder(bytes.NewBufferString(release.GetManifest()))
 	for {
 		var u unstructured.Unstructured
 		err := dec.Decode(&u.Object)
 		if err == io.EOF {
-			return res
+			return release.cached
 		}
 		if err != nil {
 			return nil
 		}
-		res = append(res, u)
+		release.cached = append(release.cached, u)
 	}
+}
+
+// Let's check the reference are setup properly.
+func (release *HelmRelease) CheckOwnerReference(refs []metav1.OwnerReference) bool {
+
+	// Check that each sub resource is owned by the phase
+	items := release.GetDependentResources()
+	for _, item := range items {
+		if !reflect.DeepEqual(item.GetOwnerReferences(), refs) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Check the state of a service
+func (release *HelmRelease) IsReady() bool {
+
+	dep := &KubernetesDependency{}
+
+	// Check that each sub resource is owned by the phase
+	items := release.GetDependentResources()
+	for _, item := range items {
+		if !dep.IsUnstructuredReady(&item) {
+			return false
+		}
+	}
+
+	return true
 }

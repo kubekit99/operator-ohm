@@ -17,8 +17,6 @@ package armada
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"time"
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	helmmgr "github.com/kubekit99/operator-ohm/armada-operator/pkg/helm"
@@ -26,17 +24,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 
-	"k8s.io/client-go/tools/record"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	crthandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -54,12 +45,14 @@ func AddArmadaChartController(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	r := &ChartReconciler{
-		client:         mgr.GetClient(),
-		scheme:         mgr.GetScheme(),
-		recorder:       mgr.GetRecorder("act-recorder"),
+		BaseReconciler: BaseReconciler{
+			client:   mgr.GetClient(),
+			scheme:   mgr.GetScheme(),
+			recorder: mgr.GetRecorder("act-recorder"),
+		},
 		managerFactory: helmmgr.NewManagerFactory(mgr),
-		// reconcilePeriod: flags.ReconcilePeriod,
 	}
+
 	return r
 }
 
@@ -88,7 +81,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		// content of the release. The tools wait for the helm chart to be parse. The chart_manager
 		// then add the "OwnerReference" to the content of the yaml files. It then invokes the EnqueueRequestForOwner
 		owner := av1.NewArmadaChartVersionKind("", "")
-		dependentPredicate := racr.buildDependentPredicate()
+		dependentPredicate := racr.BuildDependentPredicate()
 		racr.depResourceWatchUpdater = services.BuildDependentResourceWatchUpdater(mgr, owner, c, *dependentPredicate)
 	} else if rrf, isReconcileFunc := r.(*reconcile.Func); isReconcileFunc {
 		// Unit test issue
@@ -102,68 +95,13 @@ var _ reconcile.Reconciler = &ChartReconciler{}
 
 // ChartReconciler reconciles custom resources as Helm releases.
 type ChartReconciler struct {
-	client                  client.Client
-	scheme                  *runtime.Scheme
-	recorder                record.EventRecorder
-	managerFactory          services.HelmManagerFactory
-	reconcilePeriod         time.Duration
-	depResourceWatchUpdater services.DependentResourceWatchUpdater
+	BaseReconciler
+	managerFactory services.HelmManagerFactory
 }
 
 const (
 	finalizerArmadaChart = "uninstall-helm-release"
 )
-
-// buildDependentPredicate create the predicates used by subresources watches
-func (r *ChartReconciler) buildDependentPredicate() *crtpredicate.Funcs {
-
-	dependentPredicate := crtpredicate.Funcs{
-		// We don't need to reconcile dependent resource creation events
-		// because dependent resources are only ever created during
-		// reconciliation. Another reconcile would be redundant.
-		CreateFunc: func(e event.CreateEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			actlog.Info("CreateEvent. Filtering", "resource", o.GetName(), "namespace", o.GetNamespace(),
-				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
-			return false
-		},
-
-		// Reconcile when a dependent resource is deleted so that it can be
-		// recreated.
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			actlog.Info("DeleteEvent. Triggering", "resource", o.GetName(), "namespace", o.GetNamespace(),
-				"apiVersion", o.GroupVersionKind().GroupVersion(), "kind", o.GroupVersionKind().Kind)
-			return true
-		},
-
-		// Reconcile when a dependent resource is updated, so that it can
-		// be patched back to the resource managed by the Helm release, if
-		// necessary. Ignore updates that only change the status and
-		// resourceVersion.
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			old := e.ObjectOld.(*unstructured.Unstructured).DeepCopy()
-			new := e.ObjectNew.(*unstructured.Unstructured).DeepCopy()
-
-			delete(old.Object, "status")
-			delete(new.Object, "status")
-			old.SetResourceVersion("")
-			new.SetResourceVersion("")
-
-			if reflect.DeepEqual(old.Object, new.Object) {
-				actlog.Info("UpdateEvent. Filtering", "resource", new.GetName(), "namespace", new.GetNamespace(),
-					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
-				return false
-			} else {
-				actlog.Info("UpdateEvent. Triggering", "resource", new.GetName(), "namespace", new.GetNamespace(),
-					"apiVersion", new.GroupVersionKind().GroupVersion(), "kind", new.GroupVersionKind().Kind)
-				return true
-			}
-		},
-	}
-
-	return &dependentPredicate
-}
 
 // Reconcile reads that state of the cluster for an ArmadaChart object and
 // makes changes based on the state read and what is in the ArmadaChart.Spec
@@ -321,7 +259,7 @@ func (r ChartReconciler) ensureSynced(mgr services.HelmManager, instance *av1.Ar
 // the finalizers were changed, false otherwise
 func (r ChartReconciler) updateFinalizers(instance *av1.ArmadaChart) (bool, error) {
 	pendingFinalizers := instance.GetFinalizers()
-	if !instance.IsDeleted() && !contains(pendingFinalizers, finalizerArmadaChart) {
+	if !instance.IsDeleted() && !r.contains(pendingFinalizers, finalizerArmadaChart) {
 		finalizers := append(pendingFinalizers, finalizerArmadaChart)
 		instance.SetFinalizers(finalizers)
 		err := r.updateResource(instance)
@@ -347,7 +285,7 @@ func (r ChartReconciler) deleteArmadaChart(mgr services.HelmManager, instance *a
 	reclog.Info("Deleting")
 
 	pendingFinalizers := instance.GetFinalizers()
-	if !contains(pendingFinalizers, finalizerArmadaChart) {
+	if !r.contains(pendingFinalizers, finalizerArmadaChart) {
 		reclog.Info("ArmadaChart is terminated, skipping reconciliation")
 		return false, nil
 	}

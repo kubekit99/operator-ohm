@@ -19,7 +19,9 @@ package services
 import (
 	"bytes"
 	"io"
+	"reflect"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	yaml "gopkg.in/yaml.v2"
@@ -61,4 +63,34 @@ func (release *HelmRelease) GetDependentResources() []unstructured.Unstructured 
 		}
 		res = append(res, u)
 	}
+}
+
+// Let's check the reference are setup properly.
+func (release *HelmRelease) CheckOwnerReference(refs []metav1.OwnerReference) bool {
+
+	// Check that each sub resource is owned by the phase
+	items := release.GetDependentResources()
+	for _, item := range items {
+		if !reflect.DeepEqual(item.GetOwnerReferences(), refs) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Check the state of a service
+func (release *HelmRelease) IsReady() bool {
+
+	dep := &KubernetesDependency{}
+
+	// Check that each sub resource is owned by the phase
+	items := release.GetDependentResources()
+	for _, item := range items {
+		if !dep.IsUnstructuredReady(&item) {
+			return false
+		}
+	}
+
+	return true
 }

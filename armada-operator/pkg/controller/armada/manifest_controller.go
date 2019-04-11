@@ -17,8 +17,6 @@ package armada
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"time"
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
 	armadamgr "github.com/kubekit99/operator-ohm/armada-operator/pkg/armada"
@@ -26,19 +24,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
-	"k8s.io/client-go/tools/record"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	crthandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	crtpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -52,9 +43,11 @@ var amflog = logf.Log.WithName("amf-controller")
 func AddArmadaManifestController(mgr manager.Manager) error {
 
 	r := &ManifestReconciler{
-		client:         mgr.GetClient(),
-		scheme:         mgr.GetScheme(),
-		recorder:       mgr.GetRecorder("amf-recorder"),
+		BaseReconciler: BaseReconciler{
+			client:   mgr.GetClient(),
+			scheme:   mgr.GetScheme(),
+			recorder: mgr.GetRecorder("amf-recorder"),
+		},
 		managerFactory: armadamgr.NewManagerFactory(mgr),
 	}
 
@@ -77,7 +70,7 @@ func AddArmadaManifestController(mgr manager.Manager) error {
 	// that created the object that was the source of the Event
 	// IsController if set will only look at the first OwnerReference with Controller: true.
 	acg := av1.NewArmadaChartGroupVersionKind("", "")
-	dependentPredicate := r.buildDependentPredicate()
+	dependentPredicate := r.BuildDependentPredicate()
 	err = c.Watch(&source.Kind{Type: acg},
 		&crthandler.EnqueueRequestForOwner{
 			IsController: true,
@@ -101,65 +94,13 @@ var _ reconcile.Reconciler = &ManifestReconciler{}
 
 // ManifestReconciler reconciles a ArmadaManifest object
 type ManifestReconciler struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	client          client.Client
-	scheme          *runtime.Scheme
-	recorder        record.EventRecorder
-	managerFactory  armadaif.ArmadaManagerFactory
-	reconcilePeriod time.Duration
+	BaseReconciler
+	managerFactory armadaif.ArmadaManagerFactory
 }
 
 const (
 	finalizerArmadaManifest = "uninstall-amf"
 )
-
-// buildDependentPredicate create the predicates used by subresources watches
-func (r *ManifestReconciler) buildDependentPredicate() *crtpredicate.Funcs {
-
-	dependentPredicate := crtpredicate.Funcs{
-		// We don't need to reconcile dependent resource creation events
-		// because dependent resources are only ever created during
-		// reconciliation. Another reconcile would be redundant.
-		CreateFunc: func(e event.CreateEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			amflog.Info("CreateEvent. Filtering", "ArmadaChartGroup", o.GetName(), "namespace", o.GetNamespace())
-			return false
-		},
-
-		// Reconcile when a dependent resource is deleted so that it can be
-		// recreated.
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			o := e.Object.(*unstructured.Unstructured)
-			amflog.Info("DeleteEvent. Triggering", "ArmadaChartGroup", o.GetName(), "namespace", o.GetNamespace())
-			return true
-		},
-
-		// Reconcile when a dependent resource is updated, so that it can
-		// be patched back to the resource managed by the Helm release, if
-		// necessary. Ignore updates that only change the status and
-		// resourceVersion.
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			old := e.ObjectOld.(*unstructured.Unstructured).DeepCopy()
-			new := e.ObjectNew.(*unstructured.Unstructured).DeepCopy()
-
-			delete(old.Object, "status")
-			delete(new.Object, "status")
-			old.SetResourceVersion("")
-			new.SetResourceVersion("")
-
-			if reflect.DeepEqual(old.Object, new.Object) {
-				amflog.Info("UpdateEvent. Filtering", "ArmadaChartGroup", new.GetName(), "namespace", new.GetNamespace())
-				return false
-			} else {
-				amflog.Info("UpdateEvent. Triggering", "ArmadaChartGroup", new.GetName(), "namespace", new.GetNamespace())
-				return true
-			}
-		},
-	}
-
-	return &dependentPredicate
-}
 
 // Reconcile reads that state of the cluster for a ArmadaManifest object and
 // makes changes based on the state read and what is in the ArmadaManifest.Spec
@@ -294,7 +235,7 @@ func (r ManifestReconciler) ensureSynced(mgr armadaif.ArmadaManifestManager, ins
 // the finalizers were changed, false otherwise
 func (r ManifestReconciler) updateFinalizers(instance *av1.ArmadaManifest) (bool, error) {
 	pendingFinalizers := instance.GetFinalizers()
-	if !instance.IsDeleted() && !contains(pendingFinalizers, finalizerArmadaManifest) {
+	if !instance.IsDeleted() && !r.contains(pendingFinalizers, finalizerArmadaManifest) {
 		finalizers := append(pendingFinalizers, finalizerArmadaManifest)
 		instance.SetFinalizers(finalizers)
 		err := r.updateResource(instance)
@@ -340,7 +281,7 @@ func (r ManifestReconciler) deleteArmadaManifest(mgr armadaif.ArmadaManifestMana
 	reclog.Info("Deleting")
 
 	pendingFinalizers := instance.GetFinalizers()
-	if !contains(pendingFinalizers, finalizerArmadaManifest) {
+	if !r.contains(pendingFinalizers, finalizerArmadaManifest) {
 		reclog.Info("Manifest is terminated, skipping reconciliation")
 		return false, nil
 	}
