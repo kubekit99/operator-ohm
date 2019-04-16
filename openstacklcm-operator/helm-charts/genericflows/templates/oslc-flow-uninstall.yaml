@@ -37,19 +37,19 @@ spec:
   - name: {{ $envAll.Release.Name }}
     steps:
     - - name: {{ .Values.serviceName }}-operational-ready
-        template: phase-operational-ready-template
+        template: phase-operational-running
 
-    - - name: {{ .Values.serviceName }}-enable-trafficdrain
-        template: enable-trafficdrain-template
+    - - name: {{ .Values.serviceName }}-start-trafficdrain
+        template: start-trafficdrain-template
     - - name: {{ .Values.serviceName }}-trafficdrain-ready
-        template: phase-trafficdrain-ready-template
+        template: phase-trafficdrain-running
 
-    - - name: {{ .Values.serviceName }}-enable-delete
-        template: enable-delete-template
+    - - name: {{ .Values.serviceName }}-start-delete
+        template: start-delete-template
     - - name: {{ .Values.serviceName }}-delete-ready
-        template: phase-delete-ready-template
+        template: phase-delete-running
 
-  - name: phase-operational-ready-template
+  - name: phase-operational-running
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_operational }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_operational }}
@@ -62,7 +62,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-operational
 
-  - name: enable-trafficdrain-template
+  - name: start-trafficdrain-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficdrain }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_trafficdrain }}
@@ -77,7 +77,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficdrain-ready-template
+  - name: phase-trafficdrain-running
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficdrain }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficdrain }}
@@ -91,7 +91,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-trafficdrain
 
-  - name: enable-trafficrollout-template
+  - name: start-trafficrollout-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
@@ -106,7 +106,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficrollout-ready-template
+  - name: phase-trafficrollout-running
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
@@ -120,7 +120,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-trafficrollout
 
-  - name: enable-delete-template
+  - name: start-delete-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_delete }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_delete }}
@@ -135,7 +135,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-delete-ready-template
+  - name: phase-delete-running
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_delete }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_delete }}
