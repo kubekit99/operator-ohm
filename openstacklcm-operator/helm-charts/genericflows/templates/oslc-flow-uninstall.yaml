@@ -36,43 +36,31 @@ spec:
   templates:
   - name: {{ $envAll.Release.Name }}
     steps:
+    - - name: {{ .Values.serviceName }}-operational-ready
+        template: phase-operational-ready-template
+
     - - name: {{ .Values.serviceName }}-enable-trafficdrain
         template: enable-trafficdrain-template
     - - name: {{ .Values.serviceName }}-trafficdrain-ready
         template: phase-trafficdrain-ready-template
+
     - - name: {{ .Values.serviceName }}-enable-delete
         template: enable-delete-template
     - - name: {{ .Values.serviceName }}-delete-ready
         template: phase-delete-ready-template
 
-  - name: enable-delete-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_delete }}
+  - name: phase-operational-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_operational }}
     retryStrategy:
-      limit: {{ .Values.phases.retries.enabled_phase_delete }}
-    resource:
-      action: patch
-      mergeStrategy: merge
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: DeletePhase
-        metadata:
-          name: {{ .Values.serviceName }}-delete
-        spec:
-          targetState: deployed
-
-  - name: phase-delete-ready-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_delete }}
-    retryStrategy:
-      limit: {{ .Values.phases.retries.wait_phase_delete }}
+      limit: {{ .Values.phases.retries.wait_phase_operational }}
     resource:
       action: get
       successCondition: status.actualState == deployed
-      failureCondition: status.actualState == failed
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: DeletePhase
+        kind: OperationalPhase
         metadata:
-          name: {{ .Values.serviceName }}-delete
+          name: {{ .Values.serviceName }}-operational
 
   - name: enable-trafficdrain-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficdrain }}
@@ -131,5 +119,34 @@ spec:
         kind: TrafficRolloutPhase
         metadata:
           name: {{ .Values.serviceName }}-trafficrollout
+
+  - name: enable-delete-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_delete }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_delete }}
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: DeletePhase
+        metadata:
+          name: {{ .Values.serviceName }}-delete
+        spec:
+          targetState: deployed
+
+  - name: phase-delete-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_delete }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_delete }}
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: DeletePhase
+        metadata:
+          name: {{ .Values.serviceName }}-delete
 
 {{ end }}

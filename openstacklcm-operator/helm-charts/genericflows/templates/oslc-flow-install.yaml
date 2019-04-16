@@ -1,6 +1,17 @@
 {{- if eq .Values.oslc.flow_kind "install" }}
 {{- $envAll := . }}
-
+---
+apiVersion: openstacklcm.airshipit.org/v1alpha1
+kind: DeletePhase
+metadata:
+  name: {{ .Values.serviceName }}-delete
+spec:
+  openstackServiceName: {{ .Values.serviceName }}
+  targetOpenstackServiceVersion: moc.version.to.delete.to
+  targetState: uninitialized
+  source:
+    type: tar
+    location: /opt/openstacklcm-operator/helm-charts/{{ .Values.serviceName }}
 ---
 apiVersion: openstacklcm.airshipit.org/v1alpha1
 kind: InstallPhase
@@ -48,18 +59,47 @@ spec:
   templates:
   - name: {{ $envAll.Release.Name }}
     steps:
+    - - name: {{ .Values.serviceName }}-planning-ready
+        template: phase-planning-ready-template
+
     - - name: {{ .Values.serviceName }}-enable-install
         template: enable-install-template
     - - name: {{ .Values.serviceName }}-install-ready
         template: phase-install-ready-template
+
     - - name: {{ .Values.serviceName }}-enable-test
         template: enable-test-template
     - - name: {{ .Values.serviceName }}-test-ready
         template: phase-test-ready-template
+        continueOn:
+           failed: {{ .Values.continue_on_test_failed }}
+
     - - name: {{ .Values.serviceName }}-enable-trafficrollout
         template: enable-trafficrollout-template
+        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == success"
     - - name: {{ .Values.serviceName }}-trafficrollout-ready
         template: phase-trafficrollout-ready-template
+        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == success"
+
+    - - name: {{ .Values.serviceName }}-enable-delete
+        template: enable-delete-template
+        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
+    - - name: {{ .Values.serviceName }}-delete-ready
+        template: phase-delete-ready-template
+        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
+
+  - name: phase-planning-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_planning }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_planning }}
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: PlanningPhase
+        metadata:
+          name: {{ .Values.serviceName }}-planning
 
   - name: enable-install-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_install }}
@@ -147,4 +187,33 @@ spec:
         kind: TrafficRolloutPhase
         metadata:
           name: {{ .Values.serviceName }}-trafficrollout
+
+  - name: enable-delete-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_delete }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_delete }}
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: DeletePhase
+        metadata:
+          name: {{ .Values.serviceName }}-delete
+        spec:
+          targetState: deployed
+
+  - name: phase-delete-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_delete }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_delete }}
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: DeletePhase
+        metadata:
+          name: {{ .Values.serviceName }}-delete
 {{ end }}

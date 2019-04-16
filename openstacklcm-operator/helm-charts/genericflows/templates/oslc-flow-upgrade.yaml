@@ -75,6 +75,9 @@ spec:
   templates:
   - name: {{ $envAll.Release.Name }}
     steps:
+    - - name: {{ .Values.serviceName }}-operational-ready
+        template: phase-operational-ready-template
+
     - - name: {{ .Values.serviceName }}-enable-trafficdrain
         template: enable-trafficdrain-template
     - - name: {{ .Values.serviceName }}-trafficdrain-ready
@@ -89,41 +92,33 @@ spec:
         template: enable-test-template
     - - name: {{ .Values.serviceName }}-test-ready
         template: phase-test-ready-template
+        continueOn:
+           failed: {{ .Values.continue_on_test_failed }}
+
+    - - name: {{ .Values.serviceName }}-enable-rollback
+        template: enable-rollback-template
+        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
+    - - name: {{ .Values.serviceName }}-rollback-ready
+        template: phase-rollback-ready-template
+        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
 
     - - name: {{ .Values.serviceName }}-enable-trafficrollout
         template: enable-trafficrollout-template
     - - name: {{ .Values.serviceName }}-trafficrollout-ready
         template: phase-trafficrollout-ready-template
 
-
-  - name: enable-test-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_test }}
+  - name: phase-operational-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_operational }}
     retryStrategy:
-      limit: {{ .Values.phases.retries.enabled_phase_test }}
-    resource:
-      action: patch
-      mergeStrategy: merge
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TestPhase
-        metadata:
-          name: {{ .Values.serviceName }}-test
-        spec:
-          targetState: deployed
-
-  - name: phase-test-ready-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_test }}
-    retryStrategy:
-      limit: {{ .Values.phases.retries.wait_phase_test }}
+      limit: {{ .Values.phases.retries.wait_phase_operational }}
     resource:
       action: get
       successCondition: status.actualState == deployed
-      failureCondition: status.actualState == failed
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TestPhase
+        kind: OperationalPhase
         metadata:
-          name: {{ .Values.serviceName }}-test
+          name: {{ .Values.serviceName }}-operational
 
   - name: enable-trafficdrain-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficdrain }}
@@ -154,35 +149,6 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-trafficdrain
 
-  - name: enable-trafficrollout-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
-    retryStrategy:
-      limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
-    resource:
-      action: patch
-      mergeStrategy: merge
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TrafficRolloutPhase
-        metadata:
-          name: {{ .Values.serviceName }}-trafficrollout
-        spec:
-          targetState: deployed
-
-  - name: phase-trafficrollout-ready-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
-    retryStrategy:
-      limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
-    resource:
-      action: get
-      successCondition: status.actualState == deployed
-      failureCondition: status.actualState == failed
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TrafficRolloutPhase
-        metadata:
-          name: {{ .Values.serviceName }}-trafficrollout
-
   - name: enable-upgrade-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_upgrade }}
     retryStrategy:
@@ -211,4 +177,91 @@ spec:
         kind: UpgradePhase
         metadata:
           name: {{ .Values.serviceName }}-upgrade
+
+  - name: phase-test-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_test }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_test }}
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TestPhase
+        metadata:
+          name: {{ .Values.serviceName }}-test
+
+  - name: enable-test-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_test }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_test }}
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TestPhase
+        metadata:
+          name: {{ .Values.serviceName }}-test
+        spec:
+          targetState: deployed
+
+  - name: phase-rollback-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_rollback }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_rollback }}
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: RollbackPhase
+        metadata:
+          name: {{ .Values.serviceName }}-rollback
+
+  - name: enable-trafficrollout-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficRolloutPhase
+        metadata:
+          name: {{ .Values.serviceName }}-trafficrollout
+        spec:
+          targetState: deployed
+
+  - name: enable-trafficrollout-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficRolloutPhase
+        metadata:
+          name: {{ .Values.serviceName }}-trafficrollout
+        spec:
+          targetState: deployed
+
+  - name: phase-trafficrollout-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TrafficRolloutPhase
+        metadata:
+          name: {{ .Values.serviceName }}-trafficrollout
 {{ end }}

@@ -60,11 +60,13 @@ spec:
   templates:
   - name: {{ $envAll.Release.Name }}
     steps:
+    - - name: {{ .Values.serviceName }}-operational-ready
+        template: phase-operational-ready-template
+
     - - name: {{ .Values.serviceName }}-enable-trafficdrain
         template: enable-trafficdrain-template
     - - name: {{ .Values.serviceName }}-trafficdrain-ready
         template: phase-trafficdrain-ready-template
-
 
     - - name: {{ .Values.serviceName }}-enable-rollback
         template: enable-rollback-template
@@ -76,34 +78,18 @@ spec:
     - - name: {{ .Values.serviceName }}-trafficrollout-ready
         template: phase-trafficrollout-ready-template
 
-  - name: enable-rollback-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_rollback }}
+  - name: phase-operational-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_operational }}
     retryStrategy:
-      limit: {{ .Values.phases.retries.enabled_phase_rollback }}
-    resource:
-      action: patch
-      mergeStrategy: merge
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: RollbackPhase
-        metadata:
-          name: {{ .Values.serviceName }}-rollback
-        spec:
-          targetState: deployed
-
-  - name: phase-rollback-ready-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_rollback }}
-    retryStrategy:
-      limit: {{ .Values.phases.retries.wait_phase_rollback }}
+      limit: {{ .Values.phases.retries.wait_phase_operational }}
     resource:
       action: get
       successCondition: status.actualState == deployed
-      failureCondition: status.actualState == failed
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: RollbackPhase
+        kind: OperationalPhase
         metadata:
-          name: {{ .Values.serviceName }}-rollback
+          name: {{ .Values.serviceName }}-operational
 
   - name: enable-trafficdrain-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficdrain }}
@@ -133,6 +119,35 @@ spec:
         kind: TrafficDrainPhase
         metadata:
           name: {{ .Values.serviceName }}-trafficdrain
+
+  - name: enable-rollback-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_rollback }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_rollback }}
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: RollbackPhase
+        metadata:
+          name: {{ .Values.serviceName }}-rollback
+        spec:
+          targetState: deployed
+
+  - name: phase-rollback-ready-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_rollback }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.wait_phase_rollback }}
+    resource:
+      action: get
+      successCondition: status.actualState == deployed
+      failureCondition: status.actualState == failed
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: RollbackPhase
+        metadata:
+          name: {{ .Values.serviceName }}-rollback
 
   - name: enable-trafficrollout-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
