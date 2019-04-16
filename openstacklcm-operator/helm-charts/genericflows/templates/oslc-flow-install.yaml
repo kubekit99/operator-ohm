@@ -59,18 +59,18 @@ spec:
   templates:
   - name: {{ $envAll.Release.Name }}
     steps:
-    - - name: {{ .Values.serviceName }}-planning-ready
-        template: phase-planning-running
+    - - name: {{ .Values.serviceName }}-planning-startpoint
+        template: phase-planning-startpoint
 
     - - name: {{ .Values.serviceName }}-start-install
         template: start-install-template
     - - name: {{ .Values.serviceName }}-install-ready
-        template: phase-install-running
+        template: phase-install-completion
 
     - - name: {{ .Values.serviceName }}-start-test
         template: start-test-template
     - - name: {{ .Values.serviceName }}-test-ready
-        template: phase-test-running
+        template: phase-test-completion
         continueOn:
            failed: {{ .Values.continue_on_test_failed }}
 
@@ -78,17 +78,17 @@ spec:
         template: start-trafficrollout-template
         when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == success"
     - - name: {{ .Values.serviceName }}-trafficrollout-ready
-        template: phase-trafficrollout-running
+        template: phase-trafficrollout-completion
         when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == success"
 
     - - name: {{ .Values.serviceName }}-start-delete
         template: start-delete-template
         when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
     - - name: {{ .Values.serviceName }}-delete-ready
-        template: phase-delete-running
+        template: phase-delete-completion
         when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
 
-  - name: phase-planning-running
+  - name: phase-planning-startpoint
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_planning }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_planning }}
@@ -116,7 +116,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-install-running
+  - name: phase-install-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_install }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_install }}
@@ -145,7 +145,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-test-running
+  - name: phase-test-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_test }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_test }}
@@ -174,7 +174,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficrollout-running
+  - name: phase-trafficrollout-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
@@ -203,7 +203,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-delete-running
+  - name: phase-delete-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_delete }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_delete }}

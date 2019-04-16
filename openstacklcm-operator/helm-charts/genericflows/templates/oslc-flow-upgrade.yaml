@@ -75,23 +75,23 @@ spec:
   templates:
   - name: {{ $envAll.Release.Name }}
     steps:
-    - - name: {{ .Values.serviceName }}-operational-ready
-        template: phase-operational-running
+    - - name: {{ .Values.serviceName }}-check-flow-startpoint
+        template: check-flow-startpoint
 
     - - name: {{ .Values.serviceName }}-start-trafficdrain
         template: start-trafficdrain-template
     - - name: {{ .Values.serviceName }}-trafficdrain-ready
-        template: phase-trafficdrain-running
+        template: phase-trafficdrain-completion
 
     - - name: {{ .Values.serviceName }}-start-upgrade
         template: start-upgrade-template
     - - name: {{ .Values.serviceName }}-upgrade-ready
-        template: phase-upgrade-running
+        template: phase-upgrade-completion
 
     - - name: {{ .Values.serviceName }}-start-test
         template: start-test-template
     - - name: {{ .Values.serviceName }}-test-ready
-        template: phase-test-running
+        template: phase-test-completion
         continueOn:
            failed: {{ .Values.continue_on_test_failed }}
 
@@ -99,15 +99,15 @@ spec:
         template: start-rollback-template
         when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
     - - name: {{ .Values.serviceName }}-rollback-ready
-        template: phase-rollback-running
+        template: phase-rollback-completion
         when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
 
     - - name: {{ .Values.serviceName }}-start-trafficrollout
         template: start-trafficrollout-template
     - - name: {{ .Values.serviceName }}-trafficrollout-ready
-        template: phase-trafficrollout-running
+        template: phase-trafficrollout-completion
 
-  - name: phase-operational-running
+  - name: check-flow-startpoint
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_operational }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_operational }}
@@ -135,7 +135,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficdrain-running
+  - name: phase-trafficdrain-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficdrain }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficdrain }}
@@ -164,7 +164,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-upgrade-running
+  - name: phase-upgrade-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_upgrade }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_upgrade }}
@@ -178,7 +178,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-upgrade
 
-  - name: phase-test-running
+  - name: phase-test-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_test }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_test }}
@@ -207,7 +207,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-rollback-running
+  - name: phase-rollback-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_rollback }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_rollback }}
@@ -251,7 +251,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficrollout-running
+  - name: phase-trafficrollout-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
