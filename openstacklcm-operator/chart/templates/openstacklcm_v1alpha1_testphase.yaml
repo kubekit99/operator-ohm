@@ -19,6 +19,10 @@ spec:
     description: Satisfied
     name: Satisfied
     type: boolean
+  - JSONPath: .status.testResults
+    description: Test Results
+    name: TestResults
+    type: boolean
   group: openstacklcm.airshipit.org
   names:
     kind: TestPhase
@@ -133,6 +137,9 @@ spec:
               description: Succeeded indicates if the release's ActualState satisfies
                 its target state
               type: boolean
+            testResults:
+              description: Returns if the tests were successful or not
+              type: string
           required:
           - satisfied
           - actualState

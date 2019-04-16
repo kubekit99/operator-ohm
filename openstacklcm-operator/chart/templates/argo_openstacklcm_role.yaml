@@ -11,6 +11,13 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
   name: openstacklcm-argo-role
 rules:
+  # This is to be able to annotates pod with output parameters
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - '*'
   - apiGroups:
       - argoproj.io
     resources:

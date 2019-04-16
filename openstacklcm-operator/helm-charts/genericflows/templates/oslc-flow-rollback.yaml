@@ -64,19 +64,19 @@ spec:
         template: check-flow-startpoint
 
     - - name: {{ .Values.serviceName }}-start-trafficdrain
-        template: start-trafficdrain-template
-    - - name: {{ .Values.serviceName }}-trafficdrain-ready
-        template: phase-trafficdrain-completion
+        template: start-trafficdrain
+    - - name: {{ .Values.serviceName }}-wait-trafficdrain-completion
+        template: wait-trafficdrain-completion
 
     - - name: {{ .Values.serviceName }}-start-rollback
-        template: start-rollback-template
-    - - name: {{ .Values.serviceName }}-rollback-ready
-        template: phase-rollback-completion
+        template: start-rollback
+    - - name: {{ .Values.serviceName }}-wait-rollback-completion
+        template: wait-rollback-completion
 
     - - name: {{ .Values.serviceName }}-start-trafficrollout
-        template: start-trafficrollout-template
-    - - name: {{ .Values.serviceName }}-trafficrollout-ready
-        template: phase-trafficrollout-completion
+        template: start-trafficrollout
+    - - name: {{ .Values.serviceName }}-wait-trafficrollout-completion
+        template: wait-trafficrollout-completion
 
   - name: check-flow-startpoint
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_operational }}
@@ -91,7 +91,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-operational
 
-  - name: start-trafficdrain-template
+  - name: start-trafficdrain
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficdrain }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_trafficdrain }}
@@ -106,7 +106,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficdrain-completion
+  - name: wait-trafficdrain-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficdrain }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficdrain }}
@@ -120,7 +120,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-trafficdrain
 
-  - name: start-rollback-template
+  - name: start-rollback
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_rollback }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_rollback }}
@@ -135,7 +135,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-rollback-completion
+  - name: wait-rollback-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_rollback }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_rollback }}
@@ -149,7 +149,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-rollback
 
-  - name: start-trafficrollout-template
+  - name: start-trafficrollout
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
@@ -164,7 +164,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficrollout-completion
+  - name: wait-trafficrollout-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}

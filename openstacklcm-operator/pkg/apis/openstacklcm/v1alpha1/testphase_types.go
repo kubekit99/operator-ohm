@@ -9,6 +9,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// Results of the tests
+type TestResults string
+
+// Describe the outcome of the tests run during the test phase
+const (
+	TestResultsPassed TestResults = "passed"
+	TestResultsFailed TestResults = "failed"
+)
+
+// String converts a TestResults to a printable string
+func (x TestResults) String() string { return string(x) }
+
 type TestStrategy struct {
 	// TimeoutInSecond is the maximal allowed time in second of the entire test process.
 	TimeoutInSecond int64 `json:"timeoutInSecond,omitempty"`
@@ -29,6 +41,9 @@ type TestPhaseSpec struct {
 // TestPhaseStatus defines the observed state of TestPhase
 type TestPhaseStatus struct {
 	PhaseStatus `json:",inline"`
+
+	// Returns if the tests were successful or not
+	TestResults TestResults `json:"testResults,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -40,6 +55,7 @@ type TestPhaseStatus struct {
 // +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.actualState",description="State"
 // +kubebuilder:printcolumn:name="Target State",type="string",JSONPath=".spec.targetState",description="Target State"
 // +kubebuilder:printcolumn:name="Satisfied",type="boolean",JSONPath=".status.satisfied",description="Satisfied"
+// +kubebuilder:printcolumn:name="TestResults",type="boolean",JSONPath=".status.testResults",description="Test Results"
 type TestPhase struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -58,6 +74,10 @@ func (obj *TestPhase) Init() {
 		obj.Spec.TargetState = StateDeployed
 	}
 	obj.Status.Succeeded = (obj.Spec.TargetState == obj.Status.ActualState)
+
+	if obj.Status.TestResults == "" {
+		obj.Status.TestResults = TestResultsPassed
+	}
 }
 
 // Return the list of dependent resources to watch

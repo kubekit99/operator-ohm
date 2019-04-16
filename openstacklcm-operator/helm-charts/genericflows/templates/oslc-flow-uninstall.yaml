@@ -40,14 +40,14 @@ spec:
         template: check-flow-startpoint
 
     - - name: {{ .Values.serviceName }}-start-trafficdrain
-        template: start-trafficdrain-template
-    - - name: {{ .Values.serviceName }}-trafficdrain-ready
-        template: phase-trafficdrain-completion
+        template: start-trafficdrain
+    - - name: {{ .Values.serviceName }}-wait-trafficdrain-completion
+        template: wait-trafficdrain-completion
 
     - - name: {{ .Values.serviceName }}-start-delete
-        template: start-delete-template
-    - - name: {{ .Values.serviceName }}-delete-ready
-        template: phase-delete-completion
+        template: start-delete
+    - - name: {{ .Values.serviceName }}-wait-delete-completion
+        template: wait-delete-completion
 
   - name: check-flow-startpoint
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_operational }}
@@ -62,7 +62,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-operational
 
-  - name: start-trafficdrain-template
+  - name: start-trafficdrain
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficdrain }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_trafficdrain }}
@@ -77,7 +77,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficdrain-completion
+  - name: wait-trafficdrain-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficdrain }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficdrain }}
@@ -91,7 +91,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-trafficdrain
 
-  - name: start-trafficrollout-template
+  - name: start-trafficrollout
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
@@ -106,7 +106,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficrollout-completion
+  - name: wait-trafficrollout-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
@@ -120,7 +120,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-trafficrollout
 
-  - name: start-delete-template
+  - name: start-delete
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_delete }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_delete }}
@@ -135,7 +135,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-delete-completion
+  - name: wait-delete-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_delete }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_delete }}

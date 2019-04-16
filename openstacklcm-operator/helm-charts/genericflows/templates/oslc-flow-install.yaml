@@ -59,36 +59,36 @@ spec:
   templates:
   - name: {{ $envAll.Release.Name }}
     steps:
-    - - name: {{ .Values.serviceName }}-planning-startpoint
-        template: phase-planning-startpoint
+    - - name: {{ .Values.serviceName }}-check-flow-startpoint
+        template: check-flow-startpoint
 
     - - name: {{ .Values.serviceName }}-start-install
-        template: start-install-template
-    - - name: {{ .Values.serviceName }}-install-ready
-        template: phase-install-completion
+        template: start-install
+    - - name: {{ .Values.serviceName }}-wait-install-completion
+        template: wait-install-completion
 
     - - name: {{ .Values.serviceName }}-start-test
-        template: start-test-template
-    - - name: {{ .Values.serviceName }}-test-ready
-        template: phase-test-completion
+        template: start-test
+    - - name: {{ .Values.serviceName }}-wait-test-completion
+        template: wait-test-completion
         continueOn:
            failed: {{ .Values.continue_on_test_failed }}
 
     - - name: {{ .Values.serviceName }}-start-trafficrollout
-        template: start-trafficrollout-template
-        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == success" | quote }}
-    - - name: {{ .Values.serviceName }}-trafficrollout-ready
-        template: phase-trafficrollout-completion
-        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == success" | quote }}
+        template: start-trafficrollout
+        when: {{ printf "%s.%s-%s" "{{steps" $.Values.serviceName "wait-test-completion.outputs.parameters.test-results}} == passed" | quote }}
+    - - name: {{ .Values.serviceName }}-wait-trafficrollout-completion
+        template: wait-trafficrollout-completion
+        when: {{ printf "%s.%s-%s" "{{steps" $.Values.serviceName "wait-test-completion.outputs.parameters.test-results}} == passed" | quote }}
 
     - - name: {{ .Values.serviceName }}-start-delete
-        template: start-delete-template
-        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == failed" | quote }}
-    - - name: {{ .Values.serviceName }}-delete-ready
-        template: phase-delete-completion
-        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == failed" | quote }}
+        template: start-delete
+        when: {{ printf "%s.%s-%s" "{{steps" $.Values.serviceName "wait-test-completion.outputs.parameters.test-results}} == failed" | quote }}
+    - - name: {{ .Values.serviceName }}-wait-delete-completion
+        template: wait-delete-completion
+        when: {{ printf "%s.%s-%s" "{{steps" $.Values.serviceName "wait-test-completion.outputs.parameters.test-results}} == failed" | quote }}
 
-  - name: phase-planning-startpoint
+  - name: check-flow-startpoint
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_planning }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_planning }}
@@ -101,7 +101,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-planning
 
-  - name: start-install-template
+  - name: start-install
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_install }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_install }}
@@ -116,7 +116,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-install-completion
+  - name: wait-install-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_install }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_install }}
@@ -130,7 +130,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-install
 
-  - name: start-test-template
+  - name: start-test
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_test }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_test }}
@@ -145,13 +145,10 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-test-completion
+  - name: wait-test-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_test }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_test }}
-    inputs:
-      parameters:
-      - name: num
     resource:
       action: get
       successCondition: status.actualState == deployed
@@ -163,11 +160,11 @@ spec:
           name: {{ .Values.serviceName }}-test
     outputs:
       parameters:
-      - name: tests-results
+      - name: test-results
         valueFrom:
-          jsonPath: '{.status.satisfied}'
+          jsonPath: '{.status.testResults}'
 
-  - name: start-trafficrollout-template
+  - name: start-trafficrollout
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
@@ -182,7 +179,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-trafficrollout-completion
+  - name: wait-trafficrollout-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
@@ -196,7 +193,7 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-trafficrollout
 
-  - name: start-delete-template
+  - name: start-delete
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_delete }}
     retryStrategy:
       limit: {{ .Values.phases.retries.enabled_phase_delete }}
@@ -211,7 +208,7 @@ spec:
         spec:
           targetState: deployed
 
-  - name: phase-delete-completion
+  - name: wait-delete-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_delete }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_delete }}
