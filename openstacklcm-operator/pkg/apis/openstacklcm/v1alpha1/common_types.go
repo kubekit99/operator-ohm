@@ -396,6 +396,7 @@ func (obj *SubResourceList) CheckOwnerReference(refs []metav1.OwnerReference) bo
 	// Check that each sub resource is owned by the phase
 	for _, item := range obj.Items {
 		if !reflect.DeepEqual(item.GetOwnerReferences(), refs) {
+			log.Info("OwnerReference issue: ", "kind", item.GetKind(), "name", item.GetName())
 			return false
 		}
 	}

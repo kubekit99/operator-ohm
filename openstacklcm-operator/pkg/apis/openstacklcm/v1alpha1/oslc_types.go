@@ -289,12 +289,14 @@ func (obj *LifecycleFlow) CheckOwnerReference(refs []metav1.OwnerReference) bool
 
 	// Check main Worflow is owned by the cycle
 	if obj.Main != nil && !reflect.DeepEqual(obj.Main.GetOwnerReferences(), refs) {
+		log.Info("OwnerReference issue: ", "kind", obj.Main.GetKind(), "name", obj.Main.GetName())
 		return false
 	}
 
 	// Checki that each phase is owned by the cycle
 	for _, item := range obj.Phases {
 		if !reflect.DeepEqual(item.GetOwnerReferences(), refs) {
+			log.Info("OwnerReference issue: ", "kind", item.GetKind(), "name", item.GetName())
 			return false
 		}
 	}
