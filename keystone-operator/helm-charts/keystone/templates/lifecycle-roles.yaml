@@ -1,4 +1,4 @@
-{{- if or (eq .Values.oslc.stage "install") (eq .Values.lifecycle "install") }}
+{{- if or (eq .Values.oslc.stage "planning") (eq .Values.lifecycle "planning") }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
