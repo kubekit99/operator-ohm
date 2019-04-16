@@ -97,10 +97,10 @@ spec:
 
     - - name: {{ .Values.serviceName }}-start-rollback
         template: start-rollback-template
-        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
+        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == failed" | quote }}
     - - name: {{ .Values.serviceName }}-rollback-ready
         template: phase-rollback-completion
-        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
+        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == failed" | quote }}
 
     - - name: {{ .Values.serviceName }}-start-trafficrollout
         template: start-trafficrollout-template
@@ -178,6 +178,21 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-upgrade
 
+  - name: start-test-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_test }}
+    retryStrategy:
+      limit: {{ .Values.phases.retries.enabled_phase_test }}
+    resource:
+      action: patch
+      mergeStrategy: merge
+      manifest: |
+        apiVersion: openstacklcm.airshipit.org/v1alpha1
+        kind: TestPhase
+        metadata:
+          name: {{ .Values.serviceName }}-test
+        spec:
+          targetState: deployed
+
   - name: phase-test-completion
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_test }}
     retryStrategy:
@@ -191,19 +206,24 @@ spec:
         kind: TestPhase
         metadata:
           name: {{ .Values.serviceName }}-test
+    outputs:
+      parameters:
+      - name: tests-results
+        valueFrom:
+          jsonPath: '{.status.satisfied}'
 
-  - name: start-test-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_test }}
+  - name: start-rollback-template
+    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_rollback }}
     retryStrategy:
-      limit: {{ .Values.phases.retries.enabled_phase_test }}
+      limit: {{ .Values.phases.retries.enabled_phase_rollback }}
     resource:
       action: patch
       mergeStrategy: merge
       manifest: |
         apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TestPhase
+        kind: RollbackPhase
         metadata:
-          name: {{ .Values.serviceName }}-test
+          name: {{ .Values.serviceName }}-rollback
         spec:
           targetState: deployed
 
@@ -220,21 +240,6 @@ spec:
         kind: RollbackPhase
         metadata:
           name: {{ .Values.serviceName }}-rollback
-
-  - name: start-trafficrollout-template
-    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
-    retryStrategy:
-      limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
-    resource:
-      action: patch
-      mergeStrategy: merge
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TrafficRolloutPhase
-        metadata:
-          name: {{ .Values.serviceName }}-trafficrollout
-        spec:
-          targetState: deployed
 
   - name: start-trafficrollout-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}

@@ -76,17 +76,17 @@ spec:
 
     - - name: {{ .Values.serviceName }}-start-trafficrollout
         template: start-trafficrollout-template
-        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == success"
+        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == success" | quote }}
     - - name: {{ .Values.serviceName }}-trafficrollout-ready
         template: phase-trafficrollout-completion
-        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == success"
+        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == success" | quote }}
 
     - - name: {{ .Values.serviceName }}-start-delete
         template: start-delete-template
-        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
+        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == failed" | quote }}
     - - name: {{ .Values.serviceName }}-delete-ready
         template: phase-delete-completion
-        when: "{{steps."{{ .Values.serviceName }}".test-ready.outputs.result}} == failed"
+        when: {{ printf "%s.%s.%s" "{{steps" $.Values.serviceName "test-ready.tests-results}} == failed" | quote }}
 
   - name: phase-planning-startpoint
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_planning }}
@@ -149,6 +149,9 @@ spec:
     activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_test }}
     retryStrategy:
       limit: {{ .Values.phases.retries.wait_phase_test }}
+    inputs:
+      parameters:
+      - name: num
     resource:
       action: get
       successCondition: status.actualState == deployed
@@ -158,6 +161,11 @@ spec:
         kind: TestPhase
         metadata:
           name: {{ .Values.serviceName }}-test
+    outputs:
+      parameters:
+      - name: tests-results
+        valueFrom:
+          jsonPath: '{.status.satisfied}'
 
   - name: start-trafficrollout-template
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}

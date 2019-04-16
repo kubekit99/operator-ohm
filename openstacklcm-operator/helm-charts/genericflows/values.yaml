@@ -1,5 +1,6 @@
 
 serviceName: ""
+continue_on_test_failed: false
 
 oslc:
   stage: ""
