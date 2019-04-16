@@ -91,35 +91,6 @@ spec:
         metadata:
           name: {{ .Values.serviceName }}-trafficdrain
 
-  - name: start-trafficrollout
-    activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_trafficrollout }}
-    retryStrategy:
-      limit: {{ .Values.phases.retries.enabled_phase_trafficrollout }}
-    resource:
-      action: patch
-      mergeStrategy: merge
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TrafficRolloutPhase
-        metadata:
-          name: {{ .Values.serviceName }}-trafficrollout
-        spec:
-          targetState: deployed
-
-  - name: wait-trafficrollout-completion
-    activeDeadlineSeconds: {{ .Values.phases.timeout.wait_phase_trafficrollout }}
-    retryStrategy:
-      limit: {{ .Values.phases.retries.wait_phase_trafficrollout }}
-    resource:
-      action: get
-      successCondition: status.actualState == deployed
-      failureCondition: status.actualState == failed
-      manifest: |
-        apiVersion: openstacklcm.airshipit.org/v1alpha1
-        kind: TrafficRolloutPhase
-        metadata:
-          name: {{ .Values.serviceName }}-trafficrollout
-
   - name: start-delete
     activeDeadlineSeconds: {{ .Values.phases.timeout.enable_phase_delete }}
     retryStrategy:
