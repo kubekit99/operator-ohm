@@ -11,19 +11,23 @@ spec:
   templates:
   - name: {{ $envAll.Release.Name }}
     steps:
+    # Check that the Service is actually deployed (i.e. Operational Stage exists)
     - - name: {{ .Values.serviceName }}-check-flow-startpoint
         template: check-flow-startpoint
 
+    # Drain Traffic
     - - name: {{ .Values.serviceName }}-start-trafficdrain
         template: create-trafficdrain
     - - name: {{ .Values.serviceName }}-wait-trafficdrain-completion
         template: wait-trafficdrain-completion
 
+    # Backup Data and Upgrade Software/Config
     - - name: {{ .Values.serviceName }}-start-upgrade
         template: create-upgrade
     - - name: {{ .Values.serviceName }}-wait-upgrade-completion
         template: wait-upgrade-completion
 
+    # Test the upgraded installation
     - - name: {{ .Values.serviceName }}-start-test
         template: create-test
     - - name: {{ .Values.serviceName }}-wait-test-completion
@@ -31,6 +35,7 @@ spec:
         continueOn:
            failed: {{ .Values.continue_on_test_failed }}
 
+    # Restore Data and Rollback Software/Config if test failed
     - - name: {{ .Values.serviceName }}-start-rollback
         template: create-rollback
         when: {{ printf "%s.%s-%s" "{{steps" $.Values.serviceName "wait-test-completion.outputs.parameters.test-results}} == failed" | quote }}
@@ -38,6 +43,7 @@ spec:
         template: wait-rollback-completion
         when: {{ printf "%s.%s-%s" "{{steps" $.Values.serviceName "wait-test-completion.outputs.parameters.test-results}} == failed" | quote }}
 
+    # Rollout Traffic regardless if test was successfull or if we had to rollback
     - - name: {{ .Values.serviceName }}-start-trafficrollout
         template: create-trafficrollout
     - - name: {{ .Values.serviceName }}-wait-trafficrollout-completion

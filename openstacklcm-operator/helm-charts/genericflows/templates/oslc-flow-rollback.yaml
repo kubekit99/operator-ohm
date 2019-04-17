@@ -11,19 +11,23 @@ spec:
   templates:
   - name: {{ $envAll.Release.Name }}
     steps:
+    # Check that the Service is actually deployed (i.e. Operational Stage exists)
     - - name: {{ .Values.serviceName }}-check-flow-startpoint
         template: check-flow-startpoint
 
+    # Drain Traffic
     - - name: {{ .Values.serviceName }}-start-trafficdrain
         template: create-trafficdrain
     - - name: {{ .Values.serviceName }}-wait-trafficdrain-completion
         template: wait-trafficdrain-completion
 
+    # Restore Data and Rollback Software/Config
     - - name: {{ .Values.serviceName }}-start-rollback
         template: create-rollback
     - - name: {{ .Values.serviceName }}-wait-rollback-completion
         template: wait-rollback-completion
 
+    # Rollout Traffic on the downgraded software.
     - - name: {{ .Values.serviceName }}-start-trafficrollout
         template: create-trafficrollout
     - - name: {{ .Values.serviceName }}-wait-trafficrollout-completion
