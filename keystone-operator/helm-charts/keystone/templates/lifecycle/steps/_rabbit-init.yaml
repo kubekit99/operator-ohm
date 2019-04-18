@@ -1,132 +1,25 @@
----
-{{- define "keystone.templates.steps._rabbit_init.ignore" -}}
-{{- $envAll := . }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: keystone-rabbit-init
-  namespace: {{ $envAll.Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: RoleBinding
-metadata:
-  name: release-name-keystone-rabbit-init
-  namespace: {{ $envAll.Release.Namespace }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: release-name-default-keystone-rabbit-init
-subjects:
-  - kind: ServiceAccount
-    name: keystone-rabbit-init
-    namespace: {{ $envAll.Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: Role
-metadata:
-  name: release-name-default-keystone-rabbit-init
-  namespace: {{ $envAll.Release.Namespace }}
-rules:
-  - apiGroups:
-      - ""
-      - extensions
-      - batch
-      - apps
-    verbs:
-      - get
-      - list
-    resources:
-      - services
-      - endpoints
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: "keystone-rabbit-init"
-spec:
-  template:
-    metadata:
-      labels:
-        release_group: release-name
-        application: keystone
-        component: rabbit-init
-    spec:
-      serviceAccountName: "keystone-rabbit-init"
-      restartPolicy: OnFailure
-      nodeSelector:
-        openstack-control-plane: enabled
+{{/*
+Copyright 2017 The Openstack-Helm Authors.
 
-      initContainers:
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
+   http://www.apache.org/licenses/LICENSE-2.0
 
-        - name: init
-          image: "quay.io/stackanetes/kubernetes-entrypoint:v0.3.1"
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: INTERFACE_NAME
-              value: eth0
-            - name: PATH
-              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
-            - name: DEPENDENCY_SERVICE
-              value: {{ printf "%s:%s" $envAll.Release.Namespace "rabbitmq" | quote }}
-            - name: DEPENDENCY_DAEMONSET
-              value: ""
-            - name: DEPENDENCY_CONTAINER
-              value: ""
-            - name: DEPENDENCY_POD_JSON
-              value: ""
-            - name: COMMAND
-              value: "echo done"
-          command:
-            - kubernetes-entrypoint
-          volumeMounts:
-            []
-
-      containers:
-        - name: rabbit-init
-{{- end }}
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
 
 {{- define "keystone.templates.steps._rabbit_init.container" -}}
-name: rabbit-init
-image: "docker.io/rabbitmq:3.7-management"
-imagePullPolicy: "IfNotPresent"
-
-command:
-  - /tmp/rabbit-init.sh
-volumeMounts:
-  - name: rabbit-init-sh
-    mountPath: /tmp/rabbit-init.sh
-    subPath: rabbit-init.sh
-    readOnly: true
-env:
-- name: RABBITMQ_ADMIN_CONNECTION
-  valueFrom:
-    secretKeyRef:
-      name: keystone-rabbitmq-admin
-      key: RABBITMQ_CONNECTION
-- name: RABBITMQ_USER_CONNECTION
-  valueFrom:
-    secretKeyRef:
-      name: keystone-rabbitmq-user
-      key: RABBITMQ_CONNECTION
-- name: RABBITMQ_AUXILIARY_CONFIGURATION
-  value: "{\"policies\":[{\"apply-to\":\"all\",\"definition\":{\"ha-mode\":\"all\",\"ha-sync-mode\":\"automatic\",\"message-ttl\":70000},\"name\":\"ha_ttl_keystone\",\"pattern\":\"(notifications)\\\\.\",\"priority\":0,\"vhost\":\"keystone\"}]}"
+{{- $rmqUserJob := dict "envAll" . "serviceName" "keystone" -}}
+{{ $rmqUserJob | include "helm-toolkit.lifecycle.steps._rabbit_init.container" }}
 {{- end }}
 
 {{- define "keystone.templates.steps._rabbit_init.volumes" -}}
-- name: rabbit-init-sh
-  configMap:
-    name: "keystone-bin"
-    defaultMode: 0555
+{{- $rmqUserJob := dict "envAll" . "serviceName" "keystone" -}}
+{{ $rmqUserJob | include "helm-toolkit.lifecycle.steps._rabbit_init.volumes" }}
 {{- end }}

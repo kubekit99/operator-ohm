@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */}}
 
-{{- if or (eq .Values.lifecycle "nil") (eq .Values.lifecycle "planning") }}
+{{- if or (eq .Values.lifecycle "nil") (eq .Values.lifecycle "install") }}
 {{- if .Values.manifests.network_policy -}}
 {{- $netpol_opts := dict "envAll" . "name" "application" "label" "keystone" -}}
 {{ $netpol_opts | include "helm-toolkit.manifests.kubernetes_network_policy" }}

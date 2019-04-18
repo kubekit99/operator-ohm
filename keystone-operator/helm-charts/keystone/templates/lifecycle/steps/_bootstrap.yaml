@@ -1,183 +1,25 @@
----
-{{- define "keystone.templates.steps._bootstrap.ignore" -}}
-{{- $envAll := . }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: keystone-bootstrap
-  namespace: {{ $envAll.Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: RoleBinding
-metadata:
-  name: release-name-keystone-bootstrap
-  namespace: {{ $envAll.Release.Namespace }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: release-name-default-keystone-bootstrap
-subjects:
-  - kind: ServiceAccount
-    name: keystone-bootstrap
-    namespace: {{ $envAll.Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: Role
-metadata:
-  name: release-name-default-keystone-bootstrap
-  namespace: {{ $envAll.Release.Namespace }}
-rules:
-  - apiGroups:
-      - ""
-      - extensions
-      - batch
-      - apps
-    verbs:
-      - get
-      - list
-    resources:
-      - services
-      - endpoints
-      - jobs
-      - pods
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: "keystone-bootstrap"
-spec:
-  template:
-    metadata:
-      labels:
-        release_group: release-name
-        application: keystone
-        component: bootstrap
-    spec:
-      serviceAccountName: keystone-bootstrap
-      restartPolicy: OnFailure
-      nodeSelector:
-        openstack-control-plane: enabled
+{{/*
+Copyright 2017 The Openstack-Helm Authors.
 
-      initContainers:
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
+   http://www.apache.org/licenses/LICENSE-2.0
 
-        - name: init
-          image: "quay.io/stackanetes/kubernetes-entrypoint:v0.3.1"
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: INTERFACE_NAME
-              value: eth0
-            - name: PATH
-              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
-            - name: DEPENDENCY_SERVICE
-              value: {{ printf "%s:%s" $envAll.Release.Namespace "keystone-api" | quote }}
-            - name: DEPENDENCY_JOBS
-              value: "keystone-domain-manage"
-            - name: DEPENDENCY_DAEMONSET
-              value: ""
-            - name: DEPENDENCY_CONTAINER
-              value: ""
-            - name: DEPENDENCY_POD_JSON
-              value: ""
-            - name: COMMAND
-              value: "echo done"
-          command:
-            - kubernetes-entrypoint
-          volumeMounts:
-            []
-
-      containers:
-        - name: bootstrap
-{{- end }}
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
 
 {{- define "keystone.templates.steps._bootstrap.container" -}}
-name: bootstrap
-image: docker.io/openstackhelm/heat:ocata
-imagePullPolicy: IfNotPresent
-
-env:
-  - name: OS_IDENTITY_API_VERSION
-    value: "3"
-  - name: OS_AUTH_URL
-    valueFrom:
-      secretKeyRef:
-        name: keystone-keystone-admin
-        key: OS_AUTH_URL
-  - name: OS_REGION_NAME
-    valueFrom:
-      secretKeyRef:
-        name: keystone-keystone-admin
-        key: OS_REGION_NAME
-  - name: OS_INTERFACE
-    valueFrom:
-      secretKeyRef:
-        name: keystone-keystone-admin
-        key: OS_INTERFACE
-  - name: OS_PROJECT_DOMAIN_NAME
-    valueFrom:
-      secretKeyRef:
-        name: keystone-keystone-admin
-        key: OS_PROJECT_DOMAIN_NAME
-  - name: OS_PROJECT_NAME
-    valueFrom:
-      secretKeyRef:
-        name: keystone-keystone-admin
-        key: OS_PROJECT_NAME
-  - name: OS_USER_DOMAIN_NAME
-    valueFrom:
-      secretKeyRef:
-        name: keystone-keystone-admin
-        key: OS_USER_DOMAIN_NAME
-  - name: OS_USERNAME
-    valueFrom:
-      secretKeyRef:
-        name: keystone-keystone-admin
-        key: OS_USERNAME
-  - name: OS_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: keystone-keystone-admin
-        key: OS_PASSWORD
-command:
-  - /tmp/bootstrap.sh
-volumeMounts:
-  - name: bootstrap-sh
-    mountPath: /tmp/bootstrap.sh
-    subPath: bootstrap.sh
-    readOnly: true
-  - name: etc-service
-    mountPath: "/etc/keystone"
-  - name: bootstrap-conf
-    mountPath: "/etc/keystone/keystone.conf"
-    subPath: "keystone.conf"
-    readOnly: true
-  - name: bootstrap-conf
-    mountPath: "/etc/keystone/logging.conf"
-    subPath: "logging.conf"
-    readOnly: true
+{{- $bootstrapJob := dict "envAll" . "serviceName" "keystone" "keystoneUser" .Values.bootstrap.ks_user "logConfigFile" .Values.conf.keystone.DEFAULT.log_config_append -}}
+{{ $bootstrapJob | include "helm-toolkit.lifecycle.steps._bootstrap.container" }}
 {{- end }}
 
 {{- define "keystone.templates.steps._bootstrap.volumes" -}}
-- name: bootstrap-sh
-  configMap:
-    name: "keystone-bin"
-    defaultMode: 0555
-- name: etc-service
-  emptyDir: {}
-- name: bootstrap-conf
-  secret:
-    secretName: "keystone-etc"
-    defaultMode: 0444
+{{- $bootstrapJob := dict "envAll" . "serviceName" "keystone" "keystoneUser" .Values.bootstrap.ks_user "logConfigFile" .Values.conf.keystone.DEFAULT.log_config_append -}}
+{{ $bootstrapJob | include "helm-toolkit.lifecycle.steps._bootstrap.volumes" }}
 {{- end }}
-
