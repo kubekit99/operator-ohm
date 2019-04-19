@@ -21,6 +21,9 @@ spec:
         template: mariadb-ready-template
 
   - name: enable-mariadb-template
+    activeDeadlineSeconds: 60
+    retryStrategy:
+      limit: 1
     resource:
       action: patch
       mergeStrategy: merge
@@ -33,6 +36,9 @@ spec:
           target_state: deployed
 
   - name: mariadb-ready-template
+    activeDeadlineSeconds: 120
+    retryStrategy:
+      limit: 2
     resource:
       action: get
       successCondition: status.actual_state == deployed

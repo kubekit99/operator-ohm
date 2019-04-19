@@ -21,6 +21,9 @@ spec:
         template: rabbitmq-ready-template
 
   - name: enable-rabbitmq-template
+    activeDeadlineSeconds: 60
+    retryStrategy:
+      limit: 1
     resource:
       action: patch
       mergeStrategy: merge
@@ -33,6 +36,9 @@ spec:
           target_state: deployed
 
   - name: rabbitmq-ready-template
+    activeDeadlineSeconds: 120
+    retryStrategy:
+      limit: 2
     resource:
       action: get
       successCondition: status.actual_state == deployed

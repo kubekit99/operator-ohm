@@ -38,6 +38,9 @@ spec:
         template: rabbitmq-ready-template
 
   - name: enable-mariadb-template
+    activeDeadlineSeconds: 60
+    retryStrategy:
+      limit: 1
     resource:
       action: patch
       mergeStrategy: merge
@@ -50,6 +53,9 @@ spec:
           target_state: deployed
 
   - name: mariadb-ready-template
+    activeDeadlineSeconds: 120
+    retryStrategy:
+      limit: 2
     resource:
       action: get
       successCondition: status.actual_state == deployed
@@ -60,6 +66,9 @@ spec:
           name: mariadb
 
   - name: enable-memcached-template
+    activeDeadlineSeconds: 60
+    retryStrategy:
+      limit: 1
     resource:
       action: patch
       mergeStrategy: merge
@@ -72,6 +81,9 @@ spec:
           target_state: deployed
 
   - name: memcached-ready-template
+    activeDeadlineSeconds: 120
+    retryStrategy:
+      limit: 2
     resource:
       action: get
       successCondition: status.actual_state == deployed
@@ -82,6 +94,9 @@ spec:
           name: memcached
 
   - name: enable-rabbitmq-template
+    activeDeadlineSeconds: 60
+    retryStrategy:
+      limit: 1
     resource:
       action: patch
       mergeStrategy: merge
@@ -94,6 +109,9 @@ spec:
           target_state: deployed
 
   - name: rabbitmq-ready-template
+    activeDeadlineSeconds: 120
+    retryStrategy:
+      limit: 2
     resource:
       action: get
       successCondition: status.actual_state == deployed
@@ -104,6 +122,9 @@ spec:
           name: rabbitmq
 
   - name: enable-keystone-template
+    activeDeadlineSeconds: 60
+    retryStrategy:
+      limit: 1
     resource:
       action: patch
       mergeStrategy: merge
@@ -116,6 +137,9 @@ spec:
           target_state: deployed
 
   - name: keystone-ready-template
+    activeDeadlineSeconds: 300
+    retryStrategy:
+      limit: 2
     resource:
       action: get
       successCondition: status.actual_state == deployed
