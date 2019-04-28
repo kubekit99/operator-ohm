@@ -550,6 +550,8 @@ conf:
       backend: dogpile.cache.memcached
     oslo_messaging_notifications:
       driver: messagingv2
+    oslo_messaging_rabbit:
+      rabbit_ha_queues: true
     security_compliance:
       # NOTE(vdrok): The following two options have effect only for SQL backend
       lockout_failure_attempts: 5
@@ -822,6 +824,14 @@ conf:
             failure_rate:
               max: 0
       KeystoneBasic.create_and_delete_ec2credential:
+        - runner:
+            concurrency: 1
+            times: 1
+            type: constant
+          sla:
+            failure_rate:
+              max: 0
+      KeystoneBasic.create_and_list_ec2credentials:
         - runner:
             concurrency: 1
             times: 1
