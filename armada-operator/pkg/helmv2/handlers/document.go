@@ -16,18 +16,17 @@
 
 package handlersv2
 
+import (
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
 // """Module for resolving design references."""
 
 // import urllib.parse
 // import re
 // import requests
-
-// from oslo_log import log as logging
-
-// from armada.exceptions.source_exceptions import InvalidPathException
-// from armada.utils import keystone as ks_utils
-
-// LOG := logging.getLogger(__name__)
 
 type ReferenceResolver struct {
 }

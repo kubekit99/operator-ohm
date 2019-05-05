@@ -16,7 +16,11 @@
 
 package handlersv2
 
-// from armada import const
+import (
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
 
 type ChartDelete struct {
 	// """Initialize a chart delete handler.
@@ -44,7 +48,7 @@ type ChartDelete struct {
 }
 
 // :wait
-func (self *ChartDelete) get_timeout() {
+func (self *ChartDelete) get_timeout() int {
 	return self.timeout
 
 }

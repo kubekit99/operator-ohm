@@ -16,18 +16,19 @@
 
 package handlersv2
 
+import (
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
 // import collections
 // import json
 // import yaml
 
-// from armada import const
-// from armada.exceptions import override_exceptions
-// from armada.exceptions import validate_exceptions
-// from armada.utils import validate
-
 type Override struct {
-	documents interface{}
-	overrides interface{}
+	documents []unstructured.Unstructured
+	overrides []unstructured.Unstructured
 	values    interface{}
 }
 
@@ -37,7 +38,7 @@ func (self *Override) _load_yaml_file(doc interface{}) {
 	// '''
 	res, err := list(yaml.safe_load_all(f.read()))
 	if err != nil {
-		return override_exceptions.InvalidOverrideFileException(doc)
+		return helmif.InvalidOverrideFileException(doc)
 	}
 
 }
@@ -45,18 +46,18 @@ func (self *Override) _document_checker(doc interface{}, ovr interface{}) {
 	// Validate document or return the appropriate exception
 	valid, details := validate.validate_armada_documents(doc)
 	if err != nil {
-		return override_exceptions.InvalidOverrideValueException(ovr)
+		return helmif.InvalidOverrideValueException(ovr)
 	}
 	if !valid {
 		if ovr {
-			return override_exceptions.InvalidOverrideValueException(ovr)
+			return helmif.InvalidOverrideValueException(ovr)
 		} else {
-			return validate_exceptions.InvalidManifestException(details)
+			return helmif.InvalidManifestException(details)
 		}
 	}
 
 }
-func (self *Override) update(d interface{}, u interface{}) {
+func (self *Override) update(d unstructured.Unstructured, u unstructured.Unstructured) unstructured.Unstructured {
 	for k, v := range u.items() {
 		if isinstance(v, collections.Mapping) {
 			r := self.update(d.get(k, &foo{}), v)
@@ -70,7 +71,7 @@ func (self *Override) update(d interface{}, u interface{}) {
 	return d
 
 }
-func (self *Override) find_document_type(alias interface{}) {
+func (self *Override) find_document_type(alias string) {
 	if alias == "chart_group" {
 		return const_DOCUMENT_GROUP
 	}
@@ -84,21 +85,23 @@ func (self *Override) find_document_type(alias interface{}) {
 	return ValueError("Could not find {} document".format(alias))
 
 }
-func (self *Override) find_manifest_document(doc_path interface{}) {
+func (self *Override) find_manifest_document(doc_path []string) {
 	for doc := range self.documents {
-		if doc.get("schema") == self.find_document_type(doc_path[0]) && doc.get("metadata", &foo{}).get("name") == doc_path[1] {
-			return doc
+		if doc.GetKind() == self.find_document_type(doc_path[0]) && doc.GetName() == doc_path[1] {
+			return doc, nil
 		}
 	}
 
-	return override_exceptions.UnknownDocumentOverrideException(
+	return nil, helmif.UnknownDocumentOverrideException(
 		doc_path[0], doc_path[1])
 
 }
+
 func (self *Override) array_to_dict(data_path interface{}, new_value interface{}) {
 	// TODO(fmontei) { Handle `json.decoder.JSONDecodeError` getting thrown
 	// better.
 }
+
 func (self *Override) convert(data interface{}) {
 	if 0 == 1 {
 		if isinstance(data, str) {
@@ -137,47 +140,47 @@ func (self *Override) convert(data interface{}) {
 	return data_obj
 
 }
-func (self *Override) override_manifest_value(doc_path interface{}, data_path interface{}, new_value interface{}) {
+func (self *Override) override_manifest_value(doc_path []string, data_path []string, new_value interface{}) {
 	document := self.find_manifest_document(doc_path)
 	new_data := self.array_to_dict(data_path, new_value)
-	self.update(document.get("data", &foo{}), new_data)
+	self.update(document, new_data)
 
 }
-func (self *Override) update_document(merging_values interface{}) {
+func (self *Override) update_document(merging_values []unstructured.Unstructured) {
 	for doc := range merging_values {
-		if doc.get("schema") == const_DOCUMENT_CHART {
+		if doc.GetKind() == const_DOCUMENT_CHART {
 			self.update_chart_document(doc)
 		}
-		if doc.get("schema") == const_DOCUMENT_GROUP {
+		if doc.GetKind() == const_DOCUMENT_GROUP {
 			self.update_chart_group_document(doc)
 		}
-		if doc.get("schema") == const_DOCUMENT_MANIFEST {
+		if doc.GetKind() == const_DOCUMENT_MANIFEST {
 			self.update_armada_manifest(doc)
 		}
 	}
 }
-func (self *Override) update_chart_document(ovr interface{}) {
+func (self *Override) update_chart_document(ovr unstructured.Unstructured) {
 	for doc := range self.documents {
-		if doc.get("schema") == const_DOCUMENT_CHART && doc.get("metadata", &foo{}).get("name") == ovr.get("metadata", &foo{}).get("name") {
-			self.update(doc.get("data", &foo{}), ovr.get("data", &foo{}))
+		if doc.GetKind() == const_DOCUMENT_CHART && doc.GetName() == ovr.GetName() {
+			self.update(doc, ovr)
 			return
 		}
 	}
 
 }
-func (self *Override) update_chart_group_document(ovr interface{}) {
+func (self *Override) update_chart_group_document(ovr unstructured.Unstructured) {
 	for doc := range self.documents {
-		if doc.get("schema") == const_DOCUMENT_GROUP && doc.get("metadata", &foo{}).get("name") == ovr.get("metadata", &foo{}).get("name") {
-			self.update(doc.get("data", &foo{}), ovr.get("data", &foo{}))
+		if doc.GetKind() == const_DOCUMENT_GROUP && doc.GetName() == ovr.GetName() {
+			self.update(doc, ovr)
 			return
 		}
 	}
 
 }
-func (self *Override) update_armada_manifest(ovr interface{}) {
+func (self *Override) update_armada_manifest(ovr unstructured.Unstructured) {
 	for doc := range self.documents {
-		if doc.get("schema") == const_DOCUMENT_MANIFEST && doc.get("metadata", &foo{}).get("name") == ovr.get("metadata", &foo{}).get("name") {
-			self.update(doc.get("data", &foo{}), ovr.get("data", &foo{}))
+		if doc.GetKind() == const_DOCUMENT_MANIFEST && doc.GetName() == ovr.GetName() {
+			self.update(doc, ovr)
 			return
 		}
 	}
@@ -185,7 +188,7 @@ func (self *Override) update_armada_manifest(ovr interface{}) {
 
 func (self *Override) update_manifests() {
 
-	if self.values {
+	if self.values != nil {
 		for value := range self.values {
 			merging_values := self._load_yaml_file(value)
 			self.update_document(merging_values)
@@ -194,7 +197,7 @@ func (self *Override) update_manifests() {
 		self._document_checker(self.documents, self.values)
 	}
 
-	if self.overrides {
+	if self.overrides != nil {
 		for override := range self.overrides {
 			new_value := override.split(":=", 1)[1]
 			doc_path := override.split(":=", 1)[0].split(":")
@@ -207,7 +210,7 @@ func (self *Override) update_manifests() {
 		self._document_checker(self.documents, self.overrides)
 	}
 
-	if not(self.values && self.overrides) {
+	if (self.values == nil) && (self.overrides == nil) {
 		// Valiate document
 		self._document_checker(self.documents)
 	}

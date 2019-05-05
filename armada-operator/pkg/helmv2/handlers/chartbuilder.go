@@ -16,6 +16,12 @@
 
 package handlersv2
 
+import (
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
 // import os
 // import yaml
 
@@ -27,12 +33,6 @@ package handlersv2
 
 // from oslo_config import cfg
 // from oslo_log import log as logging
-
-// from armada.exceptions import chartbuilder_exceptions
-
-// LOG := logging.getLogger(__name__)
-
-// CONF := cfg.CONF
 
 type ChartBuilder struct {
 	// """
@@ -70,9 +70,9 @@ func (self *ChartBuilder) get_source_path() {
 	return nil
 
 }
-func (self *ChartBuilder) get_ignored_files() {
+func (self *ChartBuilder) get_ignored_files() ([]string, error) {
 	// """Load files to ignore from .helmignore if present."""
-	ignored_files := make([]interface{}, 0)
+	ignored_files := make([]string, 0)
 	if os.path.exists(os.path.join(self.source_directory, ".helmignore")) {
 		f := open(os.path.join(self.source_directory, ".helmignore"))
 		if f {
@@ -80,14 +80,14 @@ func (self *ChartBuilder) get_ignored_files() {
 		}
 	}
 	if err != nil {
-		return chartbuilder_exceptions.IgnoredFilesLoadException()
+		return ignored_files, helmif.IgnoredFilesLoadException()
 	}
 	// return [filename.strip() for filename in ignored_files]
-	return nil
+	return ignored_files, nil
 
 }
 
-func (self *ChartBuilder) ignore_file(filename interface{}) {
+func (self *ChartBuilder) ignore_file(filename string) bool {
 	// """Returns whether a given ``filename`` should be ignored.
 
 	// :param filename: Filename to compare against list of ignored files.
@@ -104,7 +104,7 @@ func (self *ChartBuilder) ignore_file(filename interface{}) {
 	return false
 
 }
-func (self *ChartBuilder) get_metadata() {
+func (self *ChartBuilder) get_metadata() (Metadata, error) {
 	// """Extract metadata from Chart.yaml to construct an instance of
 	// :class:`hapi.chart.metadata_pb2.Metadata`.
 	// """
@@ -113,14 +113,14 @@ func (self *ChartBuilder) get_metadata() {
 		chart_yaml := yaml.safe_load(f.read().encode("utf-8"))
 	}
 	if err != nil {
-		return chartbuilder_exceptions.MetadataLoadException()
+		return nil, helmif.MetadataLoadException()
 	}
 
 	// Construct Metadata object.
 	return Metadata{
 		description: chart_yaml.get("description"),
 		name:        chart_yaml.get("name"),
-		version:     chart_yaml.get("version")}
+		version:     chart_yaml.get("version")}, nil
 
 }
 func (self *ChartBuilder) get_files() {
@@ -146,7 +146,7 @@ func (self *ChartBuilder) get_files() {
 
 }
 
-func (self *ChartBuilder) _append_file_to_result(root interface{}, rel_folder_path interface{}, file interface{}) {
+func (self *ChartBuilder) _append_file_to_result(root string, rel_folder_path string, file string) error {
 	abspath := os.path.abspath(os.path.join(root, file))
 	relpath := os.path.join(rel_folder_path, file)
 
@@ -161,7 +161,7 @@ func (self *ChartBuilder) _append_file_to_result(root interface{}, rel_folder_pa
 		if err != nil {
 			LOG.debug(
 				"Failed to open and read file %s in the helm chart directory.", abspath)
-			return chartbuilder_exceptions.FilesLoadException{
+			return helmif.FilesLoadException{
 				file: abspath, details: e}
 		}
 		if err != nil {
@@ -175,7 +175,7 @@ func (self *ChartBuilder) _append_file_to_result(root interface{}, rel_folder_pa
 
 	if len(unicode_errors) == 2 {
 		LOG.debug("Failed to read file %s in the helm chart directory.Ensure that it is encoded using utf-8.", abspath)
-		return chartbuilder_exceptions.FilesLoadException{
+		return helmif.FilesLoadException{
 			file:  abspath,
 			clazz: unicode_errors[0].__class__.__name__,
 			// JEB details:"\n".join(e for e in unicode_errors),
@@ -203,10 +203,10 @@ func (self *ChartBuilder) _append_file_to_result(root interface{}, rel_folder_pa
 		}
 	}
 
-	return non_template_files
+	return non_template_files, nil
 
 }
-func (self *ChartBuilder) get_values() {
+func (self *ChartBuilder) get_values() Config {
 	// """Return the chart"s (default) values."""
 
 	// create config object representing unmarshaled values.yaml
@@ -225,7 +225,7 @@ func (self *ChartBuilder) get_values() {
 
 }
 
-func (self *ChartBuilder) get_templates() {
+func (self *ChartBuilder) get_templates() ([]Template, error) {
 	// """Return all the chart templates.
 
 	// Process all files in templates/ as a template to attach to the chart,
@@ -256,17 +256,17 @@ func (self *ChartBuilder) get_templates() {
 		}
 	}
 
-	return templates
+	return templates, nil
 
 }
-func (self *ChartBuilder) get_helm_chart() {
+func (self *ChartBuilder) get_helm_chart() (Chart, error) {
 	// """Return a Helm chart object.
 
 	// Constructs a :class:`hapi.chart.chart_pb2.Chart` object from the
 	// ``chart`` intentions, including all dependencies.
 	// """
 	if self._helm_chart {
-		return self._helm_chart
+		return self._helm_chart, nil
 	}
 	dependencies := make([]interface{}, 0)
 	chart_dependencies := self.chart.get("dependencies", []interface{})
@@ -279,7 +279,7 @@ func (self *ChartBuilder) get_helm_chart() {
 			dep_chart_name, chart_release)
 		dependencies.append(ChartBuilder(dep_chart).get_helm_chart())
 		if err != nil {
-			return chartbuilder_exceptions.DependencyException(chart_name)
+			return nil, helmif.DependencyException(chart_name)
 		}
 	}
 
@@ -290,11 +290,11 @@ func (self *ChartBuilder) get_helm_chart() {
 		values:       self.get_values(),
 		files:        self.get_files()}
 	if err != nil {
-		return chartbuilder_exceptions.HelmChartBuildException(chart_name, e)
+		return nil, helmif.HelmChartBuildException(chart_name, e)
 	}
 
-	_helm_chart := helm_chart
-	return helm_chart
+	self._helm_chart = helm_chart
+	return helm_chart, nil
 }
 
 func (self *ChartBuilder) dump() {

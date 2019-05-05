@@ -16,6 +16,12 @@
 
 package handlersv2
 
+import (
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
 // from concurrent.futures import ThreadPoolExecutor, as_completed
 // from oslo_config import cfg
 // from oslo_log import log as logging
@@ -33,17 +39,10 @@ package handlersv2
 // from armada.utils.release import release_prefixer
 // from armada.utils import source
 
-// LOG := logging.getLogger(__name__)
-// CONF := cfg.CONF
-
 // """
 // This is the main Armada class handling the Armada
 // workflows
 // """
-
-import (
-	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
-)
 
 type Armada struct {
 	// """
@@ -67,9 +66,9 @@ type Armada struct {
 	// :param int k8s_wait_attempt_sleep: The time in seconds to sleep
 	//     between attempts.
 	// """
-	enable_chart_cleanup interface{}
-	dry_run              interface{}
-	force_wait           interface{}
+	enable_chart_cleanup bool
+	dry_run              bool
+	force_wait           bool
 	tiller               *Tiller
 	documents            interface{}
 	manifest             *Manifest
@@ -77,16 +76,17 @@ type Armada struct {
 	chart_deploy         interface{}
 }
 
-func (self *Armada) init() {
-	// self.enable_chart_cleanup = enable_chart_cleanup
-	// self.dry_run = dry_run
-	// self.force_wait = force_wait
-	// self.tiller = tiller
-	// self.documents = Override{ documents, set_ovr, values}.update_manifests()
-	// self.manifest = Manifest( self.documents, target_manifest).get_manifest()
+func (self *Armada) init(enale_chart_cleanup bool, dryn_run bool, force_wait bool, timeout int, target_manifest string,
+	k8s_wait_attempts int, k8s_wait_attempt_sleep int) {
+	self.enable_chart_cleanup = enable_chart_cleanup
+	self.dry_run = dry_run
+	self.force_wait = force_wait
+	self.tiller = tiller
+	self.documents = Override{documents, set_ovr, values}.update_manifests()
+	self.manifest = Manifest(self.documents, target_manifest).get_manifest()
 	// self.chart_cache = &foo{}
-	// self.chart_deploy = ChartDeploy{ disable_update_pre, disable_update_post, self.dry_run,
-	// 	k8s_wait_attempts, k8s_wait_attempt_sleep, timeout, self.tiller}
+	self.chart_deploy = ChartDeploy{disable_update_pre, disable_update_post, self.dry_run,
+		k8s_wait_attempts, k8s_wait_attempt_sleep, timeout, self.tiller}
 
 }
 
@@ -120,7 +120,7 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func (self *Armada) get_chart(ch interface{}) error {
+func (self *Armada) get_chart(ch ArmadaChartSpec) error {
 	chart := ch.get("chart", &foo{})
 	chart_source := chart.get("source", &foo{})
 	location := chart_source.get("location")

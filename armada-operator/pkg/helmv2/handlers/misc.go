@@ -17,9 +17,15 @@
 package handlersv2
 
 const (
-	const_KEYWORD_ARMADA string = "armada"
-	const_KEYWORD_GROUPS string = "groups"
-	const_KEYWORD_CHARTS string = "charts"
+	const_KEYWORD_ARMADA         string = "ArmadaManifest"
+	const_KEYWORD_GROUPS         string = "ArmadaChartGroup"
+	const_KEYWORD_CHARTS         string = "ArmadaChart"
+	const_DEFAULT_K8S_TIMEOUT    int    = 30
+	const_DEFAULT_TILLER_TIMEOUT int64  = 30
+	const_STATUS_ALL             string = "all"
+	const_DEFAULT_DELETE_TIMEOUT int64  = 30
+
+	CONF_tiller_pod_labels string = "xxx"
 )
 
 type foo struct{}

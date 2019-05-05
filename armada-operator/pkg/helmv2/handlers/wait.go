@@ -16,6 +16,12 @@
 
 package handlersv2
 
+import (
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
 // from abc import ABC, abstractmethod
 // import collections
 // import math
@@ -31,8 +37,6 @@ package handlersv2
 // from armada.exceptions import manifest_exceptions
 // from armada.exceptions import armada_exceptions
 // from kubernetes import watch
-
-// LOG := logging.getLogger(__name__)
 
 // ROLLING_UPDATE_STRATEGY_TYPE := "RollingUpdate"
 

@@ -16,21 +16,21 @@
 
 package handlersv2
 
-// from oslo_log import log as logging
+import (
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
 // import time
 // import yaml
 
-// from armada import const
-// from armada.exceptions import armada_exceptions
 // from armada.handlers.chartbuilder import ChartBuilder
 // from armada.handlers.release_diff import ReleaseDiff
 // from armada.handlers.chart_delete import ChartDelete
 // from armada.handlers.test import Test
 // from armada.handlers.wait import ChartWait
-// from armada.exceptions import tiller_exceptions
 // import armada.utils.release as r
-
-// LOG := logging.getLogger(__name__)
 
 type ChartDeploy struct {
 	disable_update_pre     bool
@@ -52,7 +52,7 @@ func (self *ChartDeploy) init(chart interface{}, cg_test_all_charts interface{},
 	self.tiller = tiller
 
 }
-func (self *ChartDeploy) execute(chart interface{}, cg_test_all_charts interface{}, prefix string, known_releases []string) {
+func (self *ChartDeploy) execute(chart *av1.ArmadaChartSpec, cg_test_all_charts interface{}, prefix string, known_releases []string) {
 	namespace := chart.get("namespace")
 	release := chart.get("release")
 	release_name := r.release_prefixer(prefix, release)
@@ -103,15 +103,15 @@ func (self *ChartDeploy) execute(chart interface{}, cg_test_all_charts interface
 		old_chart := old_release.chart
 		old_values_string := old_release.config.raw
 
-		upgrade := chart.get("upgrade", &foo{})
-		disable_hooks := upgrade.get("no_hooks", false)
-		options := upgrade.get("options", &foo{})
-		force := options.get("force", false)
-		recreate_pods := options.get("recreate_pods", false)
+		upgrade := chart.Upgrade
+		disable_hooks := upgrade.NoHooks
+		options := upgrade.Options
+		force := options.Force
+		recreate_pods := options.RecreatePods
 
 		if upgrade {
-			upgrade_pre := upgrade.get("pre", &foo{})
-			upgrade_post := upgrade.get("post", &foo{})
+			upgrade_pre := upgrade.Pre
+			upgrade_post := upgrade.Post
 
 			if !self.disable_update_pre && upgrade_pre {
 				pre_actions := upgrade_pre

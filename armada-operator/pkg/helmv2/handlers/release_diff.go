@@ -16,10 +16,14 @@
 
 package handlersv2
 
+import (
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
 // from deepdiff import DeepDiff
 // import yaml
-
-// from armada.exceptions import armada_exceptions
 
 type ReleaseDiff struct {
 	// """
