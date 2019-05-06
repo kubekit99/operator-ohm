@@ -103,6 +103,17 @@ spec:
               type: object
             test:
               description: See Test_.
+              properties:
+                enabled:
+                  type: boolean
+                options:
+                  properties:
+                    cleanup:
+                      type: boolean
+                  type: object
+                timeout:
+                  format: int64
+                  type: integer
               type: object
             timeout:
               description: time (in seconds) allotted for chart to deploy when 'wait'

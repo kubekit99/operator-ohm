@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build wip
+// +build v2
 
 package handlersv2
 
 import (
+	"context"
+
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
-	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type ChartDelete struct {
@@ -36,24 +36,29 @@ type ChartDelete struct {
 	// :type purge: bool
 	// """
 
-	chart         interface{}
-	release_name  string
-	tiller        *Tiller
-	purge         bool
-	delete_config interface{}
+	chart        *av1.ArmadaChartSpec
+	release_name string
+	tiller       *Tiller
+	purge        bool
+	// delete_config *cpb.Config
 	// TODO(seaneagan) { Consider allowing this to be a percentage of the
 	// chart's `wait.timeout` so that the timeouts can scale together, and
 	// likely default to some reasonable value, e.g. "50%".
-	timeout int
+	timeout int64
+}
+
+func (self *ChartDelete) init(chart *av1.ArmadaChartSpec, tiller *Tiller) {
+	self.chart = chart
+	self.tiller = tiller
 }
 
 // :wait
-func (self *ChartDelete) get_timeout() int {
+func (self *ChartDelete) get_timeout() int64 {
 	return self.timeout
 
 }
-func (self *ChartDelete) delete() {
+func (self *ChartDelete) delete(ctx context.Context) {
 	// """Delete the release associated with the chart"
 	// """
-	self.tiller.uninstall_release(release_name, self.get_timeout(), self.purge)
+	self.tiller.uninstall_release(ctx, self.release_name, false, self.purge, self.get_timeout())
 }

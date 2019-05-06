@@ -35,8 +35,8 @@ import (
 )
 
 type managerFactory struct {
-	storageBackend      *storage.Storage
-	tillerKubeClient    *kube.Client
+	storageBackend   *storage.Storage
+	tillerKubeClient *kube.Client
 }
 
 // NewManagerFactory returns a new Helm manager factory capable of installing and uninstalling releases.
@@ -53,16 +53,16 @@ func NewManagerFactory(mgr manager.Manager) helmif.HelmManagerFactory {
 
 func (f managerFactory) NewArmadaChartManager(r *av1.ArmadaChart) helmif.HelmManager {
 	return &chartmanager{
-		storageBackend:     f.storageBackend,
-		tillerKubeClient:   f.tillerKubeClient,
-		chartLocation:      r.Spec.Source,
+		storageBackend:   f.storageBackend,
+		tillerKubeClient: f.tillerKubeClient,
+		chartLocation:    r.Spec.Source,
 
 		releaseManager: f.helmRendererForArmadaChart(r),
 		releaseName:    r.Spec.Release,
 		namespace:      r.GetNamespace(),
 
-		spec:           r.Spec,
-		status:         &r.Status,
+		spec:   r.Spec,
+		status: &r.Status,
 	}
 }
 

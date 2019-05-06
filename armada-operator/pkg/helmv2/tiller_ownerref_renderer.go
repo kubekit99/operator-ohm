@@ -26,8 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/helm/pkg/chartutil"
-	"k8s.io/helm/pkg/releaseutil"
 	cpb "k8s.io/helm/pkg/proto/hapi/chart"
+	"k8s.io/helm/pkg/releaseutil"
 	tillerenv "k8s.io/helm/pkg/tiller/environment"
 )
 

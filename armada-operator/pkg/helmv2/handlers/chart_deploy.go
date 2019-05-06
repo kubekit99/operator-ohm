@@ -42,7 +42,7 @@ type ChartDeploy struct {
 	tiller                 *Tiller
 }
 
-func (self *ChartDeploy) init(chart interface{}, cg_test_all_charts interface{}, prefix string, known_releases []string) {
+func (self *ChartDeploy) init(chart *av1.ArmadaChartSpec, cg_test_all_charts bool, prefix string, known_releases []string) {
 	self.disable_update_pre = disable_update_pre
 	self.disable_update_post = disable_update_post
 	self.dry_run = dry_run
@@ -50,9 +50,9 @@ func (self *ChartDeploy) init(chart interface{}, cg_test_all_charts interface{},
 	self.k8s_wait_attempt_sleep = k8s_wait_attempt_sleep
 	self.timeout = timeout
 	self.tiller = tiller
-
 }
-func (self *ChartDeploy) execute(chart *av1.ArmadaChartSpec, cg_test_all_charts interface{}, prefix string, known_releases []string) {
+
+func (self *ChartDeploy) execute(chart *av1.ArmadaChartSpec, cg_test_all_charts bool, prefix string, known_releases []string) {
 	namespace := chart.get("namespace")
 	release := chart.get("release")
 	release_name := r.release_prefixer(prefix, release)

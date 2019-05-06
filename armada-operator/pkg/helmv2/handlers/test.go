@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build wip
+// +build v2
 
 package handlersv2
 
 import (
-	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
-	helmif "github.com/kubekit99/operator-ohm/armada-operator/pkg/services"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-)
+	"context"
 
-// from armada.handlers.wait import get_wait_labels
-// from armada.utils.release import label_selectors
-// from armada.utils.helm import get_test_suite_run_success, is_test_pod
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	rpb "k8s.io/helm/pkg/proto/hapi/release"
+)
 
 type Test struct {
 	// """Initialize a test handler to run Helm tests corresponding to a
@@ -45,63 +44,43 @@ type Test struct {
 	// :type enable_all: bool
 	// """
 
-	chart        interface{}
-	release_name interface{}
+	chart        *av1.ArmadaChartSpec
+	release_name string
 	tiller       *Tiller
-	cleanup      interface{}
-	k8s_timeout  int
-	timeout      int
+	cleanup      bool
+	k8s_timeout  int64
+	timeout      int64
+	test_enabled bool
 }
 
-func (self *Test) init() {
-	test_values := self.chart.get("test", None)
+func (self *Test) init(chart *av1.ArmadaChartSpec, release_name string, tiller *Tiller) {
+	self.chart = chart
+	test_values := chart.Test
 	// NOTE(drewwalters96) { Support the chart_group `test_charts` key until
 	// its deprecation period ends. The `test.enabled`, `enable_all` flag,
 	// and deprecated, boolean `test` key override this value if provided.
-	if cg_test_charts {
-		LOG.warn("Chart group key `test_charts` is deprecated and will be removed. Use `test.enabled` instead.")
-		self.test_enabled = cg_test_charts
-	} else {
-		self.test_enabled = true
-	}
+	self.test_enabled = true
 
-	// NOTE: Support old, boolean `test` key until deprecation period ends.
-	if typef(test_values) == bool {
-		LOG.warn("Boolean value for chart `test` key is deprecated and will be removed. Use `test.enabled` instead.")
+	if test_values != nil {
+		self.test_enabled = test_values.Enabled
 
-		self.test_enabled = test_values
-
-		// NOTE: Use old, default cleanup value (i.e. true) if none is
-		// provided.
-		if self.cleanup {
-			self.cleanup = true
-		}
-	} else if test_values {
-		test_enabled_opt := test_values.get("enabled")
-		if !test_enabled_opt {
-			self.test_enabled = test_enabled_opt
-		}
 		// NOTE(drewwalters96) { `self.cleanup`, the cleanup value provided
 		// by the API/CLI, takes precedence over the chart value
 		// `test.cleanup`.
-		if self.cleanup {
-			test_options := test_values.get("options", &foo{})
-			self.cleanup = test_options.get("cleanup", false)
+		if test_values.Options != nil {
+			self.cleanup = test_values.Options.Cleanup
 		}
-		self.timeout = test_values.get("timeout", self.timeout)
+
+		self.timeout = test_values.Timeout
 	} else {
 		// Default cleanup value
 		if self.cleanup {
 			self.cleanup = false
 		}
 	}
-
-	if enable_all {
-		self.test_enabled = true
-	}
 }
 
-func (self *Test) test_release_for_success() {
+func (self *Test) test_release_for_success(ctx context.Context) bool {
 	// """Run the Helm tests corresponding to a release for success (i.e. exit
 	// code 0).
 
@@ -110,16 +89,23 @@ func (self *Test) test_release_for_success() {
 	LOG.Info("RUNNING: %s tests with timeout:=%ds", self.release_name,
 		self.timeout)
 
-	self.delete_test_pods()
+	err := self.delete_test_pods(ctx)
 	if err != nil {
-		LOG.exception("Exception when deleting test pods for release: %s",
+		LOG.Info("Exception when deleting test pods for release: %s",
 			self.release_name)
 	}
 
-	test_suite_run := self.tiller.test_release(
+	test_suite_run := self.tiller.test_release(ctx,
 		self.release_name, self.timeout, self.cleanup)
 
-	success := get_test_suite_run_success(test_suite_run)
+	success := true
+	for _, r := range test_suite_run.Results {
+		if r.Status != rpb.TestRun_SUCCESS {
+			success = false
+		}
+
+	}
+
 	if success {
 		LOG.Info("PASSED: %s", self.release_name)
 	} else {
@@ -129,7 +115,7 @@ func (self *Test) test_release_for_success() {
 	return success
 }
 
-func (self *Test) delete_test_pods() {
+func (self *Test) delete_test_pods(ctx context.Context) error {
 	// """Deletes any existing test pods for the release, as identified by the
 	// wait labels for the chart, to avoid test pod name conflicts when
 	// creating the new test pod as well as just for general cleanup since
@@ -139,31 +125,36 @@ func (self *Test) delete_test_pods() {
 
 	// Guard against labels being left empty, so we don"t delete other
 	// chart"s test pods.
-	if labels {
+	if labels != nil {
 		label_selector := label_selectors(labels)
 
-		namespace := self.chart["namespace"]
+		namespace := self.chart.Namespace
 
-		list_args := &foo{
-			"namespace":       namespace,
-			"label_selector":  label_selector,
-			"timeout_seconds": self.k8s_timeout,
+		list_args := metav1.ListOptions{
+			// JEB Namespace:      namespace,
+			// JEB LabelSelector:  label_selector,
+			// JEB TimeoutSeconds: self.k8s_timeout,
 		}
 
-		pod_list := self.tiller.k8s.client.list_namespaced_pod(**list_args)
-		// JEB test_pods := [pod for pod in pod_list.items if is_test_pod(pod)]
-		test_pods := make([]interface{}, 0)
+		pod_list, _ := self.tiller.k8s.client.Pods(namespace).List(list_args)
+		test_pods := make([]corev1.Pod, 0)
+		for _, pod := range pod_list.Items {
+			if is_test_pod(&pod) {
+				test_pods = append(test_pods, pod)
+			}
+		}
 
-		if test_pods {
+		if len(test_pods) != 0 {
 			LOG.Info(
 				"Found existing test pods for release with namespace:=%s, labels:=(%s)", namespace, label_selector)
 		}
 
-		for test_pod := range test_pods {
-			pod_name := test_pod.metadata.name
+		for _, test_pod := range test_pods {
+			pod_name := test_pod.Name
 			LOG.Info("Deleting existing test pod: %s", pod_name)
-			self.tiller.k8s.delete_pod_action(
-				pod_name, namespace, self.k8s_timeout)
+			self.tiller.k8s.delete_pod_action(pod_name, namespace, "", self.k8s_timeout)
 		}
 	}
+
+	return nil
 }

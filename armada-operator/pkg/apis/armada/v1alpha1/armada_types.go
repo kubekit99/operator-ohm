@@ -55,7 +55,7 @@ type ArmadaWait struct {
 	// item. Defaults to pods and jobs (if any exist) matching ``labels``.
 	Resources []*ArmadaWaitResourcesItems `json:"resources,omitempty"`
 	// time (in seconds) to wait for chart to deploy
-	Timeout int `json:"timeout,omitempty"`
+	Timeout int64 `json:"timeout,omitempty"`
 }
 
 // HookActionItems
@@ -72,7 +72,7 @@ type ArmadaHookActionItems struct {
 // Delete
 type ArmadaDelete struct {
 	// time (in seconds) to wait for chart to be deleted
-	Timeout int `json:"timeout,omitempty"`
+	Timeout int64 `json:"timeout,omitempty"`
 }
 
 // Options
@@ -128,5 +128,12 @@ type ArmadaChartValues struct {
 }
 
 // Test. JEB that structure could not be converted automatically
+type ArmadaTestOptions struct {
+	Cleanup bool `json:"cleanup,omitempty"`
+}
+
 type ArmadaTest struct {
+	Enabled bool               `json:"enabled,omitempty"`
+	Timeout int64              `json:"timeout,omitempty"`
+	Options *ArmadaTestOptions `json:"options,omitempty"`
 }

@@ -47,7 +47,7 @@ func get_wait_labels(chart interface{}) {
 
 // TODO: Validate this object up front in armada validate flow.
 type ChartWait struct {
-	k8s                    interface{}
+	k8s                    *K8s
 	release_name           string
 	chart                  interface{}
 	wait_config            interface{}

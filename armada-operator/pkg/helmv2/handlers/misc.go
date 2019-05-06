@@ -16,6 +16,12 @@
 
 package handlersv2
 
+import (
+	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+)
+
 const (
 	const_KEYWORD_ARMADA         string = "ArmadaManifest"
 	const_KEYWORD_GROUPS         string = "ArmadaChartGroup"
@@ -29,3 +35,29 @@ const (
 )
 
 type foo struct{}
+
+func get_wait_labels(chart *av1.ArmadaChartSpec) *av1.ArmadaLabels {
+	wait_config := chart.Wait
+	return wait_config.Labels
+}
+
+func label_selectors(alabels *av1.ArmadaLabels) *labels.Selector {
+	var res *labels.Selector
+	return res
+}
+
+func is_test_pod(pod *corev1.Pod) bool {
+	// annotations := pod.Annotations
+
+	// Retrieve pod's Helm test hooks
+	// if annotations != nil {
+	//     hook_string = annotations.get(HELM_HOOK_ANNOTATION)
+	//     if hook_string != "" {
+	//         hooks = hook_string.split(',')
+	// 		test_hooks = [h for h in hooks if h in HELM_TEST_HOOKS]
+	// 	}
+	// }
+
+	// return bool(test_hooks)
+	return false
+}
