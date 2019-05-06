@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build wip
+// +build v2
 
 package handlersv2
 
@@ -28,32 +28,9 @@ import (
 	cpb "k8s.io/helm/pkg/proto/hapi/chart"
 	rpb "k8s.io/helm/pkg/proto/hapi/release"
 	svc "k8s.io/helm/pkg/proto/hapi/services"
-	// "k8s.io/helm/pkg/storage"
+	"k8s.io/helm/pkg/releaseutil"
 	"k8s.io/helm/pkg/tiller"
 )
-
-// import grpc
-// import yaml
-
-// from hapi.chart.config_pb2 import Config
-// from hapi.services.tiller_pb2 import GetReleaseContentRequest
-// from hapi.services.tiller_pb2 import GetReleaseStatusRequest
-// from hapi.services.tiller_pb2 import GetVersionRequest
-// from hapi.services.tiller_pb2 import InstallReleaseRequest
-// from hapi.services.tiller_pb2 import ListReleasesRequest
-// from hapi.services.tiller_pb2_grpc import ReleaseServiceStub
-// from hapi.services.tiller_pb2 import RollbackReleaseRequest
-// from hapi.services.tiller_pb2 import TestReleaseRequest
-// from hapi.services.tiller_pb2 import UninstallReleaseRequest
-// from hapi.services.tiller_pb2 import UpdateReleaseRequest
-// from oslo_config import cfg
-// from oslo_log import log as logging
-
-// from armada import const
-// from armada.exceptions import tiller_exceptions as ex
-// from armada.handlers.k8s import K8s
-// from armada.utils import helm
-// from armada.utils.release import label_selectors, get_release_status
 
 var (
 	GRPC_EPSILON            int64 = 60
@@ -86,7 +63,7 @@ type TillerResult struct {
 	Namespace   string
 	Status      string
 	Description string
-	Version     interface{}
+	Version     int32
 }
 
 type Tiller struct {
@@ -167,7 +144,7 @@ func (self *Tiller) _get_tiller_ip() string {
 		LOG.Info("Using Tiller host IP: %s", self.tiller_host)
 		return self.tiller_host
 	} else {
-		pod, err := self._get_tiller_pod()
+		pod, _ := self._get_tiller_pod()
 		LOG.Info("Using Tiller pod IP: %s", pod.Status.PodIP)
 		return pod.Status.PodIP
 	}
@@ -302,7 +279,7 @@ func (self *Tiller) get_results(ctx context.Context) ([]rpb.Release, error) {
 
 }
 
-func (self *Tiller) get_chart_templates(ctx context.Context, template_name string, name string, release_name string, namespace string, chart *cpb.Chart, disable_hooks bool, values *cpb.Config) string {
+func (self *Tiller) get_chart_templates(ctx context.Context, template_name string, name string, release_name string, namespace string, chart *cpb.Chart, disable_hooks bool, values *cpb.Config) (string, error) {
 	// returns some info
 
 	LOG.Info("Template( %s ) : %s ", template_name, name)
@@ -316,16 +293,21 @@ func (self *Tiller) get_chart_templates(ctx context.Context, template_name strin
 		Wait:      disable_hooks}
 
 	// templates, err := self.releaseServer.InstallRelease(release_request, self.timeout, self.metadata)
-	templates, err := self.releaseServer.InstallRelease(ctx, release_request)
+	install_rsp, err := self.releaseServer.InstallRelease(ctx, release_request)
+	if err != nil {
+		LOG.Info("Error while fetching template release %s", name)
+		return "", helmif.ReleaseException
+	}
 
-	listManifests := manifest.SplitManifests(templates)
-	for _, template := range listManifests {
+	listManifests := releaseutil.SplitManifests(install_rsp.Release.GetManifest())
+	listTemplates := manifest.SplitManifests(listManifests)
+	for _, template := range listTemplates {
 		if template_name == template.Name {
-			return template.Source
+			return template.Content, nil
 		}
 	}
 
-	return ""
+	return "", nil
 
 }
 func (self *Tiller) _pre_update_actions(actions *av1.ArmadaUpgradePre, release_name string, namespace string, chart *cpb.Chart, disable_hooks bool, values *cpb.Config, timeout int64) {
@@ -625,7 +607,7 @@ func (self *Tiller) uninstall_release(ctx context.Context, release string, disab
 
 	}
 
-	return nil, nil
+	return res.Release, nil
 }
 
 func (self *Tiller) delete_resources(resource_type string, label_selector *labels.Selector, namespace string, wait bool, timeout int64) {
@@ -644,8 +626,7 @@ func (self *Tiller) delete_resources(resource_type string, label_selector *label
 
 	handled := false
 	if resource_type == "job" {
-		get_jobs, err := self.k8s.get_namespace_job(
-			namespace, label_selector)
+		get_jobs, _ := self.k8s.get_namespace_job(namespace, label_selector)
 		for _, jb := range get_jobs.Items {
 			jb_name := jb.Name
 
@@ -660,12 +641,11 @@ func (self *Tiller) delete_resources(resource_type string, label_selector *label
 				namespace)
 			self.k8s.delete_job_action(jb_name, namespace, "", timeout)
 		}
-		handled := true
+		handled = true
 	}
 
 	if resource_type == "cronjob" || resource_type == "job" {
-		get_jobs, err := self.k8s.get_namespace_cron_job(
-			namespace, label_selector)
+		get_jobs, _ := self.k8s.get_namespace_cron_job(namespace, label_selector)
 		for _, jb := range get_jobs.Items {
 			jb_name := jb.Name
 
@@ -686,12 +666,11 @@ func (self *Tiller) delete_resources(resource_type string, label_selector *label
 				namespace)
 			self.k8s.delete_cron_job_action(jb_name, namespace, "", timeout)
 		}
-		handled := true
+		handled = true
 	}
 
 	if resource_type == "pod" {
-		release_pods, err := self.k8s.get_namespace_pod(
-			namespace, label_selector)
+		release_pods, _ := self.k8s.get_namespace_pod(namespace, label_selector)
 		for _, pod := range release_pods.Items {
 			pod_name := pod.Name
 
@@ -709,17 +688,18 @@ func (self *Tiller) delete_resources(resource_type string, label_selector *label
 				self.k8s.wait_for_pod_redeployment(pod_name, namespace)
 			}
 		}
-		handled := true
+		handled = true
 	}
 
 	if !handled {
-		LOG.Error("No resources found with labels:=%s type:=%s namespace:=%s",
+		LOG.Info("No resources found with labels:=%s type:=%s namespace:=%s",
 			"", resource_type, namespace)
 	}
 
 }
-func (self *Tiller) rolling_upgrade_pod_deployment(name string, release_name string, namespace string, label_selector *labels.Selector, action_type interface{},
-	chart *cpb.Chart, disable_hooks bool, values interface{}, timeout int64) {
+func (self *Tiller) rolling_upgrade_pod_deployment(ctx context.Context,
+	name string, release_name string, namespace string, label_selector *labels.Selector, action_type interface{},
+	chart *cpb.Chart, disable_hooks bool, values *cpb.Config, timeout int64) {
 	// """
 	// update statefullsets (daemon, stateful)
 	// """
@@ -728,23 +708,21 @@ func (self *Tiller) rolling_upgrade_pod_deployment(name string, release_name str
 
 		LOG.Info("Updating: %s", action_type)
 
-		get_daemonset, err := self.k8s.get_namespace_daemon_set(
-			namespace, label_selector)
-
+		get_daemonset, _ := self.k8s.get_namespace_daemon_set(namespace, label_selector)
 		for _, ds := range get_daemonset.Items {
 			ds_name := ds.Name
-			ds_labels := ds.Labels
+			//JEB ds_labels := ds.Labels
 			if ds_name == name {
 				LOG.Info("Deleting %s : %s in %s", action_type, ds_name,
 					namespace)
-				self.k8s.delete_daemon_action(ds_name, namespace)
+				self.k8s.delete_daemon_action(ds_name, namespace, nil)
 
 				// update the daemonset yaml
-				template := self.get_chart_templates(
+				template, _ := self.get_chart_templates(ctx,
 					ds_name, name, release_name, namespace, chart,
 					disable_hooks, values)
-				template["metadata"]["labels"] = ds_labels
-				template["spec"]["template"]["metadata"]["labels"] = ds_labels
+				//JEB template["metadata"]["labels"] = ds_labels
+				//JEB template["spec"]["template"]["metadata"]["labels"] = ds_labels
 
 				self.k8s.create_daemon_action(
 					namespace, template)
@@ -760,11 +738,11 @@ func (self *Tiller) rolling_upgrade_pod_deployment(name string, release_name str
 		}
 
 	} else {
-		LOG.Error("Unable to exectue name: % type: %s", name, action_type)
+		LOG.Info("Unable to exectue name: % type: %s", name, action_type)
 	}
 
 }
-func (self *Tiller) rollback_release(release_name string, version int, wait bool, timeout int64, force bool, recreate_pods bool) {
+func (self *Tiller) rollback_release(ctx context.Context, release_name string, version int32, wait bool, timeout int64, force bool, recreate_pods bool) (*rpb.Release, error) {
 	// """
 	// Rollback a helm release.
 	// """
@@ -784,21 +762,19 @@ func (self *Tiller) rollback_release(release_name string, version int, wait bool
 		Force:    force,
 		Recreate: recreate_pods}
 
-	rollback_msg, err := self.releaseServer.RollbackRelease(
-		rollback_request,
-		timeout+GRPC_EPSILON,
-		self.metadata)
+	// rollback_msg, err := self.releaseServer.RollbackRelease( rollback_request, timeout+GRPC_EPSILON, self.metadata)
+	rollback_msg, err := self.releaseServer.RollbackRelease(ctx, rollback_request)
 	if err != nil {
 		LOG.Info("Error while rolling back tiller release.")
-		return nil, helmif.RollbackReleaseException(release_name, version)
+		return nil, helmif.RollbackReleaseException
 	}
 
 	LOG.Info("RollbackRelease:= %s", rollback_msg)
-	return
+	return rollback_msg.Release, nil
 
 }
 func (self *Tiller) _check_timeout(wait bool, timeout int64) int64 {
-	if timeout == nil || timeout <= 0 {
+	if timeout <= 0 {
 		if wait {
 			LOG.Info(
 				"Tiller timeout is invalid or unspecified, using default %ss.", self.timeout)
@@ -806,19 +782,4 @@ func (self *Tiller) _check_timeout(wait bool, timeout int64) int64 {
 		timeout = self.timeout
 	}
 	return timeout
-
-}
-func (self *Tiller) close() {
-	// Ensure channel was actually initialized before closing
-	if getattr("channel", None) {
-		self.channel.close()
-	}
-
-}
-func (self *Tiller) __enter__() {
-	return self
-
-}
-func (self *Tiller) __exit__(exc_type interface{}, exc_value interface{}, traceback interface{}) {
-	self.close()
 }
