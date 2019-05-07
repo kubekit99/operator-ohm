@@ -31,10 +31,10 @@ import (
 
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	githttp "gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	gitssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
-	// "gopkg.in/src-d/go-git.v4/plumbing"
 	// "gopkg.in/src-d/go-git.v4/storage/memory"
 
 	av1 "github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1"
@@ -97,13 +97,19 @@ func (m source) getChart() (*cpb.Chart, error) {
 // '''
 func (m *source) gitClone() (string, error) {
 
-	var repoURL string
+	log.Info("Cloning :", "location", m.chartLocation.Location)
+
 	var repoUser string
-	if repoURL, err := url.Parse(m.chartLocation.Location); err != nil {
+	repoURL, err := url.Parse(m.chartLocation.Location)
+	if err != nil {
 		return "", err
 	} else {
 		repoUser = repoURL.User.Username()
 	}
+
+	// normalizedURL := repoURL.RawPath
+	normalizedURL := m.chartLocation.Location
+	log.Info("Cloning :", "url", normalizedURL)
 
 	// TODO(jeb): AuthMethod and SSH is still WIP
 	var auth transport.AuthMethod
@@ -132,7 +138,7 @@ func (m *source) gitClone() (string, error) {
 		return "", errors.New("http method with authmethod not supported")
 	}
 
-	tempDir, err := ioutil.TempDir("", "armada")
+	tempDir, err := ioutil.TempDir("/", "armada")
 	if err != nil {
 		return "", err
 	}
@@ -140,17 +146,21 @@ func (m *source) gitClone() (string, error) {
 	// proxy_server := m.chartLocation.ProxyServer
 	ref_spec := m.chartLocation.Reference
 
-	repo, err := m.goGitClone(repoURL, tempDir, auth)
-	if (err != nil) {
+	repo, err := m.goGitClone(normalizedURL, tempDir, auth)
+	if err != nil {
 		return tempDir, err
 	}
-	err = m.goGitFetch("", repo, auth, ref_spec)
-	return tempDir, err
+	// err = m.goGitFetch("", repo, auth, ref_spec)
+	// if err != nil {
+	// 	return tempDir, err
+	// }
+	// err = m.goGitCheckout("", repo, "FETCH_HEAD", "")
+	err = m.goGitCheckout("", repo, "", ref_spec)
+	if err != nil {
+		return tempDir, err
+	}
 
-	// repo.remotes.origin.fetch(m.ChartLocation.Reference)
-	// g = Git(repo.working_dir)
-	// g.checkout("FETCH_HEAD")
-
+	return tempDir + "/" + m.chartLocation.Subpath, err
 }
 
 // Downloads the char tarball from the URL.
@@ -164,7 +174,7 @@ func (m *source) getTarball() (string, error) {
 
 // downloadTarball Downloads a tarball to /tmp and returns the path
 func (m *source) downloadTarball(verify bool) (string, error) {
-	file, err := ioutil.TempFile("", "armada")
+	file, err := ioutil.TempFile("/", "armada")
 	if err != nil {
 		return "", err
 	}
@@ -191,7 +201,7 @@ func (m *source) extractTarball(tarballPath string) (string, error) {
 		return "", err
 	}
 
-	tempDir, err := ioutil.TempDir("", "armada")
+	tempDir, err := ioutil.TempDir("/", "armada")
 	if err != nil {
 		return "", err
 	}
@@ -279,6 +289,8 @@ func (m *source) sourceCleanup(chart_path string) error {
 
 // Init initializes a local git repository and sets the remote origin
 func (m *source) goGitInit(repoURL string, root string) (*git.Repository, error) {
+	log.Info("goGitInit :", "url", repoURL)
+
 	existing, err := git.PlainOpen(root)
 	if err == nil {
 		return existing, nil
@@ -307,6 +319,8 @@ func (m *source) goGitInit(repoURL string, root string) (*git.Repository, error)
 
 // goGitClone the remote using go-git
 func (m *source) goGitClone(repoURL string, root string, auth transport.AuthMethod) (*git.Repository, error) {
+	log.Info("goGitClone :", "url", repoURL)
+
 	existing, err := git.PlainOpen(root)
 	if err == nil {
 		return existing, nil
@@ -324,7 +338,7 @@ func (m *source) goGitClone(repoURL string, root string, auth transport.AuthMeth
 	}
 
 	options := &git.CloneOptions{URL: repoURL}
-	if (auth != nil) {
+	if auth != nil {
 		options.Auth = auth
 	}
 	repo, err := git.PlainClone(root, false, options)
@@ -337,11 +351,13 @@ func (m *source) goGitClone(repoURL string, root string, auth transport.AuthMeth
 
 // goGitFetch fetches the remote using go-git
 func (m *source) goGitFetch(root string, repo *git.Repository, auth transport.AuthMethod, ref_spec string) error {
-	if (repo == nil ) {
-		if (root == "") {
+	log.Info("goGitFetch :", "root", root)
+
+	if repo == nil {
+		if root == "" {
 			return errors.New("root and repo are nil")
 		}
-		
+
 		existing, err := git.PlainOpen(root)
 		if err != nil {
 			return err
@@ -352,13 +368,54 @@ func (m *source) goGitFetch(root string, repo *git.Repository, auth transport.Au
 	options := &git.FetchOptions{
 		RemoteName: git.DefaultRemoteName,
 		Tags:       git.AllTags,
-		Force:      true,
+		Force:      false,
 	}
-	if (auth != nil) {
+	if auth != nil {
 		options.Auth = auth
 	}
-
+	if ref_spec != "" {
+		//JEB: can't get the equivalent of git fetch origin hash to work yet
+		refSpec := config.RefSpec(plumbing.NewHashReference("FETCH_HEAD", plumbing.NewHash(ref_spec)).String())
+		options.RefSpecs = make([]config.RefSpec, 0)
+		options.RefSpecs = append(options.RefSpecs, refSpec)
+	}
 	err := repo.Fetch(options)
+	if err == git.NoErrAlreadyUpToDate {
+		return nil
+	}
+	return err
+}
+
+// goGitCheckout fetches the remote using go-git
+func (m *source) goGitCheckout(root string, repo *git.Repository, branch_name string, hash_value string) error {
+	log.Info("goGitCheckout :", "root", root)
+
+	if repo == nil {
+		if root == "" {
+			return errors.New("root and repo are nil")
+		}
+
+		existing, err := git.PlainOpen(root)
+		if err != nil {
+			return err
+		}
+		repo = existing
+	}
+
+	workTree, err := repo.Worktree()
+	if err != nil {
+		return err
+	}
+
+	options := &git.CheckoutOptions{}
+	if branch_name != "" {
+		options.Branch = plumbing.ReferenceName(branch_name)
+	}
+	if hash_value != "" {
+		options.Hash = plumbing.NewHash(hash_value)
+	}
+
+	err = workTree.Checkout(options)
 	if err == git.NoErrAlreadyUpToDate {
 		return nil
 	}
