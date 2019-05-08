@@ -20,12 +20,10 @@ clean: setup
 	rm -fr helm-charts/mariadb/
 	rm -fr helm-charts/memcached/
 	rm -fr helm-charts/rabbitmq/
-	rm -fr helm-charts/helm-toolkit/
 
 # Build the docker image
 # Temporary kludge to add the depending charts to the current image
 docker-build: setup
-	tar -C helm-charts/ -xvf helm-charts/keystone/charts/helm-toolkit-0.1.0.tgz
 	rsync -avz ../mariadb-operator/helm-charts/mariadb helm-charts
 	rsync -avz ../memcached-operator/helm-charts/memcached helm-charts
 	rsync -avz ../rabbitmq-operator/helm-charts/rabbitmq helm-charts

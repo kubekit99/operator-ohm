@@ -43,10 +43,22 @@ import (
 )
 
 type source struct {
-	chartLocation *av1.ArmadaChartSource
+	chartDependencies []string
+	chartLocation     *av1.ArmadaChartSource
 }
 
+const (
+	// StateUninitialied indicates that a release/chart/chartgroup/manifest exists, but has not been acted upon
+	HELM_CHARTS      string = "/opt/armada/helm-charts/"
+	DEPENDENCY_CACHE string = "dependency-cache"
+	GIT_CACHE        string = "git-cache"
+	TAR_CACHE        string = "tar-cache"
+	HELM_TOOLKIT     string = "helm-toolkit-0.1.0.tgz"
+)
+
 // Downloads the chart local in case the Chart has not been bundled with the operator
+// TODO(jeb): Still need to implement a real cache. Everytime this function is invoked
+// in git or tar mode, the code is refetch and expanded
 func (m source) getChart() (*cpb.Chart, error) {
 	var pathToChart string
 	var err error
@@ -58,9 +70,18 @@ func (m source) getChart() (*cpb.Chart, error) {
 	case "local":
 		pathToChart = m.chartLocation.Location
 	}
-
 	if err != nil {
 		return nil, err
+	}
+
+	if len(m.chartDependencies) != 0 {
+		// JEB: Let's assume the dependency is on helm-toolkit
+		// Really kludgy but current "dependencies" field in
+		// ArmadaChart kind of force it.
+		err = m.copyDependency("", pathToChart)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	chart, err := chartutil.LoadDir(pathToChart)
@@ -68,10 +89,18 @@ func (m source) getChart() (*cpb.Chart, error) {
 		return nil, err
 	}
 
-	// err = m.sourceCleanup(pathToChart)
-	// if err != nil {
-	// 	// TODO: log a warning
-	// }
+	switch m.chartLocation.Type {
+	case "git":
+		err = m.sourceCleanup(pathToChart)
+	case "tar":
+		err = m.sourceCleanup(pathToChart)
+	case "local":
+		err = nil
+	}
+	if err != nil {
+		log.Error(err, "temporary dir cleanup failed")
+		return nil, err
+	}
 
 	return chart, nil
 }
@@ -97,8 +126,6 @@ func (m source) getChart() (*cpb.Chart, error) {
 // '''
 func (m *source) gitClone() (string, error) {
 
-	log.Info("Cloning :", "location", m.chartLocation.Location)
-
 	var repoUser string
 	repoURL, err := url.Parse(m.chartLocation.Location)
 	if err != nil {
@@ -109,7 +136,6 @@ func (m *source) gitClone() (string, error) {
 
 	// normalizedURL := repoURL.RawPath
 	normalizedURL := m.chartLocation.Location
-	log.Info("Cloning :", "url", normalizedURL)
 
 	// TODO(jeb): AuthMethod and SSH is still WIP
 	var auth transport.AuthMethod
@@ -138,11 +164,12 @@ func (m *source) gitClone() (string, error) {
 		return "", errors.New("http method with authmethod not supported")
 	}
 
-	tempDir, err := ioutil.TempDir("/", "armada")
+	tempDir, err := ioutil.TempDir(HELM_CHARTS, GIT_CACHE)
 	if err != nil {
 		return "", err
 	}
 
+	// TODO(jeb): Library does not seem to support proxy setting
 	// proxy_server := m.chartLocation.ProxyServer
 	ref_spec := m.chartLocation.Reference
 
@@ -150,11 +177,15 @@ func (m *source) gitClone() (string, error) {
 	if err != nil {
 		return tempDir, err
 	}
+
+	// TODO(jeb): Can not get the git fetch + git checkout
+	// to work. Just do git checkout <hash> instead
 	// err = m.goGitFetch("", repo, auth, ref_spec)
 	// if err != nil {
 	// 	return tempDir, err
 	// }
 	// err = m.goGitCheckout("", repo, "FETCH_HEAD", "")
+
 	err = m.goGitCheckout("", repo, "", ref_spec)
 	if err != nil {
 		return tempDir, err
@@ -174,7 +205,7 @@ func (m *source) getTarball() (string, error) {
 
 // downloadTarball Downloads a tarball to /tmp and returns the path
 func (m *source) downloadTarball(verify bool) (string, error) {
-	file, err := ioutil.TempFile("/", "armada")
+	file, err := ioutil.TempFile(HELM_CHARTS, TAR_CACHE)
 	if err != nil {
 		return "", err
 	}
@@ -201,7 +232,7 @@ func (m *source) extractTarball(tarballPath string) (string, error) {
 		return "", err
 	}
 
-	tempDir, err := ioutil.TempDir("/", "armada")
+	tempDir, err := ioutil.TempDir(HELM_CHARTS, TAR_CACHE)
 	if err != nil {
 		return "", err
 	}
@@ -219,9 +250,10 @@ func (m *source) extractTarball(tarballPath string) (string, error) {
 
 	tr := tar.NewReader(gzr)
 
+	madeDir := map[string]bool{}
 	done := false
 	for !done {
-		if err := m.readFromArchive(tr, tempDir); err != nil {
+		if err := m.readFromArchive(tr, tempDir, madeDir); err != nil {
 			if err != io.EOF {
 				return "", err
 			}
@@ -229,45 +261,57 @@ func (m *source) extractTarball(tarballPath string) (string, error) {
 			done = true
 		}
 	}
-	return tempDir, nil
+
+	return tempDir + "/" + m.chartLocation.Subpath, nil
 }
 
 // readFromArchive reads a an item from tr, saves it to dir, then move tr to the next item
-func (m *source) readFromArchive(tr *tar.Reader, dir string) error {
-	header, err := tr.Next()
+func (m *source) readFromArchive(tr *tar.Reader, dir string, madeDir map[string]bool) error {
+	f, err := tr.Next()
 	if err != nil {
 		// This catches EOF, which means that we're done
 		return err
 	}
 
-	if header == nil {
+	if f == nil {
 		// if the header is nil, just skip it (not sure how this happens)
 		return nil
 	}
 
-	target := filepath.Join(dir, header.Name)
+	rel := filepath.FromSlash(f.Name)
+	abs := filepath.Join(dir, rel)
+	fi := f.FileInfo()
+	mode := fi.Mode()
 
-	switch header.Typeflag {
+	switch f.Typeflag {
 	case tar.TypeDir:
-		if _, err := os.Stat(target); err != nil {
-			if err := os.MkdirAll(target, 0755); err != nil {
+		if err := os.MkdirAll(abs, 0755); err != nil {
+			return err
+		}
+		madeDir[abs] = true
+
+	case tar.TypeReg:
+		dir := filepath.Dir(abs)
+		if !madeDir[dir] {
+			if err := os.MkdirAll(filepath.Dir(abs), 0755); err != nil {
 				return err
 			}
+			madeDir[dir] = true
 		}
-	case tar.TypeReg:
-		f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+
+		wf, err := os.OpenFile(abs, os.O_RDWR|os.O_CREATE|os.O_TRUNC, mode.Perm())
 		if err != nil {
 			return err
 		}
 
 		// copy over contents
-		if _, err := io.Copy(f, tr); err != nil {
+		if _, err := io.Copy(wf, tr); err != nil {
 			return err
 		}
 
 		// manually close here after each file operation; defering would cause each file close
 		// to wait until all operations have completed.
-		f.Close()
+		wf.Close()
 	}
 	return nil
 }
@@ -289,7 +333,6 @@ func (m *source) sourceCleanup(chart_path string) error {
 
 // Init initializes a local git repository and sets the remote origin
 func (m *source) goGitInit(repoURL string, root string) (*git.Repository, error) {
-	log.Info("goGitInit :", "url", repoURL)
 
 	existing, err := git.PlainOpen(root)
 	if err == nil {
@@ -319,7 +362,6 @@ func (m *source) goGitInit(repoURL string, root string) (*git.Repository, error)
 
 // goGitClone the remote using go-git
 func (m *source) goGitClone(repoURL string, root string, auth transport.AuthMethod) (*git.Repository, error) {
-	log.Info("goGitClone :", "url", repoURL)
 
 	existing, err := git.PlainOpen(root)
 	if err == nil {
@@ -351,7 +393,6 @@ func (m *source) goGitClone(repoURL string, root string, auth transport.AuthMeth
 
 // goGitFetch fetches the remote using go-git
 func (m *source) goGitFetch(root string, repo *git.Repository, auth transport.AuthMethod, ref_spec string) error {
-	log.Info("goGitFetch :", "root", root)
 
 	if repo == nil {
 		if root == "" {
@@ -388,7 +429,6 @@ func (m *source) goGitFetch(root string, repo *git.Repository, auth transport.Au
 
 // goGitCheckout fetches the remote using go-git
 func (m *source) goGitCheckout(root string, repo *git.Repository, branch_name string, hash_value string) error {
-	log.Info("goGitCheckout :", "root", root)
 
 	if repo == nil {
 		if root == "" {
@@ -419,5 +459,46 @@ func (m *source) goGitCheckout(root string, repo *git.Repository, branch_name st
 	if err == git.NoErrAlreadyUpToDate {
 		return nil
 	}
+	return err
+}
+
+// Copy dependency helm chart into the tar or git folder
+func (m *source) copyDependency(dependencyFileName string, root string) error {
+	err := os.MkdirAll(root+"/charts/", 0755)
+	if err != nil {
+		return err
+	}
+	if dependencyFileName == "" {
+		dependencyFileName = HELM_TOOLKIT
+	}
+	err = m.copyFile(HELM_CHARTS+"/"+DEPENDENCY_CACHE+"/"+dependencyFileName, root+"/charts/"+HELM_TOOLKIT)
+	return err
+}
+
+// Copy dependency helm chart into the tar or git folder
+func (m *source) copyFile(src string, dst string) error {
+
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", src)
+	}
+
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+	_, err = io.Copy(destination, source)
 	return err
 }

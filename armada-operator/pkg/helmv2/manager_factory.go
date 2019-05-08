@@ -55,7 +55,6 @@ func (f managerFactory) NewArmadaChartManager(r *av1.ArmadaChart) helmif.HelmMan
 	return &chartmanager{
 		storageBackend:   f.storageBackend,
 		tillerKubeClient: f.tillerKubeClient,
-		chartLocation:    r.Spec.Source,
 
 		releaseManager: f.helmRendererForArmadaChart(r),
 		releaseName:    r.Spec.Release,

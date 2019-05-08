@@ -50,14 +50,14 @@ type chartmanager struct {
 	storageBackend     *storage.Storage
 	tillerKubeClient   *kube.Client
 	operatorKubeClient *kube.Client
-	chartLocation      *av1.ArmadaChartSource
 
 	releaseManager *tiller.ReleaseServer
 	releaseName    string
 	namespace      string
 
-	spec   interface{}
-	status *av1.ArmadaChartStatus
+	newValues interface{}
+	spec      av1.ArmadaChartSpec
+	status    *av1.ArmadaChartStatus
 
 	isInstalled      bool
 	isUpdateRequired bool
@@ -175,13 +175,13 @@ func (m chartmanager) syncReleaseStatus(status av1.ArmadaChartStatus) error {
 func (m chartmanager) loadChartAndConfig() (*cpb.Chart, *cpb.Config, error) {
 	// chart is mutated by the call to processRequirements,
 	// so we need to reload it every time.
-	source := source{chartLocation: m.chartLocation}
+	source := source{chartLocation: m.spec.Source, chartDependencies: m.spec.Dependencies}
 	chart, err := source.getChart()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to load chart: %s", err)
 	}
 
-	cr, err := yaml.Marshal(m.spec)
+	cr, err := yaml.Marshal(m.newValues)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse values: %s", err)
 	}
