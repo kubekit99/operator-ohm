@@ -76,6 +76,8 @@ spec:
               - path
               type: object
             config:
+              additionalProperties:
+                type: string
               description: Config is the set of extra Values added to the helm renderer.
                 Config map[string]interface{} `json:"config,omitempty"`
               type: object
