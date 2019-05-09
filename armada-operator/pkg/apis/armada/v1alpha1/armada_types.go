@@ -65,10 +65,6 @@ type ArmadaHookActionItems struct {
 	Type   string        `json:"type"`
 }
 
-// JEB: Install
-// JEB: type ArmadaInstall struct {
-// JEB: }
-
 // Delete
 type ArmadaDelete struct {
 	// time (in seconds) to wait for chart to be deleted
@@ -121,10 +117,6 @@ type ArmadaChartSource struct {
 	Subpath string `json:"subpath"`
 	// source to build the chart: ``git``, ``local``, or ``tar``
 	Type string `json:"type"`
-}
-
-// Values. JEB that structure could not be converted automatically
-type ArmadaChartValues struct {
 }
 
 // Test. JEB that structure could not be converted automatically

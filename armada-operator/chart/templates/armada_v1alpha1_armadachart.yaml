@@ -190,6 +190,11 @@ spec:
                   type: object
               type: object
             values:
+              additionalProperties:
+                properties:
+                  value:
+                    type: string
+                type: object
               description: override any default values in the charts
               type: object
             wait:

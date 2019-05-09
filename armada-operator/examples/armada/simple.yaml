@@ -11,7 +11,11 @@ spec:
     no_hooks: false
   upgrade:
     no_hooks: false
-  values: {}
+  values:
+    foo1:
+       value: bar1
+    foo2:
+       value: bar2
   source:
     type: local
     location: /opt/armada/helm-charts/testchart
@@ -28,8 +32,7 @@ spec:
   chart_name: blog-2
   release: blog-2
   namespace: default
-  values:
-    some: value
+  values: {}
   install:
     no_hooks: false
   upgrade:

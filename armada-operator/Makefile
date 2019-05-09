@@ -46,9 +46,8 @@ vet-v3: setup
 
 # Generate code
 generate: setup
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/ --domain airshipit.org
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --output-dir ./chart/templates/ --domain airshipit.org --skip-map-validation=false
 	go run vendor/k8s.io/code-generator/cmd/deepcopy-gen/main.go --input-dirs github.com/kubekit99/operator-ohm/armada-operator/pkg/apis/armada/v1alpha1 -O zz_generated.deepcopy --bounding-dirs github.com/kubekit99/operator-ohm/armada-operator/pkg/apis
-	# operator-sdk generate k8s
 
 # Build the docker image
 docker-build: fmt docker-build-v2

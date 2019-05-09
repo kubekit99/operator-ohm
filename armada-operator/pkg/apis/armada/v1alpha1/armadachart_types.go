@@ -22,6 +22,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// Value describes a configuration value as a string.
+type Value struct {
+	Value string `json:"value,omitempty"`
+}
+
 // ======= ArmadaChartSpec Definition =======
 // ArmadaChartSpec defines the desired state of ArmadaChart
 type ArmadaChartSpec struct {
@@ -36,11 +41,8 @@ type ArmadaChartSpec struct {
 	// reference any chart dependencies before install
 	Dependencies []string `json:"dependencies"`
 
-	// JEB: install the chart into your Kubernetes cluster
-	// JEB: Install *ArmadaInstall `json:"install,omitempty"`
-
 	// override any default values in the charts
-	Values *ArmadaChartValues `json:"values,omitempty"`
+	Values map[string]*Value `json:"values,omitempty"`
 	// See Delete_.
 	Delete *ArmadaDelete `json:"delete,omitempty"`
 	// upgrade the chart managed by the armada yaml
