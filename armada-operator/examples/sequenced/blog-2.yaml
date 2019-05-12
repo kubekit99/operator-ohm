@@ -8,7 +8,8 @@ spec:
   release: blog-2
   namespace: default
   values:
-    some: value
+    conf:
+      foo: bar
   install:
     no_hooks: false
   upgrade:

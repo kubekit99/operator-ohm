@@ -187,12 +187,16 @@ func (m chartmanager) loadChartAndConfig() (*cpb.Chart, *cpb.Config, error) {
 	}
 	// JEB: Looks the Values field in the Chart with a bad structure
 	// is messing the content in the "values.yaml" provided with the chart
-	config := &cpb.Config{Raw: string(cr)}
+        log.Info("Chart values are:", "values", string(cr))
+	cr = make([]byte, 0)
+        config := &cpb.Config{Raw: string(cr)}
 
 	err = m.processRequirements(chart, config)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to process chart requirements: %s", err)
 	}
+
+
 	return chart, config, nil
 }
 

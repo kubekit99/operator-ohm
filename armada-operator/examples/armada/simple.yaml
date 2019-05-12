@@ -12,10 +12,9 @@ spec:
   upgrade:
     no_hooks: false
   values:
-    foo1:
-       value: bar1
-    foo2:
-       value: bar2
+    conf:
+       foo1: bar1
+       foo2: bar2
   source:
     type: local
     location: /opt/armada/helm-charts/testchart

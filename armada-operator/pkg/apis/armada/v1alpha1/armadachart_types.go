@@ -22,9 +22,63 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Value describes a configuration value as a string.
-type Value struct {
-	Value string `json:"value,omitempty"`
+type ArmadaChartValues struct {
+	// anchor contains tbd
+	Anchor *AVAnchor `json:"anchor,omitempty"`
+	// apiserver contains tbd
+	Apiserver *AVApiserver `json:"apiserver,omitempty"`
+	// bootstrap contains tbd
+	Bootstrap *AVBootstrap `json:"bootstrap,omitempty"`
+	// bootstrapping contains tbd
+	Bootstrapping *AVBootstrapping `json:"bootstrapping,omitempty"`
+	// ceph_client contains tbd
+	CephClient *AVCephClient `json:"ceph_client,omitempty"`
+	// ceph_mgr_modules_config contains tbd
+	CephMgrModulesConfig *AVCephMgrModulesConfig `json:"ceph_mgr_modules_config,omitempty"`
+	// command_prefix contains tbd
+	CommandPrefix *AVCommandPrefix `json:"command_prefix,omitempty"`
+	// conf contains tbd
+	Conf *AVConf `json:"conf,omitempty"`
+	// data contains tbd
+	Data *AVData `json:"data,omitempty"`
+	// deployment contains tbd
+	Deployment *AVDeployment `json:"deployment,omitempty"`
+	// development contains tbd
+	Development *AVDevelopment `json:"development,omitempty"`
+	// endpoints contains tbd
+	Endpoints *AVEndpoints `json:"endpoints,omitempty"`
+	// etcd contains tbd
+	Etcd *AVEtcd `json:"etcd,omitempty"`
+	// images contains tbd
+	Images *AVImages `json:"images,omitempty"`
+	// jobs contains tbd
+	Jobs *AVJobs `json:"jobs,omitempty"`
+	// kube_service contains tbd
+	KubeService *AVKubeService `json:"kube_service,omitempty"`
+	// labels contains tbd
+	Labels *AVLabels `json:"labels,omitempty"`
+	// livenessProbe contains tbd
+	Livenessprobe *AVLivenessprobe `json:"livenessProbe,omitempty"`
+	// manifests contains tbd
+	Manifests *AVManifests `json:"manifests,omitempty"`
+	// monitoring contains tbd
+	Monitoring *AVMonitoring `json:"monitoring,omitempty"`
+	// network contains tbd
+	Network *AVNetwork `json:"network,omitempty"`
+	// networking contains tbd
+	Networking *AVNetworking `json:"networking,omitempty"`
+	// pod contains tbd
+	Pod *AVPod `json:"pod,omitempty"`
+	// prod_environment contains tbd
+	ProdEnvironment *AVProdEnvironment `json:"prod_environment,omitempty"`
+	// secrets contains tbd
+	Secrets *AVSecrets `json:"secrets,omitempty"`
+	// service contains tbd
+	Service *AVService `json:"service,omitempty"`
+	// storage contains tbd
+	Storage *AVStorage `json:"storage,omitempty"`
+	// storageclass contains tbd
+	Storageclass *AVStorageclass `json:"storageclass,omitempty"`
 }
 
 // ======= ArmadaChartSpec Definition =======
@@ -42,7 +96,7 @@ type ArmadaChartSpec struct {
 	Dependencies []string `json:"dependencies"`
 
 	// override any default values in the charts
-	Values map[string]*Value `json:"values,omitempty"`
+	Values *ArmadaChartValues `json:"values,omitempty"`
 	// See Delete_.
 	Delete *ArmadaDelete `json:"delete,omitempty"`
 	// upgrade the chart managed by the armada yaml

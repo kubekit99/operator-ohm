@@ -190,12 +190,77 @@ spec:
                   type: object
               type: object
             values:
-              additionalProperties:
-                properties:
-                  value:
-                    type: string
-                type: object
               description: override any default values in the charts
+              properties:
+                anchor:
+                  description: anchor contains tbd
+                  type: object
+                apiserver:
+                  description: apiserver contains tbd
+                  type: object
+                bootstrap:
+                  description: bootstrap contains tbd
+                  type: object
+                bootstrapping:
+                  description: bootstrapping contains tbd
+                  type: object
+                conf:
+                  description: conf contains tbd
+                  type: object
+                data:
+                  description: data contains tbd
+                  type: object
+                deployment:
+                  description: deployment contains tbd
+                  type: object
+                development:
+                  description: development contains tbd
+                  type: object
+                endpoints:
+                  description: endpoints contains tbd
+                  type: object
+                etcd:
+                  description: etcd contains tbd
+                  type: object
+                images:
+                  description: images contains tbd
+                  type: object
+                jobs:
+                  description: jobs contains tbd
+                  type: object
+                labels:
+                  description: labels contains tbd
+                  type: object
+                livenessProbe:
+                  description: livenessProbe contains tbd
+                  type: object
+                manifests:
+                  description: manifests contains tbd
+                  type: object
+                monitoring:
+                  description: monitoring contains tbd
+                  type: object
+                network:
+                  description: network contains tbd
+                  type: object
+                networking:
+                  description: networking contains tbd
+                  type: object
+                pod:
+                  description: pod contains tbd
+                  type: object
+                secrets:
+                  description: secrets contains tbd
+                  type: object
+                service:
+                  description: service contains tbd
+                  type: object
+                storage:
+                  description: storage contains tbd
+                  type: object
+                storageclass:
+                  description: storageclass contains tbd
+                  type: object
               type: object
             wait:
               description: See `ArmwadaWait`.
