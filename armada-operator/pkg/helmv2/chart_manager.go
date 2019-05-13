@@ -185,17 +185,25 @@ func (m chartmanager) loadChartAndConfig() (*cpb.Chart, *cpb.Config, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse values: %s", err)
 	}
-	// JEB: Looks the Values field in the Chart with a bad structure
-	// is messing the content in the "values.yaml" provided with the chart
-        log.Info("Chart values are:", "values", string(cr))
-	cr = make([]byte, 0)
-        config := &cpb.Config{Raw: string(cr)}
+	config, err := normalizeConfig(&cpb.Config{Raw: string(cr)})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse values: %s", err)
+	}
+
+	// JEB: In order to check how tiller will merge the values
+	// JEB: We should actually check the syntax of the values against a schema there
+	// vals, err := chartutil.CoalesceValues(chart, config)
+	// if err != nil {
+	// 	return nil, nil, err
+	// } else {
+	// 	merged, _ := vals.YAML()
+	// 	log.Info("loadChartAndConfig", "merged", merged)
+	// }
 
 	err = m.processRequirements(chart, config)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to process chart requirements: %s", err)
 	}
-
 
 	return chart, config, nil
 }

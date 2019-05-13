@@ -29,9 +29,8 @@ func mergeConfig(configs []*cpb.Config) (*cpb.Config, error) {
 	for _, config := range configs {
 		currentMap := map[string]interface{}{}
 
-                log.Info("Value is", "merging", string(config.Raw))
 		if err := yaml.Unmarshal([]byte(config.Raw), &currentMap); err != nil {
-		        return nil, fmt.Errorf("failed to merge config: %s", err)
+			return nil, fmt.Errorf("failed to merge config: %s", err)
 		}
 		// Merge with the previous map
 		finalMap = mergeValues(finalMap, currentMap)
@@ -41,9 +40,8 @@ func mergeConfig(configs []*cpb.Config) (*cpb.Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to merge config: %s", err)
 	}
-        log.Info("Value is", "merged", string(finalRaw))
 	finalConfig := &cpb.Config{Raw: string(finalRaw)}
-        return finalConfig, nil
+	return finalConfig, nil
 }
 
 // Merges source and destination map, preferring values from the source map
@@ -75,28 +73,28 @@ func mergeValues(dest map[string]interface{}, src map[string]interface{}) map[st
 
 // normalizeConfig
 func normalizeConfig(config *cpb.Config) (*cpb.Config, error) {
-        currentMap := map[string]interface{}{}
+	currentMap := map[string]interface{}{}
 	if err := yaml.Unmarshal([]byte(config.Raw), &currentMap); err != nil {
 		return nil, fmt.Errorf("failed to normalize config: %s", err)
 	}
 
-        // Merge with the previous map
-        finalMap := removeNil(currentMap)
+	// Merge with the previous map
+	finalMap := removeNil(currentMap)
 	finalRaw, err := yaml.Marshal(finalMap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to normalize config: %s", err)
 	}
 	finalConfig := &cpb.Config{Raw: string(finalRaw)}
-        return finalConfig, nil
+	return finalConfig, nil
 }
 
 // Remove null values
 func removeNil(src map[string]interface{}) map[string]interface{} {
-        dest := make(map[string]interface{})
+	dest := make(map[string]interface{})
 	for k, v := range src {
-                if v == nil {
+		if v == nil {
 			continue
-                }
+		}
 
 		nextMap, ok := v.(map[string]interface{})
 		// If it isn't another map, overwrite the value
