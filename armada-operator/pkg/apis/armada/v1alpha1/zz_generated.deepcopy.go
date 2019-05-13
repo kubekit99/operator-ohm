@@ -897,8 +897,8 @@ func (in *ArmadaChartValues) DeepCopyInto(out *ArmadaChartValues) {
 	}
 	if in.CommandPrefix != nil {
 		in, out := &in.CommandPrefix, &out.CommandPrefix
-		*out = new(AVCommandPrefix)
-		**out = **in
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.Conf != nil {
 		in, out := &in.Conf, &out.Conf
@@ -982,7 +982,7 @@ func (in *ArmadaChartValues) DeepCopyInto(out *ArmadaChartValues) {
 	}
 	if in.ProdEnvironment != nil {
 		in, out := &in.ProdEnvironment, &out.ProdEnvironment
-		*out = new(AVProdEnvironment)
+		*out = new(bool)
 		**out = **in
 	}
 	if in.Secrets != nil {

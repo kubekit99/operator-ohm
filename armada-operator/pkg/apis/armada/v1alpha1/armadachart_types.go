@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	"reflect"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -36,7 +37,7 @@ type ArmadaChartValues struct {
 	// ceph_mgr_modules_config contains tbd
 	CephMgrModulesConfig *AVCephMgrModulesConfig `json:"ceph_mgr_modules_config,omitempty"`
 	// command_prefix contains tbd
-	CommandPrefix *AVCommandPrefix `json:"command_prefix,omitempty"`
+	CommandPrefix []string `json:"command_prefix,omitempty"`
 	// conf contains tbd
 	Conf *AVConf `json:"conf,omitempty"`
 	// data contains tbd
@@ -70,7 +71,7 @@ type ArmadaChartValues struct {
 	// pod contains tbd
 	Pod *AVPod `json:"pod,omitempty"`
 	// prod_environment contains tbd
-	ProdEnvironment *AVProdEnvironment `json:"prod_environment,omitempty"`
+	ProdEnvironment *bool `json:"prod_environment,omitempty"`
 	// secrets contains tbd
 	Secrets *AVSecrets `json:"secrets,omitempty"`
 	// service contains tbd
@@ -153,7 +154,12 @@ func (obj *ArmadaChart) Init() {
 		obj.Status.ActualState = StateUninitialized
 	}
 	if obj.Spec.TargetState == "" {
-		obj.Spec.TargetState = StateDeployed
+		// TODO(JEB): Big temporary kludge to deal with helm-toolkit
+		if (strings.Contains(obj.ObjectMeta.Name,"-htk")) {
+			obj.Spec.TargetState = StateUninitialized
+		} else {
+			obj.Spec.TargetState = StateDeployed
+		}
 	}
 	obj.Status.Satisfied = (obj.Spec.TargetState == obj.Status.ActualState)
 }
