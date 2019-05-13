@@ -61,45 +61,63 @@ const (
 // in git or tar mode, the code is refetch and expanded
 func (m source) getChart() (*cpb.Chart, error) {
 	var pathToChart string
-	var err error
 	switch m.chartLocation.Type {
 	case "git":
-		pathToChart, err = m.gitClone()
+		sourceKey := "git://" + m.chartLocation.Location + "@" + m.chartLocation.Reference
+		rootDir, found := GetDirInstance().Get(sourceKey)
+		if !(found) {
+			tempDir, err := m.gitClone()
+			if err != nil {
+				return nil, err
+			}
+			GetDirInstance().Set(sourceKey, tempDir)
+			rootDir = tempDir
+		}
+		pathToChart = rootDir + "/" + m.chartLocation.Subpath
 	case "tar":
-		pathToChart, err = m.getTarball()
+		sourceKey := "tar://" + m.chartLocation.Location
+		rootDir, found := GetDirInstance().Get(sourceKey)
+		if !(found) {
+			tempDir, err := m.getTarball()
+			if err != nil {
+				return nil, err
+			}
+			GetDirInstance().Set(sourceKey, tempDir)
+			rootDir = tempDir
+		}
+		pathToChart = rootDir + "/" + m.chartLocation.Subpath
 	case "local":
-		pathToChart = m.chartLocation.Location
-	}
-	if err != nil {
-		return nil, err
+		sourceKey := "local://" + m.chartLocation.Location
+		rootDir, found := GetDirInstance().Get(sourceKey)
+		if !(found) {
+			// JEB: Kind of convoluted. Not sure it will
+			// ever be usefull
+			tempDir := m.chartLocation.Location
+			GetDirInstance().Set(sourceKey, tempDir)
+			rootDir = tempDir
+		}
+		pathToChart = rootDir
 	}
 
-	if len(m.chartDependencies) != 0 {
-		// JEB: Let's assume the dependency is on helm-toolkit
-		// Really kludgy but current "dependencies" field in
-		// ArmadaChart kind of force it.
-		err = m.copyDependency("", pathToChart)
+	chart, found := GetChartInstance().Get(pathToChart)
+	if !found {
+		if len(m.chartDependencies) != 0 {
+			// JEB: Let's assume the dependency is on helm-toolkit
+			// Really kludgy but current "dependencies" field in
+			// ArmadaChart kind of force it.
+			err := m.copyDependency("", pathToChart)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		newchart, err := chartutil.LoadDir(pathToChart)
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	chart, err := chartutil.LoadDir(pathToChart)
-	if err != nil {
-		return nil, err
-	}
-
-	switch m.chartLocation.Type {
-	case "git":
-		err = m.sourceCleanup(pathToChart)
-	case "tar":
-		err = m.sourceCleanup(pathToChart)
-	case "local":
-		err = nil
-	}
-	if err != nil {
-		log.Error(err, "temporary dir cleanup failed")
-		return nil, err
+		GetChartInstance().Set(pathToChart, newchart)
+		chart = newchart
 	}
 
 	return chart, nil
@@ -191,7 +209,7 @@ func (m *source) gitClone() (string, error) {
 		return tempDir, err
 	}
 
-	return tempDir + "/" + m.chartLocation.Subpath, err
+	return tempDir, err
 }
 
 // Downloads the char tarball from the URL.
@@ -262,7 +280,7 @@ func (m *source) extractTarball(tarballPath string) (string, error) {
 		}
 	}
 
-	return tempDir + "/" + m.chartLocation.Subpath, nil
+	return tempDir, nil
 }
 
 // readFromArchive reads a an item from tr, saves it to dir, then move tr to the next item
