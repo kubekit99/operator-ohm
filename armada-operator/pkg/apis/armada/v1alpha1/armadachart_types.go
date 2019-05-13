@@ -88,7 +88,7 @@ type ArmadaChartSpec struct {
 	// name for the chart
 	ChartName string `json:"chart_name"`
 	// namespace of your chart
-	Namespace string `json:"namespace"`
+	Namespace string `json:"namespace,omitempty"`
 	// name of the release (Armada will prepend with ``release-prefix`` during processing)
 	Release string `json:"release"`
 	// provide a path to a ``git repo``, ``local dir``, or ``tarball url`` chart

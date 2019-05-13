@@ -300,7 +300,6 @@ spec:
                   type: integer
               type: object
           required:
-          - namespace
           - release
           - source
           - dependencies
