@@ -46,7 +46,10 @@ type ArmadaChartValues struct {
 	Deployment *AVDeployment `json:"deployment,omitempty"`
 	// development contains tbd
 	Development *AVDevelopment `json:"development,omitempty"`
-	// endpoints contains tbd
+	// endpoints contains tbd.
+	// JEB: Would have been too consistent. Different structures are
+	// used depending on the direction of the wind.
+	// Endpoints *map[string]AVEndpoint `json:"endpoints,omitempty"`
 	Endpoints *AVEndpoints `json:"endpoints,omitempty"`
 	// etcd contains tbd
 	Etcd *AVEtcd `json:"etcd,omitempty"`
@@ -155,7 +158,7 @@ func (obj *ArmadaChart) Init() {
 	}
 	if obj.Spec.TargetState == "" {
 		// TODO(JEB): Big temporary kludge to deal with helm-toolkit
-		if (strings.Contains(obj.ObjectMeta.Name,"-htk")) {
+		if strings.Contains(obj.ObjectMeta.Name, "-htk") {
 			obj.Spec.TargetState = StateUninitialized
 		} else {
 			obj.Spec.TargetState = StateDeployed
