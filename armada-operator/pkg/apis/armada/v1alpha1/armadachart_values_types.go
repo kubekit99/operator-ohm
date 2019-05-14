@@ -16,12 +16,6 @@ package v1alpha1
 
 import ()
 
-type AVLabels struct {
-}
-
-type AVEtcd struct {
-}
-
 type AVPod struct {
 }
 
@@ -35,6 +29,10 @@ type AVLivenessprobe struct {
 }
 
 type AVImages struct {
+	// tags contains tbd
+	Tags map[string]string `json:"tags,omitempty"`
+	// pull_policy contains tbd
+	PullPolicy string `json:"pull_policy,omitempty"`
 }
 
 type AVData struct {
@@ -55,22 +53,25 @@ type AVApiserver struct {
 type AVMonitoring struct {
 }
 
-type AVManifests struct {
-}
-
 type AVKubeService struct {
 }
 
 type AVCephMgrModulesConfig struct {
 }
 
-type AVDeployment struct {
-}
-
-type AVCephClient struct {
-}
-
 type AVSecrets struct {
+	// anchor contains tbd
+	Anchor *AVSecretAnchor `json:"anchor,omitempty"`
+	// etcd contains tbd
+	Etcd *AVSecretEtcd `json:"etcd,omitempty"`
+	// keyrings contains tbd
+	Keyrings *AVSecretKeyrings `json:"keyrings,omitempty"`
+	// maas_region contains tbd
+	MaasRegion *AVSecretMaasRegion `json:"maas_region,omitempty"`
+	// service_account contains tbd
+	ServiceAccount *AVSecretServiceAccount `json:"service_account,omitempty"`
+	// tls contains tbd
+	Tls *AVTls `json:"tls,omitempty"`
 }
 
 type AVService struct {
@@ -269,7 +270,7 @@ type AVEndpointAuth struct {
 	// secret_key contains tbd
 	SecretKey string `json:"secret_key,omitempty"`
 	// tls contains tbd
-	Tls *AVEndpointTls `json:"tls,omitempty"`
+	Tls *AVTls `json:"tls,omitempty"`
 	// tmpurlkey contains tbd
 	Tmpurlkey string `json:"tmpurlkey,omitempty"`
 	// user_domain_name contains tbd
@@ -289,13 +290,22 @@ type AVEndpointPort struct {
 	Public int `json:"public,omitempty"`
 }
 
-type AVEndpointTls struct {
+type AVTls struct {
 	// ca contains tbd
 	Ca string `json:"ca,omitempty"`
 	// crt contains tbd
 	Crt string `json:"crt,omitempty"`
 	// key contains tbd
 	Key string `json:"key,omitempty"`
+	// client contains tbd
+	Client *AVTlsCa `json:"client,omitempty"`
+	// peer contains tbd
+	Peer *AVTlsCa `json:"peer,omitempty"`
+}
+
+type AVTlsCa struct {
+	// ca contains tbd
+	Ca string `json:"ca,omitempty"`
 }
 
 type AVDefaultPublic struct {
@@ -305,4 +315,31 @@ type AVDefaultPublic struct {
 	Discovery string `json:"discovery,omitempty"`
 	// public contains tbd
 	Public string `json:"public,omitempty"`
+}
+
+type AVSecretAnchor struct {
+	// tls contains tbd
+	Tls *AVTls `json:"tls,omitempty"`
+}
+
+type AVSecretMaasRegion struct {
+	// value contains tbd
+	Value string `json:"value,omitempty"`
+}
+
+type AVSecretKeyrings struct {
+	// admin contains tbd
+	Admin string `json:"admin,omitempty"`
+}
+
+type AVSecretServiceAccount struct {
+	// private_key contains tbd
+	PrivateKey string `json:"private_key,omitempty"`
+	// public contains tbd
+	PublicKey string `json:"public_key,omitempty"`
+}
+
+type AVSecretEtcd struct {
+	// tls contains tbd
+	Tls *AVTls `json:"tls,omitempty"`
 }

@@ -211,6 +211,8 @@ spec:
                   description: data contains tbd
                   type: object
                 deployment:
+                  additionalProperties:
+                    type: boolean
                   description: deployment contains tbd
                   type: object
                 development:
@@ -248,12 +250,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -362,12 +378,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -476,12 +506,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -590,12 +634,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -704,12 +762,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -818,12 +890,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -932,12 +1018,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -1046,12 +1146,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -1160,12 +1274,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -1274,12 +1402,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -1388,12 +1530,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -1502,12 +1658,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -1616,12 +1786,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -1730,12 +1914,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -1844,12 +2042,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -1958,12 +2170,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -2072,12 +2298,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -2186,12 +2426,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -2300,12 +2554,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -2414,12 +2682,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -2528,12 +2810,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -2642,12 +2938,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -2736,12 +3046,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -2850,12 +3174,26 @@ spec:
                                   ca:
                                     description: ca contains tbd
                                     type: string
+                                  client:
+                                    description: client contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                   crt:
                                     description: crt contains tbd
                                     type: string
                                   key:
                                     description: key contains tbd
                                     type: string
+                                  peer:
+                                    description: peer contains tbd
+                                    properties:
+                                      ca:
+                                        description: ca contains tbd
+                                        type: string
+                                    type: object
                                 type: object
                               tmpurlkey:
                                 description: tmpurlkey contains tbd
@@ -2939,21 +3277,35 @@ spec:
                       type: object
                   type: object
                 etcd:
+                  additionalProperties:
+                    type: string
                   description: etcd contains tbd
                   type: object
                 images:
                   description: images contains tbd
+                  properties:
+                    tags:
+                      additionalProperties:
+                        type: string
+                      description: tags contains tbd
+                      type: object
                   type: object
                 jobs:
                   description: jobs contains tbd
                   type: object
                 labels:
+                  additionalProperties:
+                    additionalProperties:
+                      type: string
+                    type: object
                   description: labels contains tbd
                   type: object
                 livenessProbe:
                   description: livenessProbe contains tbd
                   type: object
                 manifests:
+                  additionalProperties:
+                    type: boolean
                   description: manifests contains tbd
                   type: object
                 monitoring:
@@ -2970,6 +3322,103 @@ spec:
                   type: object
                 secrets:
                   description: secrets contains tbd
+                  properties:
+                    anchor:
+                      description: anchor contains tbd
+                      properties:
+                        tls:
+                          description: tls contains tbd
+                          properties:
+                            ca:
+                              description: ca contains tbd
+                              type: string
+                            client:
+                              description: client contains tbd
+                              properties:
+                                ca:
+                                  description: ca contains tbd
+                                  type: string
+                              type: object
+                            crt:
+                              description: crt contains tbd
+                              type: string
+                            key:
+                              description: key contains tbd
+                              type: string
+                            peer:
+                              description: peer contains tbd
+                              properties:
+                                ca:
+                                  description: ca contains tbd
+                                  type: string
+                              type: object
+                          type: object
+                      type: object
+                    etcd:
+                      description: etcd contains tbd
+                      properties:
+                        tls:
+                          description: tls contains tbd
+                          properties:
+                            ca:
+                              description: ca contains tbd
+                              type: string
+                            client:
+                              description: client contains tbd
+                              properties:
+                                ca:
+                                  description: ca contains tbd
+                                  type: string
+                              type: object
+                            crt:
+                              description: crt contains tbd
+                              type: string
+                            key:
+                              description: key contains tbd
+                              type: string
+                            peer:
+                              description: peer contains tbd
+                              properties:
+                                ca:
+                                  description: ca contains tbd
+                                  type: string
+                              type: object
+                          type: object
+                      type: object
+                    keyrings:
+                      description: keyrings contains tbd
+                      properties:
+                        admin:
+                          description: admin contains tbd
+                          type: string
+                      type: object
+                    tls:
+                      description: tls contains tbd
+                      properties:
+                        ca:
+                          description: ca contains tbd
+                          type: string
+                        client:
+                          description: client contains tbd
+                          properties:
+                            ca:
+                              description: ca contains tbd
+                              type: string
+                          type: object
+                        crt:
+                          description: crt contains tbd
+                          type: string
+                        key:
+                          description: key contains tbd
+                          type: string
+                        peer:
+                          description: peer contains tbd
+                          properties:
+                            ca:
+                              description: ca contains tbd
+                              type: string
+                          type: object
+                      type: object
                   type: object
                 service:
                   description: service contains tbd

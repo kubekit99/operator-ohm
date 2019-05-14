@@ -33,7 +33,7 @@ type ArmadaChartValues struct {
 	// bootstrapping contains tbd
 	Bootstrapping *AVBootstrapping `json:"bootstrapping,omitempty"`
 	// ceph_client contains tbd
-	CephClient *AVCephClient `json:"ceph_client,omitempty"`
+	CephClient *map[string]string `json:"ceph_client,omitempty"`
 	// ceph_mgr_modules_config contains tbd
 	CephMgrModulesConfig *AVCephMgrModulesConfig `json:"ceph_mgr_modules_config,omitempty"`
 	// command_prefix contains tbd
@@ -43,7 +43,7 @@ type ArmadaChartValues struct {
 	// data contains tbd
 	Data *AVData `json:"data,omitempty"`
 	// deployment contains tbd
-	Deployment *AVDeployment `json:"deployment,omitempty"`
+	Deployment *map[string]bool `json:"deployment,omitempty"`
 	// development contains tbd
 	Development *AVDevelopment `json:"development,omitempty"`
 	// endpoints contains tbd.
@@ -52,7 +52,7 @@ type ArmadaChartValues struct {
 	// Endpoints *map[string]AVEndpoint `json:"endpoints,omitempty"`
 	Endpoints *AVEndpoints `json:"endpoints,omitempty"`
 	// etcd contains tbd
-	Etcd *AVEtcd `json:"etcd,omitempty"`
+	Etcd *map[string]string `json:"etcd,omitempty"`
 	// images contains tbd
 	Images *AVImages `json:"images,omitempty"`
 	// jobs contains tbd
@@ -60,11 +60,11 @@ type ArmadaChartValues struct {
 	// kube_service contains tbd
 	KubeService *AVKubeService `json:"kube_service,omitempty"`
 	// labels contains tbd
-	Labels *AVLabels `json:"labels,omitempty"`
+	Labels *map[string]map[string]string `json:"labels,omitempty"`
 	// livenessProbe contains tbd
 	Livenessprobe *AVLivenessprobe `json:"livenessProbe,omitempty"`
 	// manifests contains tbd
-	Manifests *AVManifests `json:"manifests,omitempty"`
+	Manifests *map[string]bool `json:"manifests,omitempty"`
 	// monitoring contains tbd
 	Monitoring *AVMonitoring `json:"monitoring,omitempty"`
 	// network contains tbd
