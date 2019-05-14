@@ -34,7 +34,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/client-go/rest"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "github.com/ghodss/yaml"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/kube"
 	cpb "k8s.io/helm/pkg/proto/hapi/chart"
@@ -192,6 +192,7 @@ func (m chartmanager) loadChartAndConfig() (*cpb.Chart, *cpb.Config, error) {
 
 	// JEB: In order to check how tiller will merge the values
 	// JEB: We should actually check the syntax of the values against a schema there
+	// log.Info("loadChartAndConfig", "config", string(cr))
 	// vals, err := chartutil.CoalesceValues(chart, config)
 	// if err != nil {
 	// 	return nil, nil, err

@@ -18,7 +18,7 @@ package helmv2
 
 import (
 	"fmt"
-	yaml "gopkg.in/yaml.v2"
+	yaml "github.com/ghodss/yaml"
 	cpb "k8s.io/helm/pkg/proto/hapi/chart"
 )
 
