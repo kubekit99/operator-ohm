@@ -1,3 +1,5 @@
+# THIS REPOSITORY IS OBSOLETE. CONTENT HAS BEEN MIGRATED ONTO [Keleustes](https://github.com/keleustes/) 
+
 # POCs parking lot
 
 Before they get deleted from git, some of the POCs components

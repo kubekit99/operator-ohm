@@ -1,3 +1,5 @@
+# THIS REPOSITORY IS OBSOLETE. CONTENT HAS BEEN MIGRATED ONTO [Keleustes](https://github.com/keleustes/)
+
 # CRD/Operator POC in Openstack Airship and Openstack Helm ecosystems.
 
 Goal is to compare the behavior/usefullness of Helm CRD based operators and the

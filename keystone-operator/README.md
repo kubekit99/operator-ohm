@@ -1,3 +1,5 @@
+# THIS REPOSITORY IS OBSOLETE. CONTENT HAS BEEN MIGRATED ONTO [Keleustes](https://github.com/keleustes/) 
+
 # Keystone operator
 
 Armada-Operator and OpenstackServiceLifeCycle-Operator deployment of keystone

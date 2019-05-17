@@ -1,3 +1,5 @@
+# THIS REPOSITORY IS OBSOLETE. CONTENT HAS BEEN MIGRATED ONTO [Keleustes](https://github.com/keleustes/)
+
 # Kubernetes Operator for Openstack HELM
 
 # Creation of openstackhelm-operator
