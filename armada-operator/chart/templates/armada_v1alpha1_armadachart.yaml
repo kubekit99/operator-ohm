@@ -200,6 +200,16 @@ spec:
                   type: object
                 bootstrap:
                   description: bootstrap contains tbd
+                  properties:
+                    enabled:
+                      description: enabled contains tbd
+                      type: boolean
+                    ip:
+                      description: ip contains tbd
+                      type: string
+                    script:
+                      description: script contains tbd
+                      type: string
                   type: object
                 bootstrapping:
                   description: bootstrapping contains tbd

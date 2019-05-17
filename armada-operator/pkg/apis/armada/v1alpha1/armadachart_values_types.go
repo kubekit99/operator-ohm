@@ -78,6 +78,12 @@ type AVService struct {
 }
 
 type AVBootstrap struct {
+	// enabled contains tbd
+	Enabled bool `json:"enabled,omitempty"`
+	// script contains tbd
+	Script string `json:"script,omitempty"`
+	// ip contains tbd
+	Ip string `json:"ip,omitempty"`
 }
 
 type AVConf struct {
